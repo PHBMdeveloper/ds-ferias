@@ -5,8 +5,14 @@ import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { NewRequestCardClient } from "@/components/dashboard/new-request-card";
 import { ActionButtonForm } from "@/components/action-button-form";
+import { type VacationStatus } from "../../generated/prisma/enums";
 
-async function getData(userId: string, role: string) {
+async function getData(
+  userId: string,
+  role: string,
+  q?: string,
+  status?: string,
+) {
   if (role === "COLABORADOR") {
     const myRequests = await prisma.vacationRequest.findMany({
       where: { userId },
@@ -15,29 +21,67 @@ async function getData(userId: string, role: string) {
           orderBy: { changedAt: "asc" },
         },
       },
-      orderBy: { startDate: "desc" },
+      orderBy: { startDate: "asc" },
     });
     return { myRequests, managedRequests: [] };
   }
 
+  const where: any = {};
+
+  if (q) {
+    where.user = {
+      name: { contains: q, mode: "insensitive" },
+    };
+  }
+
+  if (status && status !== "TODOS") {
+    where.status = status as VacationStatus;
+  }
+
   const managedRequests = await prisma.vacationRequest.findMany({
+    where,
     include: {
       user: { select: { name: true, email: true } },
       history: {
         orderBy: { changedAt: "asc" },
       },
     },
-    orderBy: { startDate: "desc" },
+    orderBy: { startDate: "asc" },
   });
 
   return { myRequests: [], managedRequests };
 }
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: { [key: string]: string | string[] | undefined };
+}) {
   const user = await getSessionUser();
   if (!user) redirect("/login");
 
-  const { myRequests, managedRequests } = await getData(user.id, user.role);
+  const qParam = searchParams.q;
+  const statusParam = searchParams.status;
+
+  const q =
+    typeof qParam === "string"
+      ? qParam
+      : Array.isArray(qParam)
+        ? qParam[0]
+        : "";
+  const statusFilter =
+    typeof statusParam === "string"
+      ? statusParam
+      : Array.isArray(statusParam)
+        ? statusParam[0]
+        : "TODOS";
+
+  const { myRequests, managedRequests } = await getData(
+    user.id,
+    user.role,
+    q,
+    statusFilter,
+  );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
@@ -93,7 +137,12 @@ export default async function DashboardPage() {
             {user.role === "COLABORADOR" ? (
               <RequestsList requests={myRequests} isManager={false} />
             ) : (
-              <ManagerView userRole={user.role} requests={managedRequests} />
+              <ManagerView
+                userRole={user.role}
+                requests={managedRequests}
+                currentQuery={q}
+                currentStatus={statusFilter}
+              />
             )}
           </section>
 
@@ -166,7 +215,11 @@ export default async function DashboardPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
                   <div className="text-2xl font-bold text-slate-900 dark:text-white">
-                    {managedRequests.filter(r => r.status === "PENDENTE").length}
+                    {managedRequests.filter((r) =>
+                      user.role === "GESTOR"
+                        ? r.status === "PENDENTE"
+                        : r.status === "APROVADO_GESTOR",
+                    ).length}
                   </div>
                   <div className="mt-1 text-xs text-slate-600 dark:text-slate-400">Pendentes</div>
                 </div>
@@ -369,9 +422,13 @@ function RequestsList({
 function ManagerView({
   userRole,
   requests,
+  currentQuery,
+  currentStatus,
 }: {
   userRole: string;
   requests: any[];
+  currentQuery: string;
+  currentStatus: string;
 }) {
   const isManager = userRole === "GESTOR" || userRole === "RH";
 
@@ -409,19 +466,25 @@ function ManagerView({
 
   return (
     <div className="space-y-4">
-      {/* Filtros */}
-      <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+      {/* Filtros - enviam q e status via query string */}
+      <form
+        className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900"
+        method="get"
+      >
         <div className="flex flex-wrap gap-3">
           <div className="flex-1 min-w-[200px]">
             <input
               type="search"
+              name="q"
               placeholder="Buscar por colaborador..."
+              defaultValue={currentQuery}
               className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-white dark:placeholder:text-slate-500"
             />
           </div>
           <select
+            name="status"
             className="h-10 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
-            defaultValue="TODOS"
+            defaultValue={currentStatus || "TODOS"}
           >
             <option value="TODOS">Todos os status</option>
             <option value="PENDENTE">Pendentes</option>
@@ -429,8 +492,15 @@ function ManagerView({
             <option value="APROVADO_RH">Aprovado pelo RH</option>
             <option value="REPROVADO">Reprovado</option>
           </select>
+          <Button
+            type="submit"
+            size="sm"
+            className="px-4"
+          >
+            Filtrar
+          </Button>
         </div>
-      </div>
+      </form>
 
       {/* Lista de solicitações */}
       {requests.map((r) => (
@@ -489,32 +559,38 @@ function ManagerView({
 
             {/* Ações */}
             <div className="flex flex-wrap gap-2 border-t border-slate-200 pt-4 dark:border-slate-700">
-              <ActionButtonForm
-                action={`/api/vacation-requests/${r.id}/approve`}
-                variant="outline"
-                size="sm"
-                label="✅ Aprovar"
-                loadingLabel="Aprovando..."
-                className="flex-1 border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-400 dark:hover:bg-emerald-950/50"
-              />
-              <ActionButtonForm
-                action={`/api/vacation-requests/${r.id}/reject`}
-                variant="outline"
-                size="sm"
-                label="❌ Reprovar"
-                loadingLabel="Reprovando..."
-                className="flex-1 border-red-200 bg-red-50 text-red-700 hover:bg-red-100 dark:border-red-800 dark:bg-red-950/30 dark:text-red-400 dark:hover:bg-red-950/50"
-              />
-              {r.status === "PENDENTE" && (
-                <ActionButtonForm
-                  action={`/api/vacation-requests/${r.id}/delete`}
-                  variant="outline"
-                  size="sm"
-                  label="🗑️ Excluir"
-                  loadingLabel="Excluindo..."
-                  className="border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
-                />
+              {/* Gestor aprova PENDENTE, RH aprova APROVADO_GESTOR */}
+              {((userRole === "GESTOR" && r.status === "PENDENTE") ||
+                (userRole === "RH" && r.status === "APROVADO_GESTOR")) && (
+                <>
+                  <ActionButtonForm
+                    action={`/api/vacation-requests/${r.id}/approve`}
+                    variant="outline"
+                    size="sm"
+                    label="✅ Aprovar"
+                    loadingLabel="Aprovando..."
+                    className="flex-1 border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-400 dark:hover:bg-emerald-950/50"
+                  />
+                  <ActionButtonForm
+                    action={`/api/vacation-requests/${r.id}/reject`}
+                    variant="outline"
+                    size="sm"
+                    label="❌ Reprovar"
+                    loadingLabel="Reprovando..."
+                    className="flex-1 border-red-200 bg-red-50 text-red-700 hover:bg-red-100 dark:border-red-800 dark:bg-red-950/30 dark:text-red-400 dark:hover:bg-red-950/50"
+                  />
+                </>
               )}
+
+              {/* Excluir disponível sempre para gestor/RH */}
+              <ActionButtonForm
+                action={`/api/vacation-requests/${r.id}/delete`}
+                variant="outline"
+                size="sm"
+                label="🗑️ Excluir"
+                loadingLabel="Excluindo..."
+                className="border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+              />
             </div>
           </div>
         </div>

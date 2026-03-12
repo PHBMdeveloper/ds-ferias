@@ -30,6 +30,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Pedido não encontrado" }, { status: 404 });
   }
 
+  if (existing.userId === user.id) {
+    return NextResponse.json(
+      { error: "Você não pode aprovar a própria solicitação de férias." },
+      { status: 400 },
+    );
+  }
+
   // Regra de ordem: primeiro gestor, depois RH
   if (user.role === "GESTOR" && existing.status !== "PENDENTE") {
     return NextResponse.json(

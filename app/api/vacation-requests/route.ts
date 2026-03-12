@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/auth";
-import { type VacationStatus } from "@/../generated/prisma/enums";
+import { type VacationStatus } from "../../../generated/prisma/enums";
 
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -90,8 +90,8 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   const user = await getSessionUser();
-  if (!user || user.role !== "COLABORADOR") {
-    return NextResponse.json({ error: "Somente colaboradores podem criar pedidos" }, { status: 403 });
+  if (!user) {
+    return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
   }
 
   const contentType = request.headers.get("content-type") ?? "";

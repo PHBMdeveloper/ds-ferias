@@ -20,19 +20,20 @@ export async function POST(request: Request) {
     where: { id },
   });
 
+  const isOwner = existing.userId === user.id;
+  const isManager = user.role === "GESTOR" || user.role === "RH";
+
   if (!existing) {
     return NextResponse.json({ error: "Pedido não encontrado" }, { status: 404 });
   }
 
-  if (existing.status !== "PENDENTE") {
+  // Colaborador só pode excluir solicitações pendentes.
+  if (isOwner && existing.status !== "PENDENTE") {
     return NextResponse.json(
-      { error: "Somente pedidos pendentes podem ser excluídos." },
+      { error: "Você só pode excluir solicitações pendentes." },
       { status: 400 },
     );
   }
-
-  const isOwner = existing.userId === user.id;
-  const isManager = user.role === "GESTOR" || user.role === "RH";
 
   if (!isOwner && !isManager) {
     return NextResponse.json(
