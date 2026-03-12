@@ -1,3 +1,36 @@
+## Portal de Férias (DS-Férias)
+
+Aplicação interna para gestão de férias (colaborador, gestor e RH) construída em **Next.js 16**, **Prisma** e **Postgres**, com fluxo de aprovação em duas etapas (gestor → RH) e validações básicas da CLT.
+
+### Usuários de teste
+
+Todos os usuários abaixo usam a **mesma senha**:
+
+- **Senha padrão**: `senha123`
+
+#### Colaboradores
+
+- **Colaborador 1**
+  - E-mail: `colaborador1@empresa.com`
+- **Colaborador 2**
+  - E-mail: `colaborador2@empresa.com`
+
+#### Gestores
+
+- **Gestor Líder**
+  - E-mail: `gestor@empresa.com`
+- **Gestor Projeto**
+  - E-mail: `gestor2@empresa.com`
+
+#### RH
+
+- **RH Master**
+  - E-mail: `rh@empresa.com`
+- **RH Operacional**
+  - E-mail: `rh2@empresa.com`
+
+> Observação: gestores e RH também podem criar solicitações de férias, mas **não podem aprovar/reprovar as próprias solicitações**. Sempre é necessário outro usuário para aprovar.
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started
