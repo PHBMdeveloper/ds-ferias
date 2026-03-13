@@ -85,6 +85,9 @@ export default async function DashboardPage({
   const qParam = params.q;
   const statusParam = params.status;
   const viewParam = params.view;
+  const managerParam = params.managerId;
+  const fromParam = params.from;
+  const toParam = params.to;
 
   const q =
     typeof qParam === "string"
@@ -105,6 +108,27 @@ export default async function DashboardPage({
       : Array.isArray(viewParam)
         ? viewParam[0]
         : "inbox";
+
+  const managerFilter =
+    typeof managerParam === "string"
+      ? managerParam
+      : Array.isArray(managerParam)
+        ? managerParam[0]
+        : "";
+
+  const fromFilter =
+    typeof fromParam === "string"
+      ? fromParam
+      : Array.isArray(fromParam)
+        ? fromParam[0]
+        : "";
+
+  const toFilter =
+    typeof toParam === "string"
+      ? toParam
+      : Array.isArray(toParam)
+        ? toParam[0]
+        : "";
 
   const { myRequests, managedRequests } = await getData(
     user.id,
@@ -174,6 +198,9 @@ export default async function DashboardPage({
                 currentQuery={q}
                 currentStatus={statusFilter}
                 currentView={view}
+                currentManagerId={managerFilter}
+                currentFrom={fromFilter}
+                currentTo={toFilter}
               />
             )}
           </section>
@@ -507,6 +534,9 @@ function ManagerView({
   currentQuery,
   currentStatus,
   currentView,
+  currentManagerId,
+  currentFrom,
+  currentTo,
 }: {
   userRole: string;
   userId: string;
@@ -514,6 +544,9 @@ function ManagerView({
   currentQuery: string;
   currentStatus: string;
   currentView: string;
+  currentManagerId: string;
+  currentFrom: string;
+  currentTo: string;
 }) {
   const isManager = userRole === "GESTOR" || userRole === "RH";
 
@@ -537,11 +570,41 @@ function ManagerView({
   const normalizedQuery = currentQuery.trim().toLowerCase();
   const normalizedStatus = currentStatus || "TODOS";
 
+  // Opções de gestores (para filtro de RH)
+  const managerOptions: { id: string; name: string }[] =
+    userRole === "RH"
+      ? Array.from(
+          new Map(
+            requests
+              .filter((r) => r.user?.manager?.id && r.user.manager.name)
+              .map((r) => [r.user.manager.id, r.user.manager.name]),
+          ).entries(),
+        ).map(([id, name]) => ({ id, name }))
+      : [];
+
   const filteredRequests = requests.filter((r) => {
     const inManagerTeam =
       userRole === "GESTOR" ? r.user?.managerId === userId : true;
 
     if (!inManagerTeam) return false;
+
+    // Filtro de gestor (somente RH)
+    if (userRole === "RH" && currentManagerId && currentManagerId !== "ALL") {
+      if (!r.user?.manager?.id || r.user.manager.id !== currentManagerId) {
+        return false;
+      }
+    }
+
+    // Filtro de período
+    if (currentFrom) {
+      const fromDate = new Date(currentFrom);
+      if (r.startDate < fromDate) return false;
+    }
+
+    if (currentTo) {
+      const toDate = new Date(currentTo);
+      if (r.endDate > toDate) return false;
+    }
 
     if (view === "inbox") {
       if (userRole === "GESTOR" && r.status !== "PENDENTE") return false;
@@ -713,34 +776,81 @@ function ManagerView({
         method="get"
       >
         <input type="hidden" name="view" value={view} />
-        <div className="flex flex-wrap gap-3">
-          <div className="flex-1 min-w-[200px]">
-            <input
-              type="search"
-              name="q"
-              placeholder="🔍 Buscar por colaborador..."
-              defaultValue={currentQuery}
-              className="h-12 w-full rounded-lg border border-slate-300 bg-white px-4 text-base text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-white dark:placeholder:text-slate-500"
-            />
+        <div className="space-y-3">
+          <div className="flex flex-wrap gap-3">
+            <div className="flex-1 min-w-[200px]">
+              <input
+                type="search"
+                name="q"
+                placeholder="🔍 Buscar por colaborador..."
+                defaultValue={currentQuery}
+                className="h-12 w-full rounded-lg border border-slate-300 bg-white px-4 text-base text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-white dark:placeholder:text-slate-500"
+              />
+            </div>
+            <select
+              name="status"
+              className="h-12 rounded-lg border border-slate-300 bg-white px-4 text-base text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
+              defaultValue={currentStatus || "TODOS"}
+            >
+              <option value="TODOS">Todos os status</option>
+              <option value="PENDENTE">⏳ Pendentes</option>
+              <option value="APROVADO_GESTOR">👍 Aprovado pelo gestor</option>
+              <option value="APROVADO_RH">✅ Aprovado pelo RH</option>
+              <option value="REPROVADO">❌ Reprovado</option>
+            </select>
+
+            {userRole === "RH" && managerOptions.length > 0 && (
+              <select
+                name="managerId"
+                className="h-12 rounded-lg border border-slate-300 bg-white px-4 text-base text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
+                defaultValue={currentManagerId || "ALL"}
+              >
+                <option value="ALL">Todos os gestores</option>
+                {managerOptions.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
-          <select
-            name="status"
-            className="h-12 rounded-lg border border-slate-300 bg-white px-4 text-base text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
-            defaultValue={currentStatus || "TODOS"}
-          >
-            <option value="TODOS">Todos os status</option>
-            <option value="PENDENTE">⏳ Pendentes</option>
-            <option value="APROVADO_GESTOR">👍 Aprovado pelo gestor</option>
-            <option value="APROVADO_RH">✅ Aprovado pelo RH</option>
-            <option value="REPROVADO">❌ Reprovado</option>
-          </select>
-          <Button
-            type="submit"
-            size="lg"
-            className="px-6 text-base font-semibold"
-          >
-            Filtrar
-          </Button>
+
+          {userRole === "RH" && (
+            <div className="flex flex-wrap gap-3">
+              <div className="flex-1 min-w-[160px]">
+                <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">
+                  Início a partir de
+                </label>
+                <input
+                  type="date"
+                  name="from"
+                  defaultValue={currentFrom}
+                  className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
+                />
+              </div>
+              <div className="flex-1 min-w-[160px]">
+                <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-300">
+                  Fim até
+                </label>
+                <input
+                  type="date"
+                  name="to"
+                  defaultValue={currentTo}
+                  className="h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-600 dark:bg-slate-800 dark:text-white"
+                />
+              </div>
+            </div>
+          )}
+
+          <div className="flex justify-end">
+            <Button
+              type="submit"
+              size="lg"
+              className="px-6 text-base font-semibold"
+            >
+              Filtrar
+            </Button>
+          </div>
         </div>
       </form>
 

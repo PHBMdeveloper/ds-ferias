@@ -1,9 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/auth";
-import {
-  validateCltPeriod,
-} from "@/app/api/vacation-requests/route";
+import { validateCltPeriod } from "@/lib/vacationRules";
 
 type Params = {
   params: Promise<{ id: string }>;

@@ -2,37 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/auth";
 import { type VacationStatus } from "../../../generated/prisma/enums";
-
-const ONE_DAY_MS = 24 * 60 * 60 * 1000;
-
-export function validateCltPeriod(startDate: Date, endDate: Date) {
-  const days = Math.round((endDate.getTime() - startDate.getTime()) / ONE_DAY_MS) + 1;
-
-  // CLT: férias podem ser fracionadas em até 3 períodos,
-  // sendo que um deles deve ter, no mínimo, 14 dias corridos
-  // e os demais precisam ter pelo menos 5 dias corridos.
-  // Aqui estamos validando UM bloco: não pode ser menor que 5
-  // e nem maior que 30 dias corridos.
-  if (days < 5) {
-    return "Período mínimo de férias em um bloco é de 5 dias corridos, conforme CLT.";
-  }
-
-  if (days > 30) {
-    return "Período máximo de férias em um único bloco é de 30 dias.";
-  }
-
-  // Regra de aviso: início deve ter pelo menos 30 dias de antecedência
-  const today = new Date();
-  const diffFromTodayDays = Math.floor(
-    (startDate.setHours(0, 0, 0, 0) - today.setHours(0, 0, 0, 0)) / ONE_DAY_MS,
-  );
-
-  if (diffFromTodayDays < 30) {
-    return "O início das férias deve respeitar aviso mínimo de 30 dias.";
-  }
-
-  return null;
-}
+import { validateCltPeriod } from "@/lib/vacationRules";
 
 async function hasOverlappingRequest(userId: string, startDate: Date, endDate: Date) {
   const overlapping = await prisma.vacationRequest.findFirst({

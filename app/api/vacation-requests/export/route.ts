@@ -13,6 +13,9 @@ export async function GET(request: Request) {
   const q = searchParams.get("q") ?? "";
   const statusParam = searchParams.get("status") ?? "TODOS";
   const viewParam = searchParams.get("view") ?? "inbox";
+  const managerParam = searchParams.get("managerId") ?? "";
+  const fromParam = searchParams.get("from") ?? "";
+  const toParam = searchParams.get("to") ?? "";
 
   // Busca base no banco
   const where: any = {};
@@ -100,6 +103,24 @@ export async function GET(request: Request) {
 
     if (normalizedStatus !== "TODOS" && r.status !== normalizedStatus) {
       return false;
+    }
+
+    // Filtro adicional de gestor (RH)
+    if (user.role === "RH" && managerParam && managerParam !== "ALL") {
+      if (!r.user?.manager?.id || r.user.manager.id !== managerParam) {
+        return false;
+      }
+    }
+
+    // Filtro de período (todas as roles)
+    if (fromParam) {
+      const fromDate = new Date(fromParam);
+      if (r.startDate < fromDate) return false;
+    }
+
+    if (toParam) {
+      const toDate = new Date(toParam);
+      if (r.endDate > toDate) return false;
     }
 
     return true;
