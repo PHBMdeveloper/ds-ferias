@@ -132,10 +132,10 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             <h1 className="text-2xl font-bold text-[#1a1d23] dark:text-white">
               {isApprover ? "Gestão de Férias" : "Minhas Férias"}
             </h1>
-            <p className="mt-1 text-sm text-[#64748b] dark:text-slate-400">
+            <p className="mt-1 text-base text-[#64748b] dark:text-slate-400">
               Bem-vindo(a), {user.name} · {getRoleLabel(user.role)}
               {userFull?.department && (
-                <span className="ml-2 rounded-full bg-[#eff6ff] px-2 py-0.5 text-xs font-medium text-blue-700 dark:bg-blue-900/20 dark:text-blue-300">
+                <span className="ml-2 rounded-full bg-[#eff6ff] px-2 py-0.5 text-sm font-medium text-blue-700 dark:bg-blue-900/20 dark:text-blue-300">
                   {userFull.department}
                 </span>
               )}
@@ -179,8 +179,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
               {/* Nova solicitação */}
               <div className="rounded-lg border border-[#e2e8f0] bg-white dark:border-[#252a35] dark:bg-[#1a1d23]">
                 <div className="border-b border-[#e2e8f0] px-5 py-4 dark:border-[#252a35]">
-                  <h3 className="text-sm font-semibold text-[#1a1d23] dark:text-white">Nova Solicitação</h3>
-                  <p className="mt-0.5 text-xs text-[#64748b] dark:text-slate-400">
+                  <h3 className="text-base font-semibold text-[#1a1d23] dark:text-white">Nova Solicitação</h3>
+                  <p className="mt-0.5 text-sm text-[#64748b] dark:text-slate-400">
                     Informe os períodos desejados
                   </p>
                 </div>
@@ -232,13 +232,13 @@ function AppSidebar({
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
           </svg>
         </div>
-        <span className="text-base font-bold text-[#1a1d23] dark:text-white">DS-Férias</span>
+        <span className="text-lg font-bold text-[#1a1d23] dark:text-white">DS-Férias</span>
       </div>
 
       {/* Nav */}
       <nav className="flex flex-1 flex-col gap-1 px-3 py-4">
         <p className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-wider text-[#94a3b8]">Menu</p>
-        <SidebarItem href="/dashboard" icon={<IconDashboard />} label="Dashboard" active={true} />
+        <SidebarItem href="/dashboard" icon={<IconDashboard />} label="Dashboard" active={level < 2} />
 
         {level >= 2 && (
           <>
@@ -273,8 +273,8 @@ function AppSidebar({
         {/* Mini saldo na sidebar */}
         <div className="rounded-md bg-[#f5f6f8] px-3 py-2.5 dark:bg-[#1e2330]">
           <div className="flex items-center justify-between">
-            <span className="text-xs text-[#64748b] dark:text-slate-400">Disponível</span>
-            <span className={`text-sm font-bold ${balance.availableDays > 0 ? "text-emerald-600" : "text-red-500"}`}>
+            <span className="text-sm text-[#64748b] dark:text-slate-400">Disponível</span>
+            <span className={`text-base font-bold ${balance.availableDays > 0 ? "text-emerald-600" : "text-red-500"}`}>
               {balance.availableDays} dias
             </span>
           </div>
@@ -295,18 +295,18 @@ function AppSidebar({
       {/* Usuário */}
       <div className="border-t border-[#e2e8f0] px-4 py-4 dark:border-[#252a35]">
         <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-100 text-sm font-bold text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-100 text-base font-bold text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
             {user.name.charAt(0).toUpperCase()}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold text-[#1a1d23] dark:text-white">{user.name}</p>
-            <p className="truncate text-xs text-[#64748b] dark:text-slate-400">{getRoleLabel(user.role)}</p>
+            <p className="truncate text-base font-semibold text-[#1a1d23] dark:text-white">{user.name}</p>
+            <p className="truncate text-sm text-[#64748b] dark:text-slate-400">{getRoleLabel(user.role)}</p>
           </div>
         </div>
         <form action="/api/logout" method="post" className="mt-3">
           <button
             type="submit"
-            className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-[#64748b] transition hover:bg-[#f5f6f8] hover:text-[#1a1d23] dark:hover:bg-[#1e2330] dark:hover:text-white"
+            className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-base text-[#64748b] transition hover:bg-[#f5f6f8] hover:text-[#1a1d23] dark:hover:bg-[#1e2330] dark:hover:text-white"
           >
             <IconLogout />
             Sair
@@ -335,7 +335,7 @@ function SidebarItem({
   return (
     <Link
       href={href}
-      className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+      className={`flex items-center gap-3 rounded-md px-3 py-2 text-base font-medium transition-colors ${
         active
           ? "bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400"
           : "text-[#64748b] hover:bg-[#f5f6f8] hover:text-[#1a1d23] dark:text-slate-400 dark:hover:bg-[#1e2330] dark:hover:text-white"
@@ -344,7 +344,7 @@ function SidebarItem({
       <span className="h-4 w-4 shrink-0">{icon}</span>
       <span className="flex-1">{label}</span>
       {badge !== undefined && (
-        <span className={`flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-xs font-bold ${badgeAlert ? "bg-red-500 text-white" : "bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300"}`}>
+        <span className={`flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-sm font-bold ${badgeAlert ? "bg-red-500 text-white" : "bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300"}`}>
           {badge}
         </span>
       )}
@@ -367,9 +367,9 @@ function TopBar() {
 function StatCard({ label, value, sublabel, alert = false }: { label: string; value: number; sublabel: string; alert?: boolean }) {
   return (
     <div className="rounded-lg border border-[#e2e8f0] bg-white p-5 dark:border-[#252a35] dark:bg-[#1a1d23]">
-      <p className="text-xs font-medium uppercase tracking-wide text-[#64748b] dark:text-slate-400">{label}</p>
+      <p className="text-sm font-medium uppercase tracking-wide text-[#64748b] dark:text-slate-400">{label}</p>
       <p className={`mt-1 text-3xl font-bold ${alert && value > 0 ? "text-red-500" : "text-[#1a1d23] dark:text-white"}`}>{value}</p>
-      <p className="mt-1 text-xs text-[#64748b] dark:text-slate-500">{sublabel}</p>
+      <p className="mt-1 text-sm text-[#64748b] dark:text-slate-500">{sublabel}</p>
     </div>
   );
 }
@@ -389,8 +389,8 @@ function VacationBalanceCard({ balance }: { balance: ReturnType<typeof calculate
   return (
     <div className="rounded-lg border border-[#e2e8f0] bg-white dark:border-[#252a35] dark:bg-[#1a1d23]">
       <div className="border-b border-[#e2e8f0] px-5 py-4 dark:border-[#252a35]">
-        <h3 className="text-sm font-semibold text-[#1a1d23] dark:text-white">Saldo de Férias</h3>
-        <p className="mt-0.5 text-xs text-[#64748b]">Ciclo atual</p>
+        <h3 className="text-base font-semibold text-[#1a1d23] dark:text-white">Saldo de Férias</h3>
+        <p className="mt-0.5 text-sm text-[#64748b]">Ciclo atual</p>
       </div>
       <div className="p-5">
         {!balance.hasEntitlement ? (
@@ -398,17 +398,17 @@ function VacationBalanceCard({ balance }: { balance: ReturnType<typeof calculate
             <p className="text-2xl font-bold text-amber-500">
               {Math.max(0, 12 - balance.monthsWorked)} meses
             </p>
-            <p className="mt-1 text-xs text-[#64748b] dark:text-slate-400">para adquirir direito a férias</p>
-            <p className="mt-2 text-xs text-[#94a3b8]">{balance.monthsWorked} meses de empresa</p>
+            <p className="mt-1 text-sm text-[#64748b] dark:text-slate-400">para adquirir direito a férias</p>
+            <p className="mt-2 text-sm text-[#94a3b8]">{balance.monthsWorked} meses de empresa</p>
           </div>
         ) : (
           <>
             <div className="mb-4 flex items-end justify-between">
               <div>
                 <p className="text-3xl font-bold text-[#1a1d23] dark:text-white">{balance.availableDays}</p>
-                <p className="text-xs text-[#64748b] dark:text-slate-400">dias disponíveis</p>
+                <p className="text-sm text-[#64748b] dark:text-slate-400">dias disponíveis</p>
               </div>
-              <div className="text-right text-xs text-[#64748b] dark:text-slate-400">
+              <div className="text-right text-sm text-[#64748b] dark:text-slate-400">
                 <p>{balance.entitledDays} dias/ciclo</p>
               </div>
             </div>
@@ -441,7 +441,7 @@ function BalanceStat({ label, value, color }: { label: string; value: number; co
   }[color];
   return (
     <div>
-      <p className={`text-base font-bold ${colors}`}>{value}</p>
+      <p className={`text-lg font-bold ${colors}`}>{value}</p>
       <p className="text-[10px] text-[#94a3b8]">{label}</p>
     </div>
   );
@@ -457,14 +457,14 @@ function ApprovalFlowCard({ requesterRole }: { requesterRole: string }) {
 
   return (
     <div className="rounded-lg border border-[#e2e8f0] bg-white p-5 dark:border-[#252a35] dark:bg-[#1a1d23]">
-      <h4 className="mb-3 text-sm font-semibold text-[#1a1d23] dark:text-white">Fluxo de Aprovação</h4>
+      <h4 className="mb-3 text-base font-semibold text-[#1a1d23] dark:text-white">Fluxo de Aprovação</h4>
       <ol className="relative space-y-3">
         {steps.map((step, i) => (
           <li key={i} className="flex items-center gap-3">
             <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-100 text-[11px] font-bold text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
               {i + 1}
             </div>
-            <span className="text-xs text-[#475569] dark:text-slate-400">{step}</span>
+            <span className="text-sm text-[#475569] dark:text-slate-400">{step}</span>
           </li>
         ))}
       </ol>
@@ -490,9 +490,9 @@ function BlackoutAlert({ blackouts }: { blackouts: any[] }) {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
         </svg>
         <div>
-          <p className="text-xs font-semibold text-amber-800 dark:text-amber-200">Períodos bloqueados pela empresa</p>
+          <p className="text-sm font-semibold text-amber-800 dark:text-amber-200">Períodos bloqueados pela empresa</p>
           {active.slice(0, 2).map((b: any, i) => (
-            <p key={i} className="mt-1 text-xs text-amber-700 dark:text-amber-300">
+            <p key={i} className="mt-1 text-sm text-amber-700 dark:text-amber-300">
               {new Date(b.startDate).toLocaleDateString("pt-BR")} – {new Date(b.endDate).toLocaleDateString("pt-BR")}: {b.reason}
             </p>
           ))}
@@ -509,12 +509,12 @@ function BlackoutListCard({ blackouts }: { blackouts: any[] }) {
   return (
     <div className="rounded-lg border border-[#e2e8f0] bg-white dark:border-[#252a35] dark:bg-[#1a1d23]">
       <div className="border-b border-[#e2e8f0] px-5 py-3 dark:border-[#252a35]">
-        <h4 className="text-xs font-semibold text-[#1a1d23] dark:text-white">Períodos Bloqueados</h4>
+        <h4 className="text-sm font-semibold text-[#1a1d23] dark:text-white">Períodos Bloqueados</h4>
       </div>
       <div className="divide-y divide-[#f1f5f9] dark:divide-[#252a35]">
         {active.map((b: any) => (
           <div key={b.id} className="px-4 py-3">
-            <p className="text-xs font-medium text-[#1a1d23] dark:text-white">{b.reason}</p>
+            <p className="text-sm font-medium text-[#1a1d23] dark:text-white">{b.reason}</p>
             <p className="mt-0.5 text-[10px] text-[#64748b] dark:text-slate-400">
               {new Date(b.startDate).toLocaleDateString("pt-BR")} – {new Date(b.endDate).toLocaleDateString("pt-BR")}
               {b.department && ` · ${b.department}`}
@@ -572,7 +572,7 @@ function StatusChip({ color, label }: { color: ChipColor; label: string }) {
     slate: "bg-slate-50 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700",
   };
   return (
-    <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${styles[color]}`}>
+    <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-sm font-semibold ${styles[color]}`}>
       {label}
     </span>
   );
@@ -645,7 +645,7 @@ function MyRequestsList({
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-[#1a1d23] dark:text-white">
+        <h3 className="text-base font-semibold text-[#1a1d23] dark:text-white">
           Histórico de solicitações
         </h3>
         <ExportButton href="/api/vacation-requests/export" />
@@ -736,12 +736,12 @@ function FilterForm({
             name="q"
             placeholder="Buscar colaborador..."
             defaultValue={filters.query}
-            className="h-9 min-w-[180px] flex-1 rounded-md border border-[#e2e8f0] bg-[#f5f6f8] px-3 text-sm text-[#1a1d23] placeholder:text-[#94a3b8] focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-[#252a35] dark:bg-[#0f1117] dark:text-white"
+            className="h-9 min-w-[180px] flex-1 rounded-md border border-[#e2e8f0] bg-[#f5f6f8] px-3 text-base text-[#1a1d23] placeholder:text-[#94a3b8] focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-[#252a35] dark:bg-[#0f1117] dark:text-white"
           />
           <select
             name="status"
             defaultValue={filters.status}
-            className="h-9 rounded-md border border-[#e2e8f0] bg-[#f5f6f8] px-3 text-sm text-[#1a1d23] focus:border-blue-500 focus:outline-none dark:border-[#252a35] dark:bg-[#0f1117] dark:text-white"
+            className="h-9 rounded-md border border-[#e2e8f0] bg-[#f5f6f8] px-3 text-base text-[#1a1d23] focus:border-blue-500 focus:outline-none dark:border-[#252a35] dark:bg-[#0f1117] dark:text-white"
           >
             <option value="TODOS">Todos os status</option>
             <option value="PENDENTE">Pendente</option>
@@ -755,7 +755,7 @@ function FilterForm({
             <select
               name="managerId"
               defaultValue={filters.managerId}
-              className="h-9 rounded-md border border-[#e2e8f0] bg-[#f5f6f8] px-3 text-sm text-[#1a1d23] focus:border-blue-500 focus:outline-none dark:border-[#252a35] dark:bg-[#0f1117] dark:text-white"
+              className="h-9 rounded-md border border-[#e2e8f0] bg-[#f5f6f8] px-3 text-base text-[#1a1d23] focus:border-blue-500 focus:outline-none dark:border-[#252a35] dark:bg-[#0f1117] dark:text-white"
             >
               <option value="ALL">Todos os coordenadores</option>
               {managerOptions.map((m) => (
@@ -768,7 +768,7 @@ function FilterForm({
             <select
               name="department"
               defaultValue={filters.department}
-              className="h-9 rounded-md border border-[#e2e8f0] bg-[#f5f6f8] px-3 text-sm text-[#1a1d23] focus:border-blue-500 focus:outline-none dark:border-[#252a35] dark:bg-[#0f1117] dark:text-white"
+              className="h-9 rounded-md border border-[#e2e8f0] bg-[#f5f6f8] px-3 text-base text-[#1a1d23] focus:border-blue-500 focus:outline-none dark:border-[#252a35] dark:bg-[#0f1117] dark:text-white"
             >
               <option value="">Todos os departamentos</option>
               {deptOptions.map((d) => (
@@ -781,20 +781,20 @@ function FilterForm({
         {userLevel >= 4 && (
           <div className="flex flex-wrap gap-2">
             <div className="min-w-[140px] flex-1">
-              <label className="mb-1 block text-xs text-[#64748b] dark:text-slate-400">Início a partir de</label>
+              <label className="mb-1 block text-sm text-[#64748b] dark:text-slate-400">Início a partir de</label>
               <input type="date" name="from" defaultValue={filters.from}
-                className="h-9 w-full rounded-md border border-[#e2e8f0] bg-[#f5f6f8] px-3 text-sm focus:border-blue-500 focus:outline-none dark:border-[#252a35] dark:bg-[#0f1117] dark:text-white" />
+                className="h-9 w-full rounded-md border border-[#e2e8f0] bg-[#f5f6f8] px-3 text-base focus:border-blue-500 focus:outline-none dark:border-[#252a35] dark:bg-[#0f1117] dark:text-white" />
             </div>
             <div className="min-w-[140px] flex-1">
-              <label className="mb-1 block text-xs text-[#64748b] dark:text-slate-400">Fim até</label>
+              <label className="mb-1 block text-sm text-[#64748b] dark:text-slate-400">Fim até</label>
               <input type="date" name="to" defaultValue={filters.to}
-                className="h-9 w-full rounded-md border border-[#e2e8f0] bg-[#f5f6f8] px-3 text-sm focus:border-blue-500 focus:outline-none dark:border-[#252a35] dark:bg-[#0f1117] dark:text-white" />
+                className="h-9 w-full rounded-md border border-[#e2e8f0] bg-[#f5f6f8] px-3 text-base focus:border-blue-500 focus:outline-none dark:border-[#252a35] dark:bg-[#0f1117] dark:text-white" />
             </div>
           </div>
         )}
 
         <div className="flex justify-end">
-          <Button type="submit" size="sm" className="bg-blue-600 px-4 text-sm font-medium text-white hover:bg-blue-700">
+          <Button type="submit" size="sm" className="bg-blue-600 px-4 text-base font-medium text-white hover:bg-blue-700">
             Filtrar
           </Button>
         </div>
@@ -810,13 +810,13 @@ function RequestsGroupedByManager({ requests, userId }: { requests: any[]; userI
       {Object.entries(groups).map(([managerName, groupReqs]) => (
         <section key={managerName} className="space-y-3">
           <div className="flex items-center gap-2 rounded-md bg-[#f5f6f8] px-4 py-2.5 dark:bg-[#1e2330]">
-            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-indigo-100 text-xs font-bold text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300">
+            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-indigo-100 text-sm font-bold text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300">
               {managerName.charAt(0).toUpperCase()}
             </span>
-            <h3 className="text-sm font-semibold text-[#1a1d23] dark:text-white">
+            <h3 className="text-base font-semibold text-[#1a1d23] dark:text-white">
               Coordenador(a): {managerName}
             </h3>
-            <span className="ml-auto text-xs text-[#64748b]">{(groupReqs as any[]).length} solicitação(ões)</span>
+            <span className="ml-auto text-sm text-[#64748b]">{(groupReqs as any[]).length} solicitação(ões)</span>
           </div>
           {(groupReqs as any[]).map((r: any) => (
             <RequestCard key={r.id} request={r} userId={userId} />
@@ -867,15 +867,15 @@ function RequestCard({
             <div>
               {!isOwner && request.user && (
                 <div className="flex items-center gap-2">
-                  <p className="text-sm font-semibold text-[#1a1d23] dark:text-white">{request.user.name}</p>
+                  <p className="text-base font-semibold text-[#1a1d23] dark:text-white">{request.user.name}</p>
                   <RoleChip role={request.user.role} />
                 </div>
               )}
-              <p className="text-sm text-[#64748b] dark:text-slate-400">
+              <p className="text-base text-[#64748b] dark:text-slate-400">
                 {formatDateRange(request.startDate, request.endDate)}
               </p>
               {request.user?.department && (
-                <p className="text-xs text-[#94a3b8]">{request.user.department}</p>
+                <p className="text-sm text-[#94a3b8]">{request.user.department}</p>
               )}
             </div>
           </div>
@@ -885,7 +885,7 @@ function RequestCard({
         {/* Nota do solicitante */}
         {request.notes && (
           <div className="mt-3 rounded-md bg-[#f5f6f8] px-3 py-2 dark:bg-[#0f1117]">
-            <p className="text-xs text-[#64748b] dark:text-slate-400">
+            <p className="text-sm text-[#64748b] dark:text-slate-400">
               <span className="font-medium text-[#475569] dark:text-slate-300">Obs.: </span>
               {request.notes}
             </p>
@@ -924,10 +924,10 @@ function RoleChip({ role }: { role: string }) {
 function HistorySection({ history }: { history: any[] }) {
   return (
     <div className="mt-4 rounded-md border border-[#e2e8f0] bg-[#f5f6f8] p-3 dark:border-[#252a35] dark:bg-[#0f1117]">
-      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#64748b] dark:text-slate-400">Histórico</p>
+      <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-[#64748b] dark:text-slate-400">Histórico</p>
       <div className="space-y-1.5">
         {history.map((h, idx) => (
-          <div key={idx} className="flex items-start gap-2 text-xs text-[#475569] dark:text-slate-400">
+          <div key={idx} className="flex items-start gap-2 text-sm text-[#475569] dark:text-slate-400">
             <span className="mt-0.5 text-[#94a3b8]">→</span>
             <span className="font-medium shrink-0">
               {new Date(h.changedAt).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}
@@ -967,7 +967,7 @@ function RequestActions({
             size="sm"
             label="Aprovar"
             loadingLabel="Aprovando..."
-            className="border-emerald-200 bg-emerald-50 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-400"
+            className="border-emerald-200 bg-emerald-50 text-sm font-semibold text-emerald-700 hover:bg-emerald-100 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-400"
           />
           <ActionButtonForm
             action={`/api/vacation-requests/${request.id}/reject`}
@@ -975,7 +975,7 @@ function RequestActions({
             size="sm"
             label="Reprovar"
             loadingLabel="Reprovando..."
-            className="border-red-200 bg-red-50 text-xs font-semibold text-red-700 hover:bg-red-100 dark:border-red-800 dark:bg-red-950/30 dark:text-red-400"
+            className="border-red-200 bg-red-50 text-sm font-semibold text-red-700 hover:bg-red-100 dark:border-red-800 dark:bg-red-950/30 dark:text-red-400"
           />
         </>
       )}
@@ -986,7 +986,7 @@ function RequestActions({
         size="sm"
         label={isPendingRH ? "Excluir (pend. Gerente)" : "Excluir"}
         loadingLabel="Excluindo..."
-        className="ml-auto border-red-200 text-xs font-semibold text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400"
+        className="ml-auto border-red-200 text-sm font-semibold text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400"
       />
     </div>
   );
@@ -995,7 +995,7 @@ function RequestActions({
 function EditPeriodForm({ request }: { request: any }) {
   return (
     <details className="w-full">
-      <summary className="flex cursor-pointer items-center justify-between rounded-md border border-[#e2e8f0] bg-[#f5f6f8] px-3 py-2 text-xs font-semibold text-[#475569] hover:bg-[#e2e8f0] dark:border-[#252a35] dark:bg-[#1e2330] dark:text-slate-300">
+      <summary className="flex cursor-pointer items-center justify-between rounded-md border border-[#e2e8f0] bg-[#f5f6f8] px-3 py-2 text-sm font-semibold text-[#475569] hover:bg-[#e2e8f0] dark:border-[#252a35] dark:bg-[#1e2330] dark:text-slate-300">
         <span className="flex items-center gap-1.5">
           <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -1010,17 +1010,17 @@ function EditPeriodForm({ request }: { request: any }) {
         className="mt-3 space-y-3 rounded-md border border-[#e2e8f0] bg-[#f5f6f8] p-4 dark:border-[#252a35] dark:bg-[#0f1117]">
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
-            <label className="mb-1 block text-xs font-medium text-[#475569] dark:text-slate-400">Início</label>
+            <label className="mb-1 block text-sm font-medium text-[#475569] dark:text-slate-400">Início</label>
             <input type="date" name="startDate" required defaultValue={new Date(request.startDate).toISOString().split("T")[0]}
-              className="h-9 w-full rounded-md border border-[#e2e8f0] bg-white px-3 text-sm focus:border-blue-500 focus:outline-none dark:border-[#252a35] dark:bg-[#1a1d23] dark:text-white" />
+              className="h-9 w-full rounded-md border border-[#e2e8f0] bg-white px-3 text-base focus:border-blue-500 focus:outline-none dark:border-[#252a35] dark:bg-[#1a1d23] dark:text-white" />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-medium text-[#475569] dark:text-slate-400">Término</label>
+            <label className="mb-1 block text-sm font-medium text-[#475569] dark:text-slate-400">Término</label>
             <input type="date" name="endDate" required defaultValue={new Date(request.endDate).toISOString().split("T")[0]}
-              className="h-9 w-full rounded-md border border-[#e2e8f0] bg-white px-3 text-sm focus:border-blue-500 focus:outline-none dark:border-[#252a35] dark:bg-[#1a1d23] dark:text-white" />
+              className="h-9 w-full rounded-md border border-[#e2e8f0] bg-white px-3 text-base focus:border-blue-500 focus:outline-none dark:border-[#252a35] dark:bg-[#1a1d23] dark:text-white" />
           </div>
         </div>
-        <Button type="submit" size="sm" className="w-full bg-blue-600 text-xs font-semibold text-white hover:bg-blue-700">
+        <Button type="submit" size="sm" className="w-full bg-blue-600 text-sm font-semibold text-white hover:bg-blue-700">
           Salvar
         </Button>
       </form>
@@ -1040,15 +1040,15 @@ function EmptyState({ message }: { message: string }) {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
         </svg>
       </div>
-      <p className="text-sm font-semibold text-[#1a1d23] dark:text-white">Nenhuma solicitação</p>
-      <p className="mt-1 text-xs text-[#64748b] dark:text-slate-400">{message}</p>
+      <p className="text-base font-semibold text-[#1a1d23] dark:text-white">Nenhuma solicitação</p>
+      <p className="mt-1 text-sm text-[#64748b] dark:text-slate-400">{message}</p>
     </div>
   );
 }
 
 function ExportButton({ href }: { href: string }) {
   return (
-    <a href={href} className="inline-flex items-center gap-1.5 rounded-md border border-[#e2e8f0] bg-white px-3 py-1.5 text-xs font-semibold text-[#475569] transition hover:bg-[#f5f6f8] dark:border-[#252a35] dark:bg-[#1a1d23] dark:text-slate-300 dark:hover:bg-[#252a35]">
+    <a href={href} className="inline-flex items-center gap-1.5 rounded-md border border-[#e2e8f0] bg-white px-3 py-1.5 text-sm font-semibold text-[#475569] transition hover:bg-[#f5f6f8] dark:border-[#252a35] dark:bg-[#1a1d23] dark:text-slate-300 dark:hover:bg-[#252a35]">
       <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5m0 0l5-5m-5 5V4" />
       </svg>
