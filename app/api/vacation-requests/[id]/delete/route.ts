@@ -29,12 +29,18 @@ export async function POST(request: Request, { params }: Params) {
   const isOwner = existing.userId === user.id;
   const isManager = user.role === "GESTOR" || user.role === "RH";
 
-  // Colaborador só pode excluir solicitações pendentes.
-  if (isOwner && existing.status !== "PENDENTE") {
-    return NextResponse.json(
-      { error: "Você só pode excluir solicitações pendentes." },
-      { status: 400 },
-    );
+  // Regra para colaborador:
+  // - Pode excluir enquanto o RH ainda não tiver atuado:
+  //   - PENDENTE (antes do gestor)
+  //   - APROVADO_GESTOR (pendente RH)
+  // - Não pode excluir depois que o RH aprovou ou reprovou.
+  if (isOwner) {
+    if (existing.status !== "PENDENTE" && existing.status !== "APROVADO_GESTOR") {
+      return NextResponse.json(
+        { error: "Você só pode excluir solicitações pendentes ou aprovadas apenas pelo gestor (aguardando RH)." },
+        { status: 400 },
+      );
+    }
   }
 
   if (!isOwner && !isManager) {

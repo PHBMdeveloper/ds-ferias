@@ -271,18 +271,22 @@ export default async function DashboardPage({
 }
 
 function StatusBadge({ status }: { status: string }) {
+  // Caso especial: gestor já aprovou, mas ainda falta RH
+  if (status === "APROVADO_GESTOR") {
+    return (
+      <div className="flex flex-wrap items-center gap-2">
+        <GestorApprovedBadge />
+        <PendingRhBadge />
+      </div>
+    );
+  }
+
   const variants: Record<string, { bg: string; text: string; border: string; icon: string }> = {
     PENDENTE: { 
       bg: "bg-amber-50 dark:bg-amber-950/30", 
       text: "text-amber-700 dark:text-amber-400", 
       border: "border-amber-200 dark:border-amber-800",
       icon: "⏳"
-    },
-    APROVADO_GESTOR: { 
-      bg: "bg-blue-50 dark:bg-blue-950/30", 
-      text: "text-blue-700 dark:text-blue-400", 
-      border: "border-blue-200 dark:border-blue-800",
-      icon: "👍"
     },
     APROVADO_RH: { 
       bg: "bg-emerald-50 dark:bg-emerald-950/30", 
@@ -305,6 +309,24 @@ function StatusBadge({ status }: { status: string }) {
     <span className={`inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-sm font-bold ${variant.bg} ${variant.text} ${variant.border}`}>
       <span className="text-base">{variant.icon}</span>
       <span>{label}</span>
+    </span>
+  );
+}
+
+function GestorApprovedBadge() {
+  return (
+    <span className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-4 py-1.5 text-sm font-bold text-blue-700 dark:border-blue-800 dark:bg-blue-950/30 dark:text-blue-400">
+      <span className="text-base">👍</span>
+      <span>Aprovado gestor</span>
+    </span>
+  );
+}
+
+function PendingRhBadge() {
+  return (
+    <span className="inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-4 py-1.5 text-sm font-bold text-amber-700 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-400">
+      <span className="text-base">⏳</span>
+      <span>Pendente RH</span>
     </span>
   );
 }
@@ -389,66 +411,68 @@ function RequestsList({
             )}
 
             {/* Ações */}
-            {r.status === "PENDENTE" && (
+            {(r.status === "PENDENTE" || r.status === "APROVADO_GESTOR") && (
               <div className="flex flex-col gap-3 border-t border-slate-200 pt-5 dark:border-slate-700">
-                <details className="group/edit">
-                  <summary className="flex cursor-pointer items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-5 py-3 text-base font-semibold text-slate-700 transition-colors hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700">
-                    <span className="flex items-center gap-2">
-                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                {r.status === "PENDENTE" && (
+                  <details className="group/edit">
+                    <summary className="flex cursor-pointer items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-5 py-3 text-base font-semibold text-slate-700 transition-colors hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700">
+                      <span className="flex items-center gap-2">
+                        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                        Editar período das férias
+                      </span>
+                      <svg className="h-5 w-5 transition-transform group-open/edit:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                       </svg>
-                      Editar período das férias
-                    </span>
-                    <svg className="h-5 w-5 transition-transform group-open/edit:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </summary>
-                  <form
-                    action={`/api/vacation-requests/${r.id}/update`}
-                    method="post"
-                    className="mt-4 space-y-4 rounded-lg border border-slate-200 bg-slate-50 p-5 dark:border-slate-700 dark:bg-slate-800"
-                  >
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      <div className="space-y-2">
-                        <label className="block text-sm font-bold text-slate-700 dark:text-slate-300">
-                          Data de início
-                        </label>
-                        <input
-                          type="date"
-                          name="startDate"
-                          required
-                          defaultValue={new Date(r.startDate).toISOString().split('T')[0]}
-                          className="h-12 w-full rounded-lg border border-slate-300 bg-white px-4 text-base text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-600 dark:bg-slate-900 dark:text-white"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="block text-sm font-bold text-slate-700 dark:text-slate-300">
-                          Data de término
-                        </label>
-                        <input
-                          type="date"
-                          name="endDate"
-                          required
-                          defaultValue={new Date(r.endDate).toISOString().split('T')[0]}
-                          className="h-12 w-full rounded-lg border border-slate-300 bg-white px-4 text-base text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-600 dark:bg-slate-900 dark:text-white"
-                        />
-                      </div>
-                    </div>
-                    <Button
-                      type="submit"
-                      size="lg"
-                      className="w-full bg-blue-600 text-base font-semibold text-white hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"
+                    </summary>
+                    <form
+                      action={`/api/vacation-requests/${r.id}/update`}
+                      method="post"
+                      className="mt-4 space-y-4 rounded-lg border border-slate-200 bg-slate-50 p-5 dark:border-slate-700 dark:bg-slate-800"
                     >
-                      Salvar alterações
-                    </Button>
-                  </form>
-                </details>
-                
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <div className="space-y-2">
+                          <label className="block text-sm font-bold text-slate-700 dark:text-slate-300">
+                            Data de início
+                          </label>
+                          <input
+                            type="date"
+                            name="startDate"
+                            required
+                            defaultValue={new Date(r.startDate).toISOString().split('T')[0]}
+                            className="h-12 w-full rounded-lg border border-slate-300 bg-white px-4 text-base text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-600 dark:bg-slate-900 dark:text-white"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="block text-sm font-bold text-slate-700 dark:text-slate-300">
+                            Data de término
+                          </label>
+                          <input
+                            type="date"
+                            name="endDate"
+                            required
+                            defaultValue={new Date(r.endDate).toISOString().split('T')[0]}
+                            className="h-12 w-full rounded-lg border border-slate-300 bg-white px-4 text-base text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-600 dark:bg-slate-900 dark:text-white"
+                          />
+                        </div>
+                      </div>
+                      <Button
+                        type="submit"
+                        size="lg"
+                        className="w-full bg-blue-600 text-base font-semibold text-white hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"
+                      >
+                        Salvar alterações
+                      </Button>
+                    </form>
+                  </details>
+                )}
+
                 <ActionButtonForm
                   action={`/api/vacation-requests/${r.id}/delete`}
                   variant="outline"
                   size="lg"
-                  label="🗑️ Excluir solicitação"
+                  label={r.status === "APROVADO_GESTOR" ? "🗑️ Excluir (pendente RH)" : "🗑️ Excluir solicitação"}
                   loadingLabel="Excluindo..."
                   className="w-full border-red-200 text-base font-semibold text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950/30"
                 />
