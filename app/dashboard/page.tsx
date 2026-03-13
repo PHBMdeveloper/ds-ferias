@@ -356,6 +356,21 @@ function RequestsList({
 
   return (
     <div className="space-y-5">
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+          Minhas solicitações
+        </h3>
+        <a
+          href="/api/vacation-requests/export"
+          className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800"
+        >
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5m0 0l5-5m-5 5V4" />
+          </svg>
+          Exportar CSV
+        </a>
+      </div>
+
       {requests.map((r) => (
         <div
           key={r.id}
@@ -728,6 +743,23 @@ function ManagerView({
           </Button>
         </div>
       </form>
+
+      {/* Exportação */}
+      <div className="flex justify-end">
+        <a
+          href={`/api/vacation-requests/export?${new URLSearchParams({
+            q: currentQuery,
+            status: currentStatus || "TODOS",
+            view,
+          }).toString()}`}
+          className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800"
+        >
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5m0 0l5-5m-5 5V4" />
+          </svg>
+          Exportar CSV
+        </a>
+      </div>
 
       {/* Lista de solicitações */}
       {filteredRequests.length === 0 ? (
