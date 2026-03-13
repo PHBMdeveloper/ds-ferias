@@ -1,10 +1,10 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { getSessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { NewRequestCardClient } from "@/components/dashboard/new-request-card";
-import { HeaderMenu } from "@/components/dashboard/header-menu";
 import { ActionButtonForm } from "@/components/action-button-form";
 import { type VacationStatus } from "../../generated/prisma/enums";
 
@@ -85,6 +85,7 @@ export default async function DashboardPage({
 
   const qParam = params.q;
   const statusParam = params.status;
+   const viewParam = params.view;
 
   const q =
     typeof qParam === "string"
@@ -98,6 +99,13 @@ export default async function DashboardPage({
       : Array.isArray(statusParam)
         ? statusParam[0]
         : "TODOS";
+
+  const view =
+    typeof viewParam === "string"
+      ? viewParam
+      : Array.isArray(viewParam)
+        ? viewParam[0]
+        : "inbox";
 
   const { myRequests, managedRequests } = await getData(
     user.id,
@@ -125,7 +133,6 @@ export default async function DashboardPage({
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <HeaderMenu role={user.role} />
             <ThemeToggle />
             <form action="/api/logout" method="post">
               <Button 
@@ -167,6 +174,7 @@ export default async function DashboardPage({
                 requests={managedRequests}
                 currentQuery={q}
                 currentStatus={statusFilter}
+                currentView={view}
               />
             )}
           </section>
@@ -460,12 +468,14 @@ function ManagerView({
   requests,
   currentQuery,
   currentStatus,
+  currentView,
 }: {
   userRole: string;
   userId: string;
   requests: any[];
   currentQuery: string;
   currentStatus: string;
+  currentView: string;
 }) {
   const isManager = userRole === "GESTOR" || userRole === "RH";
 
@@ -485,6 +495,7 @@ function ManagerView({
     );
   }
 
+  const view = currentView === "historico" ? "historico" : "inbox";
   const normalizedQuery = currentQuery.trim().toLowerCase();
   const normalizedStatus = currentStatus || "TODOS";
 
@@ -494,6 +505,24 @@ function ManagerView({
       userRole === "GESTOR" ? r.user?.managerId === userId : true;
 
     if (!inManagerTeam) return false;
+
+    // Caixa de entrada: só o que dá para aprovar agora
+    if (view === "inbox") {
+      if (userRole === "GESTOR" && r.status !== "PENDENTE") return false;
+      if (userRole === "RH" && r.status !== "APROVADO_GESTOR") return false;
+    }
+
+    // Histórico: só o que já foi decidido (ou já passou da etapa desse papel)
+    if (view === "historico") {
+      if (userRole === "GESTOR") {
+        const allowed = ["APROVADO_GESTOR", "APROVADO_RH", "REPROVADO"];
+        if (!allowed.includes(r.status)) return false;
+      }
+      if (userRole === "RH") {
+        const allowed = ["APROVADO_RH", "REPROVADO"];
+        if (!allowed.includes(r.status)) return false;
+      }
+    }
 
     const matchesName = normalizedQuery
       ? r.user?.name?.toLowerCase().includes(normalizedQuery)
@@ -615,6 +644,37 @@ function ManagerView({
 
   return (
     <div className="space-y-4">
+      {/* Navegação principal do gestor/RH */}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="inline-flex rounded-full border border-slate-200 bg-slate-50 p-1 text-xs font-medium text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">
+          <Link
+            href={`/dashboard?view=inbox`}
+            className={`rounded-full px-3 py-1.5 transition ${
+              view === "inbox"
+                ? "bg-blue-600 text-white shadow-sm"
+                : "hover:bg-slate-100 dark:hover:bg-slate-800"
+            }`}
+          >
+            Caixa de aprovação
+          </Link>
+          <Link
+            href={`/dashboard?view=historico`}
+            className={`rounded-full px-3 py-1.5 transition ${
+              view === "historico"
+                ? "bg-blue-600 text-white shadow-sm"
+                : "hover:bg-slate-100 dark:hover:bg-slate-800"
+            }`}
+          >
+            Histórico
+          </Link>
+        </div>
+        <p className="text-xs text-slate-600 dark:text-slate-400">
+          {view === "inbox"
+            ? "Aqui você recebe apenas os pedidos que precisam de aprovação agora."
+            : "Aqui ficam os pedidos já aprovados ou reprovados, com filtro por status e colaborador."}
+        </p>
+      </div>
+
       {/* Filtros - enviam q e status via query string */}
       <form
         className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900"
