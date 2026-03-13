@@ -128,7 +128,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const isMyView = !isApprover || view === "minhas";
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#f5f6f8] dark:bg-[#0f1117]">
+    <div className="flex min-h-screen flex-col bg-[#f5f6f8] dark:bg-[#0f1117] lg:flex-row">
       <AppSidebar
         user={user}
         activeView={isMyView ? "minhas" : view}
