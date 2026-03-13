@@ -224,27 +224,27 @@ function AppSidebar({
   const level = getRoleLevel(user.role);
 
   return (
-    <aside className="flex w-full lg:w-60 flex-col border-b border-[#e2e8f0] bg-white lg:border-b-0 lg:border-r dark:border-[#252a35] dark:bg-[#141720]">
+    <aside className="flex w-full flex-col border-b border-[#e2e8f0] bg-white lg:w-60 lg:border-b-0 lg:border-r dark:border-[#252a35] dark:bg-[#141720]">
       {/* Logo */}
-      <div className="flex h-16 items-center gap-3 border-b border-[#e2e8f0] px-5 dark:border-[#252a35]">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600">
-          <svg className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-          </svg>
+      <div className="flex h-16 items-center justify-between gap-3 border-b border-[#e2e8f0] px-5 dark:border-[#252a35]">
+        <div className="flex items-center gap-3">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600">
+            <svg className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+          </div>
+          <span className="text-lg font-bold text-[#1a1d23] dark:text-white">DS-Férias</span>
         </div>
-        <span className="text-lg font-bold text-[#1a1d23] dark:text-white">DS-Férias</span>
       </div>
 
-      {/* Nav */}
-      <nav className="flex flex-1 flex-col gap-1 px-3 py-4">
-        <p className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-wider text-[#94a3b8]">Menu</p>
+      {/* Navegação compacta no mobile */}
+      <nav className="flex flex-wrap items-center gap-2 px-3 py-2 lg:hidden">
         <SidebarItem href="/dashboard" icon={<IconDashboard />} label="Dashboard" active={level < 2} />
-
         {level >= 2 && (
           <>
             <SidebarItem
               href="/dashboard?view=inbox"
-              icon={<IconInbox />}
+              icon={<IconInbox />} 
               label="Caixa de Aprovação"
               active={activeView === "inbox"}
               badge={pendingCount > 0 ? pendingCount : undefined}
@@ -252,7 +252,39 @@ function AppSidebar({
             />
             <SidebarItem
               href="/dashboard?view=historico"
-              icon={<IconHistory />}
+              icon={<IconHistory />} 
+              label="Histórico"
+              active={activeView === "historico"}
+            />
+          </>
+        )}
+        {level < 2 && (
+          <SidebarItem
+            href="/dashboard"
+            icon={<IconCalendar />} 
+            label="Minhas Férias"
+          />
+        )}
+      </nav>
+
+      {/* Navegação completa no desktop */}
+      <nav className="hidden flex-1 flex-col gap-1 px-3 py-4 lg:flex">
+        <p className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-wider text-[#94a3b8]">Menu</p>
+        <SidebarItem href="/dashboard" icon={<IconDashboard />} label="Dashboard" active={level < 2} />
+
+        {level >= 2 && (
+          <>
+            <SidebarItem
+              href="/dashboard?view=inbox"
+              icon={<IconInbox />} 
+              label="Caixa de Aprovação"
+              active={activeView === "inbox"}
+              badge={pendingCount > 0 ? pendingCount : undefined}
+              badgeAlert
+            />
+            <SidebarItem
+              href="/dashboard?view=historico"
+              icon={<IconHistory />} 
               label="Histórico"
               active={activeView === "historico"}
             />
@@ -262,7 +294,7 @@ function AppSidebar({
         {level < 2 && (
           <SidebarItem
             href="/dashboard"
-            icon={<IconCalendar />}
+            icon={<IconCalendar />} 
             label="Minhas Férias"
           />
         )}
@@ -270,7 +302,6 @@ function AppSidebar({
         <div className="my-2 border-t border-[#e2e8f0] dark:border-[#252a35]" />
         <p className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-wider text-[#94a3b8]">Saldo</p>
 
-        {/* Mini saldo na sidebar */}
         <div className="rounded-md bg-[#f5f6f8] px-3 py-2.5 dark:bg-[#1e2330]">
           <div className="flex items-center justify-between">
             <span className="text-sm text-[#64748b] dark:text-slate-400">Disponível</span>
@@ -292,7 +323,7 @@ function AppSidebar({
         </div>
       </nav>
 
-      {/* Usuário */}
+      {/* Usuário (em baixo) */}
       <div className="border-t border-[#e2e8f0] px-4 py-4 dark:border-[#252a35]">
         <div className="flex items-center gap-3">
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-100 text-base font-bold text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
