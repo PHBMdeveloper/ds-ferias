@@ -23,13 +23,21 @@ import {
 // ============================================================================
 
 async function getData(userId: string, role: string, q?: string, status?: string) {
-  const myRequests = await prisma.vacationRequest.findMany({
+  // Sempre busca minhas solicitações
+  const myRequestsPromise = prisma.vacationRequest.findMany({
     where: { userId },
-    include: { history: { orderBy: { changedAt: "asc" }, include: { changedByUser: { select: { name: true, role: true } } } } },
+    include: {
+      history: {
+        orderBy: { changedAt: "asc" },
+        include: { changedByUser: { select: { name: true, role: true } } },
+      },
+    },
     orderBy: { startDate: "asc" },
   });
 
+  // Para colaborador, não precisa das outras queries
   if (role === "COLABORADOR" || role === "FUNCIONARIO") {
+    const myRequests = await myRequestsPromise;
     return { myRequests, managedRequests: [], blackouts: [], teamRequests: [] };
   }
 
@@ -37,7 +45,7 @@ async function getData(userId: string, role: string, q?: string, status?: string
   if (q) where.user = { name: { contains: q, mode: "insensitive" } };
   if (status && status !== "TODOS") where.status = status as VacationStatus;
 
-  const managedRequests = await prisma.vacationRequest.findMany({
+  const managedRequestsPromise = prisma.vacationRequest.findMany({
     where,
     include: {
       user: {
@@ -60,12 +68,17 @@ async function getData(userId: string, role: string, q?: string, status?: string
     orderBy: { startDate: "asc" },
   });
 
-  const blackouts = await prisma.blackoutPeriod.findMany({
+  const blackoutsPromise = prisma.blackoutPeriod.findMany({
     include: { createdBy: { select: { name: true } } },
     orderBy: { startDate: "asc" },
   });
 
-  // Solicitações para mostrar no calendário de equipe
+  const [myRequests, managedRequests, blackouts] = await Promise.all([
+    myRequestsPromise,
+    managedRequestsPromise,
+    blackoutsPromise,
+  ]);
+
   const teamRequests = managedRequests.filter((r) =>
     ["APROVADO_GERENTE", "APROVADO_RH"].includes(r.status),
   );
