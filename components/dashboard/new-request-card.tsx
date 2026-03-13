@@ -7,10 +7,10 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 
 type Props = {
-  canRequest: boolean;
+  canRequest?: boolean;
 };
 
-export function NewRequestCardClient({ canRequest }: Props) {
+export function NewRequestCardClient({ canRequest = true }: Props) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [startDate, setStartDate] = useState("");
@@ -24,17 +24,6 @@ export function NewRequestCardClient({ canRequest }: Props) {
     const id = setTimeout(() => setLocalToast(false), 4000);
     return () => clearTimeout(id);
   }, [localToast]);
-
-  if (!canRequest) {
-    return (
-      <div className="space-y-3 rounded-2xl border border-white/10 bg-card/90 p-5 text-base text-muted-foreground shadow-md shadow-black/20">
-        <p>
-          Apenas colaboradores podem abrir novas solicitações de férias. Use a
-          visão geral ao lado para aprovar ou reprovar pedidos.
-        </p>
-      </div>
-    );
-  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

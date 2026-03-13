@@ -13,16 +13,18 @@ async function getData(
   q?: string,
   status?: string,
 ) {
-  if (role === "COLABORADOR") {
-    const myRequests = await prisma.vacationRequest.findMany({
-      where: { userId },
-      include: {
-        history: {
-          orderBy: { changedAt: "asc" },
-        },
+  // Sempre buscar as solicitações do próprio usuário, independente do papel.
+  const myRequests = await prisma.vacationRequest.findMany({
+    where: { userId },
+    include: {
+      history: {
+        orderBy: { changedAt: "asc" },
       },
-      orderBy: { startDate: "asc" },
-    });
+    },
+    orderBy: { startDate: "asc" },
+  });
+
+  if (role === "COLABORADOR") {
     return { myRequests, managedRequests: [] };
   }
 
@@ -41,7 +43,8 @@ async function getData(
   const managedRequests = await prisma.vacationRequest.findMany({
     where,
     include: {
-      user: { select: { name: true, email: true } },
+      // precisamos do id aqui para, no futuro, distinguir "meu time" de outras áreas
+      user: { select: { id: true, name: true, email: true } },
       history: {
         orderBy: { changedAt: "asc" },
       },
@@ -49,7 +52,7 @@ async function getData(
     orderBy: { startDate: "asc" },
   });
 
-  return { myRequests: [], managedRequests };
+  return { myRequests, managedRequests };
 }
 
 type DashboardSearchParams = {
@@ -145,6 +148,7 @@ export default async function DashboardPage({
             ) : (
               <ManagerView
                 userRole={user.role}
+                userId={user.id}
                 requests={managedRequests}
                 currentQuery={q}
                 currentStatus={statusFilter}
@@ -165,7 +169,7 @@ export default async function DashboardPage({
                 </h3>
               </div>
               <div className="p-6">
-                <NewRequestCardClient canRequest={user.role === "COLABORADOR"} />
+                <NewRequestCardClient />
               </div>
             </div>
 
@@ -427,11 +431,13 @@ function RequestsList({
 
 function ManagerView({
   userRole,
+  userId,
   requests,
   currentQuery,
   currentStatus,
 }: {
   userRole: string;
+  userId: string;
   requests: any[];
   currentQuery: string;
   currentStatus: string;
@@ -583,6 +589,9 @@ function ManagerView({
               {((userRole === "GESTOR" && r.status === "PENDENTE") ||
                 (userRole === "RH" && r.status === "APROVADO_GESTOR")) && (
                 <>
+              {/* Nunca aprovar/reprovar a própria solicitação */}
+              {r.user?.id !== userId && (
+                <>
                   <ActionButtonForm
                     action={`/api/vacation-requests/${r.id}/approve`}
                     variant="outline"
@@ -599,6 +608,8 @@ function ManagerView({
                     loadingLabel="Reprovando..."
                     className="flex-1 border-red-200 bg-red-50 text-red-700 hover:bg-red-100 dark:border-red-800 dark:bg-red-950/30 dark:text-red-400 dark:hover:bg-red-950/50"
                   />
+                </>
+              )}
                 </>
               )}
 

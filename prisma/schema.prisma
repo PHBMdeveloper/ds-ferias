@@ -35,6 +35,10 @@ model User {
   vacationRequests VacationRequest[]
   historyEntries   VacationRequestHistory[] @relation("HistoryChangedByUser")
 
+  managerId String?
+  manager   User?   @relation("ManagerReports", fields: [managerId], references: [id])
+  reports   User[]  @relation("ManagerReports")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
