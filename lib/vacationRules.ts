@@ -250,8 +250,12 @@ export function calculateVacationBalance(
   }
 
   const hire = new Date(hireDate);
-  const diffMs = today.getTime() - hire.getTime();
-  const monthsWorked = Math.floor(diffMs / (ONE_DAY_MS * 30.44));
+  // Meses corridos (calendário): 12 meses = 1 período, 24 meses = 2 períodos (60 dias)
+  let monthsWorked =
+    (today.getFullYear() - hire.getFullYear()) * 12 +
+    (today.getMonth() - hire.getMonth());
+  if (today.getDate() < hire.getDate()) monthsWorked -= 1;
+  monthsWorked = Math.max(0, monthsWorked);
 
   if (monthsWorked < 12) {
     // Ainda não adquiriu férias

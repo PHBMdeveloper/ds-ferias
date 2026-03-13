@@ -23,10 +23,10 @@ async function main() {
   const senhaHash = hashPassword("senha123");
 
   // Colaborador 2: quase 2 anos de empresa, nunca tirou férias → 2 períodos = 60 dias
-  // hireDate = 24 meses atrás a partir de hoje
+  // hireDate = 25 meses atrás para garantir 24+ meses corridos (cálculo por calendário)
   const hoje = new Date();
   const doisAnosAtras = new Date(hoje);
-  doisAnosAtras.setMonth(doisAnosAtras.getMonth() - 24);
+  doisAnosAtras.setMonth(doisAnosAtras.getMonth() - 25);
 
   const colaborador2 = await prisma.user.upsert({
     where: { email: "colaborador2@empresa.com" },
