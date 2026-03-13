@@ -224,7 +224,7 @@ function AppSidebar({
   const level = getRoleLevel(user.role);
 
   return (
-    <aside className="flex w-60 flex-col border-r border-[#e2e8f0] bg-white dark:border-[#252a35] dark:bg-[#141720]">
+    <aside className="flex w-full lg:w-60 flex-col border-b border-[#e2e8f0] bg-white lg:border-b-0 lg:border-r dark:border-[#252a35] dark:bg-[#141720]">
       {/* Logo */}
       <div className="flex h-16 items-center gap-3 border-b border-[#e2e8f0] px-5 dark:border-[#252a35]">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600">
