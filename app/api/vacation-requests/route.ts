@@ -98,20 +98,21 @@ export async function POST(request: Request) {
     }),
   ]);
 
-  // Dias já no ciclo (pendentes + aprovados) para permitir nova solicitação que complete os 30 dias.
-  // Usa a mesma regra de cálculo do card de saldo, inclusive quando não há hireDate.
-  const existingDaysInCycle =
+  // Saldo do ciclo (dias no ciclo + direito total) para validação e limite da solicitação
+  const balanceForValidation =
     userFull && userFull.vacationRequests
-      ? (() => {
-          const balance = calculateVacationBalance(userFull.hireDate, userFull.vacationRequests as any);
-          return balance.pendingDays + balance.usedDays;
-        })()
-      : 0;
+      ? calculateVacationBalance(userFull.hireDate, userFull.vacationRequests as any)
+      : null;
+  const existingDaysInCycle = balanceForValidation
+    ? balanceForValidation.pendingDays + balanceForValidation.usedDays
+    : 0;
+  const entitledDays = balanceForValidation?.entitledDays ?? 30;
 
-  // Validação CLT (total do ciclo até 30 dias, fracionamento, aviso prévio)
+  // Validação CLT (total do ciclo até entitledDays, fracionamento, aviso prévio)
   const cltError = validateCltPeriods(periods, {
     checkAdvanceNotice: true,
     existingDaysInCycle,
+    entitledDays,
   });
   if (cltError) return NextResponse.json({ error: cltError }, { status: 400 });
 
@@ -145,9 +146,8 @@ export async function POST(request: Request) {
   }
 
   // Verificação de saldo disponível
-  if (userFull?.hireDate) {
-    const allRequests = userFull.vacationRequests as any[];
-    const balance = calculateVacationBalance(userFull.hireDate, allRequests);
+  if (userFull?.hireDate && balanceForValidation) {
+    const balance = balanceForValidation;
 
     if (!balance.hasEntitlement) {
       const remaining = 12 - balance.monthsWorked;

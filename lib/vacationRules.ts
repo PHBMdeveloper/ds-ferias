@@ -484,6 +484,8 @@ export function validateCltPeriods(
     checkAdvanceNotice?: boolean;
     /** Dias já solicitados no ciclo (pendentes + aprovados), para permitir fracionar em mais de uma solicitação */
     existingDaysInCycle?: number;
+    /** Direito total no ciclo (ex.: 30 ou 60 dias); usado para não ultrapassar o teto */
+    entitledDays?: number;
   } = { checkAdvanceNotice: true },
 ): string | null {
   if (!periods.length) return "É necessário informar ao menos um período de férias.";
@@ -524,13 +526,13 @@ export function validateCltPeriods(
     return acc + Math.round((p.end.getTime() - p.start.getTime()) / ONE_DAY_MS) + 1;
   }, 0);
 
+  const entitled = options.entitledDays ?? 30;
   const totalInCycle = existingDays + totalDays;
-  if (totalInCycle > 30) {
-    return `Total do ciclo não pode ultrapassar 30 dias. Você já tem ${existingDays} dias no ciclo (pendentes/aprovados) e está solicitando ${totalDays} dias (total: ${totalInCycle}).`;
+  if (totalInCycle > entitled) {
+    return `Total do ciclo não pode ultrapassar ${entitled} dias (seu direito). Você já tem ${existingDays} dias no ciclo e está solicitando ${totalDays} (total: ${totalInCycle}).`;
   }
-  if (existingDays === 0 && totalDays !== 30) {
-    return "A soma dos períodos deve totalizar exatamente 30 dias corridos.";
-  }
+  // CLT art. 134, §1º: fracionamento permitido em até 3 períodos; não exige os 30 dias numa só solicitação.
+  // Pode solicitar 14 agora e o restante depois, desde que um período tenha ≥14 dias e total no ciclo ≤ entitled.
 
   if (options.checkAdvanceNotice) {
     const firstStart = sorted[0].start;

@@ -4,11 +4,11 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
-type Balance = { pendingDays: number; usedDays: number };
+type Balance = { pendingDays: number; usedDays: number; entitledDays?: number; availableDays?: number };
 
 type Props = {
   canRequest?: boolean;
-  /** Saldo do ciclo (pendentes + usados) para permitir solicitar menos de 30 dias quando já há dias no ciclo */
+  /** Saldo: entitledDays = direito total no ciclo; availableDays = quanto ainda pode solicitar */
   balance?: Balance | null;
 };
 
@@ -30,12 +30,14 @@ export function NewRequestCardClient({ canRequest = true, balance }: Props) {
 
   const stats = calculatePeriodStats(periods);
   const existingDaysInCycle = balance ? balance.pendingDays + balance.usedDays : 0;
-  const maxDaysThisRequest = Math.max(0, 30 - existingDaysInCycle);
+  const entitledDays = balance?.entitledDays ?? 30;
+  const availableDays = balance?.availableDays ?? Math.max(0, entitledDays - existingDaysInCycle);
+  const maxDaysThisRequest = Math.max(0, availableDays);
   const totalOk = maxDaysThisRequest === 0 ? stats.totalDays === 0 : stats.totalDays > 0 && stats.totalDays <= maxDaysThisRequest;
   const hasPeriod14OrMore = stats.periods.some((p) => p.days >= 14);
   const needsPeriod14 = existingDaysInCycle < 14 && !hasPeriod14OrMore;
   const totalWithExisting = existingDaysInCycle + stats.totalDays;
-  const cycleTotalOk = totalWithExisting <= 30;
+  const cycleTotalOk = totalWithExisting <= entitledDays;
 
   function updatePeriod(index: number, field: "start" | "end", value: string) {
     const next = [...periods];
@@ -206,8 +208,8 @@ export function NewRequestCardClient({ canRequest = true, balance }: Props) {
             {!totalOk && stats.totalDays > 0 && (
               <p className="mt-1.5 text-base text-amber-600 dark:text-amber-400">
                 {existingDaysInCycle > 0
-                  ? `⚠ Nesta solicitação você pode solicitar até ${maxDaysThisRequest} dias (ciclo: ${existingDaysInCycle} + ${stats.totalDays} = ${totalWithExisting}).`
-                  : "⚠ O total deve ser exatamente 30 dias."}
+                  ? `⚠ Você tem ${availableDays} dias disponíveis. Nesta solicitação: ${existingDaysInCycle} + ${stats.totalDays} = ${totalWithExisting} (máximo no ciclo: ${entitledDays} dias).`
+                  : `⚠ O total desta solicitação deve ser até ${entitledDays} dias (seu direito no ciclo).`}
               </p>
             )}
             {needsPeriod14 && stats.totalDays > 0 && (
