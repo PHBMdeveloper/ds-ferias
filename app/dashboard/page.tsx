@@ -193,16 +193,13 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                 <div className="border-b border-[#e2e8f0] bg-blue-50/80 px-5 py-4 dark:border-[#252a35] dark:bg-blue-950/20">
                   <h3 className="text-xl font-bold text-[#1a1d23] dark:text-white">Nova Solicitação</h3>
                   <p className="mt-1 text-base font-medium text-[#475569] dark:text-slate-300">
-                    Informe os períodos desejados
+                    Informe as datas de cada período de férias
                   </p>
                 </div>
                 <div className="min-w-0 p-5">
                   <NewRequestCardClient canRequest balance={balance} />
                 </div>
               </div>
-
-              {/* Fluxo de aprovação do usuário atual */}
-              <ApprovalFlowCard requesterRole={user.role} />
 
               {/* Períodos de bloqueio (para aprovadores) */}
               {isApprover && blackouts.length > 0 && (
@@ -439,34 +436,6 @@ function StatCard({ label, value, sublabel, alert = false }: { label: string; va
 }
 
 // ============================================================================
-// CARD DE FLUXO DE APROVAÇÃO
-// ============================================================================
-
-function ApprovalFlowCard({ requesterRole }: { requesterRole: string }) {
-  const steps = getApprovalSteps(requesterRole);
-  if (!steps.length) return null;
-
-  return (
-    <div className="rounded-lg border border-[#e2e8f0] bg-white p-5 dark:border-[#252a35] dark:bg-[#1a1d23]">
-      <h4 className="mb-3 text-base font-semibold text-[#1a1d23] dark:text-white">Fluxo de Aprovação</h4>
-      <ol className="relative space-y-3">
-        {steps.map((step, i) => (
-          <li key={i} className="flex items-center gap-3">
-            <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-100 text-[11px] font-bold text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
-              {i + 1}
-            </div>
-            <span className="text-sm text-[#475569] dark:text-slate-400">{step}</span>
-          </li>
-        ))}
-      </ol>
-      <p className="mt-3 text-[10px] text-[#94a3b8]">
-        Solicitações seguem esta cadeia de aprovação para chegar ao status final.
-      </p>
-    </div>
-  );
-}
-
-// ============================================================================
 // ALERTA DE BLACKOUT
 // ============================================================================
 
@@ -540,7 +509,7 @@ function StatusBadge({ status }: { status: string }) {
   }
 
   const config: Record<string, { color: ChipColor; label: string }> = {
-    PENDENTE: { color: "amber", label: "Pendente" },
+    PENDENTE: { color: "amber", label: "Pendente aprovação" },
     APROVADO_RH: { color: "green", label: "Aprovado RH" },
     REPROVADO: { color: "red", label: "Reprovado" },
     CANCELADO: { color: "slate", label: "Cancelado" },
@@ -735,7 +704,7 @@ function FilterForm({
             className="h-9 rounded-md border border-[#e2e8f0] bg-[#f5f6f8] px-3 text-base text-[#1a1d23] focus:border-blue-500 focus:outline-none dark:border-[#252a35] dark:bg-[#0f1117] dark:text-white"
           >
             <option value="TODOS">Todos os status</option>
-            <option value="PENDENTE">Pendente</option>
+            <option value="PENDENTE">Pendente aprovação</option>
             <option value="APROVADO_COORDENADOR">Aprovado Coord.</option>
             <option value="APROVADO_GERENTE">Aprovado Gerente</option>
             <option value="APROVADO_RH">Aprovado RH</option>
@@ -975,7 +944,7 @@ function RequestActions({
         action={`/api/vacation-requests/${request.id}/delete`}
         variant="outline"
         size="sm"
-        label={isPendingRH ? "Excluir (pend. Gerente)" : "Excluir"}
+        label={isPendingRH ? "Excluir solicitação (pend. Gerente)" : "Excluir solicitação"}
         loadingLabel="Excluindo..."
         className="ml-auto border-red-200 text-sm font-semibold text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400"
       />

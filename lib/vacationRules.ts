@@ -453,6 +453,15 @@ export function validateCltPeriod(startDate: Date, endDate: Date): string | null
   if (days < 5) return "Período mínimo de férias é de 5 dias corridos (CLT).";
   if (days > 30) return "Período máximo em um único bloco é de 30 dias.";
 
+  const startWeekDay = new Date(startDate).getDay();
+  if (startWeekDay === 5 || startWeekDay === 6) {
+    return "O início das férias não pode ocorrer na sexta ou no sábado (art. 134, §3º, CLT).";
+  }
+  const endWeekDay = new Date(endDate).getDay();
+  if (endWeekDay === 0 || endWeekDay === 6) {
+    return "O término das férias não pode ocorrer no sábado ou no domingo (repouso semanal remunerado).";
+  }
+
   const today = new Date();
   const diffDays = Math.floor(
     (new Date(startDate).setHours(0, 0, 0, 0) - today.setHours(0, 0, 0, 0)) / ONE_DAY_MS,
@@ -494,6 +503,12 @@ export function validateCltPeriods(
     const days = Math.round((end.getTime() - start.getTime()) / ONE_DAY_MS) + 1;
     if (days < 5) return "Cada período deve ter no mínimo 5 dias corridos.";
     if (days >= 14) hasPeriodWith14OrMore = true;
+
+    // CLT (art. 134, §3º e interpretação): término não pode ser no sábado ou domingo (DSR)
+    const endWeekDay = end.getDay(); // 0 = domingo, 6 = sábado
+    if (endWeekDay === 0 || endWeekDay === 6) {
+      return "O término das férias não pode ocorrer no sábado ou no domingo (repouso semanal remunerado).";
+    }
 
     if (i > 0 && start <= sorted[i - 1].end) {
       return "Os períodos não podem se sobrepor.";

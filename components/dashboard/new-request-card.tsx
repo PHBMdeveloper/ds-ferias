@@ -94,6 +94,7 @@ export function NewRequestCardClient({ canRequest = true, balance }: Props) {
           {[
             "Cada período: 5–30 dias corridos",
             "Um período de 14+ dias (ou já ter no ciclo)",
+            "Início não pode ser sexta nem sábado; término não pode ser sábado nem domingo",
             "Aviso prévio mínimo de 30 dias",
             existingDaysInCycle > 0
               ? `Máximo de 3 períodos; total do ciclo 30 dias (você já tem ${existingDaysInCycle} no ciclo)`
