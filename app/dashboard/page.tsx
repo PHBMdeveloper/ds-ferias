@@ -8,6 +8,7 @@ import { NewRequestCardClient } from "@/components/dashboard/new-request-card";
 import { ActionButtonForm } from "@/components/action-button-form";
 import { type VacationStatus } from "../../generated/prisma/enums";
 import {
+  type VacationBalance,
   getRoleLabel,
   getRoleLevel,
   getApprovalSteps,
@@ -114,7 +115,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     where: { id: user.id },
     select: { hireDate: true, department: true, vacationRequests: { select: { startDate: true, endDate: true, status: true } } },
   });
-  const balance = calculateVacationBalance(userFull?.hireDate ?? null, userFull?.vacationRequests ?? [] as any);
+  const balance: VacationBalance = calculateVacationBalance(userFull?.hireDate ?? null, userFull?.vacationRequests ?? [] as any);
 
   const pendingCount = managedRequests.filter((r) => {
     if (!hasTeamVisibility(user.role, user.id, r as any)) return false;
@@ -227,7 +228,7 @@ function AppSidebar({
   user: any;
   activeView: string;
   pendingCount: number;
-  balance: ReturnType<typeof calculateVacationBalance>;
+  balance: VacationBalance;
   department?: string | null;
 }) {
   const level = getRoleLevel(user.role);
@@ -333,7 +334,7 @@ function AppSidebar({
   );
 }
 
-function SidebarBalance({ balance }: { balance: ReturnType<typeof calculateVacationBalance> }) {
+function SidebarBalance({ balance }: { balance: VacationBalance }) {
   const usedPct = balance.entitledDays > 0
     ? Math.min(100, Math.round((balance.usedDays / balance.entitledDays) * 100))
     : 0;
@@ -596,7 +597,7 @@ function MyRequestsList({
   balance,
 }: {
   requests: any[];
-  balance: ReturnType<typeof calculateVacationBalance>;
+  balance: VacationBalance;
 }) {
   if (!requests.length) {
     return <EmptyState message="Você ainda não criou nenhuma solicitação de férias." />;

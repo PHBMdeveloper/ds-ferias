@@ -3,13 +3,12 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-
-type Balance = { pendingDays: number; usedDays: number; entitledDays?: number; availableDays?: number };
+import type { VacationBalance } from "@/lib/vacationRules";
 
 type Props = {
   canRequest?: boolean;
-  /** Saldo: entitledDays = direito total no ciclo; availableDays = quanto ainda pode solicitar */
-  balance?: Balance | null;
+  /** Saldo completo do ciclo (entitledDays, availableDays, pendingDays, usedDays). Deve vir do dashboard. */
+  balance?: VacationBalance | null;
 };
 
 type Period = {
@@ -31,7 +30,7 @@ export function NewRequestCardClient({ canRequest = true, balance }: Props) {
   const stats = calculatePeriodStats(periods);
   const existingDaysInCycle = balance ? balance.pendingDays + balance.usedDays : 0;
   const entitledDays = balance?.entitledDays ?? 30;
-  const availableDays = balance?.availableDays ?? Math.max(0, entitledDays - existingDaysInCycle);
+  const availableDays = balance?.availableDays ?? Math.max(0, (balance?.entitledDays ?? 30) - existingDaysInCycle);
   const maxDaysThisRequest = Math.max(0, availableDays);
   const totalOk = maxDaysThisRequest === 0 ? stats.totalDays === 0 : stats.totalDays > 0 && stats.totalDays <= maxDaysThisRequest;
   const hasPeriod14OrMore = stats.periods.some((p) => p.days >= 14);
