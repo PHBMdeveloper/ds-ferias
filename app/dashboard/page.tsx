@@ -118,15 +118,15 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   });
   const balance: VacationBalance = calculateVacationBalance(userFull?.hireDate ?? null, userFull?.vacationRequests ?? [] as any);
 
-  const pendingCount = managedRequests.filter((r) => {
-    if (!hasTeamVisibility(user.role, user.id, r as any)) return false;
+  const visibleRequests = managedRequests.filter((r) => hasTeamVisibility(user.role, user.id, r as any));
+  const pendingCount = visibleRequests.filter((r) => {
     if (userRoleLevel === 2) return r.status === "PENDENTE";
     if (userRoleLevel === 3) return r.status === "PENDENTE" || r.status === "APROVADO_COORDENADOR" || r.status === "APROVADO_GESTOR";
     if (userRoleLevel === 4) return r.status === "APROVADO_GERENTE";
     return false;
   }).length;
 
-  const approvedCount = managedRequests.filter((r) => r.status === "APROVADO_RH").length;
+  const approvedCount = visibleRequests.filter((r) => r.status === "APROVADO_RH").length;
 
   const isMyView = !isApprover || view === "minhas";
 
@@ -162,7 +162,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           {/* Cards de estatísticas (aprovadores) */}
           {!isMyView && isApprover && (
             <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-              <StatCard label="Total" value={managedRequests.length} sublabel="Solicitações" />
+              <StatCard label="Total" value={visibleRequests.length} sublabel="Solicitações (sua equipe)" />
               <StatCard label="Pendentes" value={pendingCount} sublabel="Aguardando você" alert={pendingCount > 0} />
               <StatCard label="Aprovadas" value={approvedCount} sublabel="Aprovadas pelo RH" />
               <StatCard label="Bloqueios" value={blackouts.filter(b => new Date(b.endDate) >= new Date()).length} sublabel="Períodos ativos" />
@@ -181,6 +181,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                   userRole={user.role}
                   userId={user.id}
                   requests={managedRequests}
+                  visibleCount={visibleRequests.length}
                   blackouts={blackouts}
                   filters={{ query: q, status: statusFilter, view, managerId: managerFilter, from: fromFilter, to: toFilter, department: deptFilter }}
                 />
@@ -641,12 +642,14 @@ function ManagerView({
   userRole,
   userId,
   requests,
+  visibleCount,
   blackouts,
   filters,
 }: {
   userRole: string;
   userId: string;
   requests: any[];
+  visibleCount: number;
   blackouts: any[];
   filters: Filters;
 }) {
@@ -655,6 +658,13 @@ function ManagerView({
   const deptOptions = getDepartmentOptions(requests);
   const filteredRequests = filterRequests(userRole, userId, requests, filters);
   const userLevel = getRoleLevel(userRole);
+
+  const emptyMessage =
+    view === "historico"
+      ? "No Histórico aparecem apenas solicitações já processadas (aprovadas ou reprovadas). Pedidos pendentes de aprovação aparecem na aba Caixa de Aprovação."
+      : visibleCount === 0
+        ? "Nenhuma solicitação da sua equipe no momento. Se colaboradores deveriam aparecer aqui, verifique no Backoffice se eles têm você como Coordenador(a)/Gerente."
+        : "Nenhuma solicitação encontrada com os filtros aplicados.";
 
   return (
     <div className="space-y-4">
@@ -680,7 +690,7 @@ function ManagerView({
       </div>
 
       {filteredRequests.length === 0 ? (
-        <EmptyState message="Nenhuma solicitação encontrada com os filtros aplicados." />
+        <EmptyState message={emptyMessage} />
       ) : userLevel >= 4 ? (
         <RequestsGroupedByManager requests={filteredRequests} userId={userId} />
       ) : (

@@ -1,9 +1,7 @@
 /**
- * Seed do banco: cria/atualiza usuários de teste.
- * - Colaborador 1 e 2 (FUNCIONARIO); Colaborador 2 com hireDate ~2 anos → 60 dias.
- * - Gestores: gestor@ (COORDENADOR), gestor2@ (GERENTE).
- * - RH: rh@, rh2@.
- * Senha padrão para todos: senha123
+ * Seed alinhado à sua tabela User (Prisma Studio).
+ * IDs: gestor1, gestor2, gerente1, gerente2, rh1, rh2, colab1, colab2.
+ * Senha para todos: senha123
  */
 import "dotenv/config";
 import { PrismaClient } from "../generated/prisma/client";
@@ -25,94 +23,137 @@ function hashPassword(password: string) {
 async function main() {
   const senhaHash = hashPassword("senha123");
 
-  const hoje = new Date();
-  const doisAnosAtras = new Date(hoje);
-  doisAnosAtras.setMonth(doisAnosAtras.getMonth() - 25);
-
-  // Gestor Líder (1ª etapa de aprovação)
-  const gestor = await prisma.user.upsert({
-    where: { email: "gestor@empresa.com" },
-    update: { name: "Gestor Líder", role: "COORDENADOR", passwordHash: senhaHash },
+  // Gestor Um (COORDENADOR)
+  const gestor1 = await prisma.user.upsert({
+    where: { email: "gestor1@empresa.com" },
+    update: { name: "Gestor Um", role: "COORDENADOR", passwordHash: senhaHash },
     create: {
-      name: "Gestor Líder",
-      email: "gestor@empresa.com",
+      id: "gestor1",
+      name: "Gestor Um",
+      email: "gestor1@empresa.com",
       passwordHash: senhaHash,
       role: "COORDENADOR",
     },
   });
 
-  // Gestor Projeto (2ª etapa de aprovação)
+  // Gestor Dois (COORDENADOR) — managerId: gestor1 (conforme sua tabela)
   const gestor2 = await prisma.user.upsert({
     where: { email: "gestor2@empresa.com" },
-    update: { name: "Gestor Projeto", role: "GERENTE", passwordHash: senhaHash },
+    update: { name: "Gestor Dois", role: "COORDENADOR", passwordHash: senhaHash, managerId: gestor1.id },
     create: {
-      name: "Gestor Projeto",
+      id: "gestor2",
+      name: "Gestor Dois",
       email: "gestor2@empresa.com",
       passwordHash: senhaHash,
-      role: "GERENTE",
+      role: "COORDENADOR",
+      managerId: gestor1.id,
     },
   });
 
-  // RH
+  // Gestor Um reporta ao Gestor Dois (conforme sua tabela: gestor1.managerId = gestor2)
+  await prisma.user.update({
+    where: { id: gestor1.id },
+    data: { managerId: gestor2.id },
+  });
+
+  // Gerente Um (GERENTE) — reporta ao Gestor Um
   await prisma.user.upsert({
-    where: { email: "rh@empresa.com" },
-    update: { name: "RH Master", role: "RH", passwordHash: senhaHash },
+    where: { email: "gerente1@empresa.com" },
+    update: { name: "Gerente Um", role: "GERENTE", passwordHash: senhaHash, managerId: gestor1.id },
     create: {
-      name: "RH Master",
-      email: "rh@empresa.com",
+      id: "gerente1",
+      name: "Gerente Um",
+      email: "gerente1@empresa.com",
+      passwordHash: senhaHash,
+      role: "GERENTE",
+      managerId: "gestor1",
+    },
+  });
+
+  // Gerente Dois (GERENTE) — reporta ao Gestor Dois
+  await prisma.user.upsert({
+    where: { email: "gerente2@empresa.com" },
+    update: { name: "Gerente Dois", role: "GERENTE", passwordHash: senhaHash, managerId: gestor2.id },
+    create: {
+      id: "gerente2",
+      name: "Gerente Dois",
+      email: "gerente2@empresa.com",
+      passwordHash: senhaHash,
+      role: "GERENTE",
+      managerId: "gestor2",
+    },
+  });
+
+  // RH Um e RH Dois
+  await prisma.user.upsert({
+    where: { email: "rh1@empresa.com" },
+    update: { name: "RH Um", role: "RH", passwordHash: senhaHash, managerId: gestor1.id },
+    create: {
+      id: "rh1",
+      name: "RH Um",
+      email: "rh1@empresa.com",
       passwordHash: senhaHash,
       role: "RH",
+      managerId: "gestor1",
     },
   });
 
   await prisma.user.upsert({
     where: { email: "rh2@empresa.com" },
-    update: { name: "RH Operacional", role: "RH", passwordHash: senhaHash },
+    update: { name: "RH Dois", role: "RH", passwordHash: senhaHash, managerId: gestor2.id },
     create: {
-      name: "RH Operacional",
+      id: "rh2",
+      name: "RH Dois",
       email: "rh2@empresa.com",
       passwordHash: senhaHash,
       role: "RH",
+      managerId: "gestor2",
     },
   });
 
-  // Colaborador 1
+  // Colaborador Um — reporta ao Gestor Um
   await prisma.user.upsert({
     where: { email: "colaborador1@empresa.com" },
-    update: { name: "Colaborador Um", role: "FUNCIONARIO", passwordHash: senhaHash, managerId: gestor.id },
+    update: { name: "Colaborador Um", role: "FUNCIONARIO", passwordHash: senhaHash, managerId: gestor1.id },
     create: {
+      id: "colab1",
       name: "Colaborador Um",
       email: "colaborador1@empresa.com",
       passwordHash: senhaHash,
       role: "FUNCIONARIO",
-      managerId: gestor.id,
+      managerId: "gestor1",
     },
   });
 
-  // Colaborador 2: quase 2 anos de empresa → 60 dias (2 períodos)
-  const colaborador2 = await prisma.user.upsert({
+  // Colaborador Dois — reporta ao Gestor Dois; hireDate 2024-02-14 (≈2 anos → 60 dias)
+  const hireDateColab2 = new Date("2024-02-14T14:55:36.091Z");
+  await prisma.user.upsert({
     where: { email: "colaborador2@empresa.com" },
     update: {
       name: "Colaborador Dois",
       role: "FUNCIONARIO",
-      hireDate: doisAnosAtras,
       passwordHash: senhaHash,
-      managerId: gestor.id,
+      managerId: gestor2.id,
+      hireDate: hireDateColab2,
     },
     create: {
+      id: "colab2",
       name: "Colaborador Dois",
       email: "colaborador2@empresa.com",
       passwordHash: senhaHash,
       role: "FUNCIONARIO",
-      hireDate: doisAnosAtras,
-      managerId: gestor.id,
+      managerId: "gestor2",
+      hireDate: hireDateColab2,
     },
   });
 
   console.log("Seed concluído. Senha para todos: senha123");
-  console.log("Gestores:", gestor.email, "(COORDENADOR),", gestor2.email, "(GERENTE)");
-  console.log("RH: rh@empresa.com, rh2@empresa.com");
-  console.log("Colaboradores: colaborador1@empresa.com, colaborador2@empresa.com | Colaborador 2 admissão:", doisAnosAtras.toISOString().slice(0, 10), "→ 60 dias");
+  console.log("Estrutura (conforme sua tabela User):");
+  console.log("  Gestores (COORDENADOR): gestor1@empresa.com, gestor2@empresa.com");
+  console.log("  Gerentes: gerente1@empresa.com, gerente2@empresa.com");
+  console.log("  RH: rh1@empresa.com, rh2@empresa.com");
+  console.log("  Colaboradores: colaborador1@empresa.com (gestor1), colaborador2@empresa.com (gestor2)");
+  console.log("  Colab2 hireDate:", hireDateColab2.toISOString().slice(0, 10), "→ 60 dias no ciclo");
 }
 
 main()
