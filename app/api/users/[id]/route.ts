@@ -19,7 +19,7 @@ export async function PATCH(
   const { id } = await params;
   const body = await request.json().catch(() => ({}));
 
-  const data: { name?: string; role?: string; department?: string | null; hireDate?: string | null; managerId?: string | null } = {};
+  const data: { name?: string; role?: string; department?: string | null; hireDate?: Date | null; managerId?: string | null } = {};
   if (typeof body.name === "string" && body.name.trim()) data.name = body.name.trim();
   if (typeof body.role === "string" && ROLES.includes(body.role as any)) data.role = body.role;
   if (body.department !== undefined) data.department = body.department === "" || body.department == null ? null : String(body.department);
