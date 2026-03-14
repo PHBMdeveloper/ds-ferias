@@ -43,11 +43,13 @@ export async function GET(request: Request) {
           id: true,
           name: true,
           email: true,
+          department: true,
           managerId: true,
           manager: {
             select: {
               id: true,
               name: true,
+              managerId: true,
             },
           },
         },

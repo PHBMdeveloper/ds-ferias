@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getRoleLevel } from "@/lib/vacationRules";
+import type { UserUncheckedUpdateInput } from "@/generated/prisma/models/User";
 
 const ROLES = ["FUNCIONARIO", "COORDENADOR", "GERENTE", "RH"] as const;
 
@@ -19,7 +20,7 @@ export async function PATCH(
   const { id } = await params;
   const body = await request.json().catch(() => ({}));
 
-  const data: { name?: string; role?: string; department?: string | null; hireDate?: Date | null; managerId?: string | null } = {};
+  const data: UserUncheckedUpdateInput = {};
   if (typeof body.name === "string" && body.name.trim()) data.name = body.name.trim();
   if (typeof body.role === "string" && ROLES.includes(body.role as any)) data.role = body.role;
   if (body.department !== undefined) data.department = body.department === "" || body.department == null ? null : String(body.department);
