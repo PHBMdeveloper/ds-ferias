@@ -15,21 +15,26 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
 
-    const res = await fetch("/api/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    });
+    try {
+      const res = await fetch("/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
 
-    setLoading(false);
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        toast.error(data?.error ?? "Erro ao fazer login");
+        setLoading(false);
+        return;
+      }
 
-    if (!res.ok) {
-      const data = await res.json().catch(() => null);
-      toast.error(data?.error ?? "Erro ao fazer login");
-      return;
+      router.push("/dashboard");
+      // Loading permanece ativo até a troca de tela
+    } catch {
+      toast.error("Erro de conexão. Tente novamente.");
+      setLoading(false);
     }
-
-    router.push("/dashboard");
   }
 
   return (
@@ -114,7 +119,8 @@ export default function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="seu.nome@empresa.com"
-                  className="h-10 w-full rounded-md border border-[#e2e8f0] bg-white px-3 text-base text-[#1a1d23] placeholder:text-[#94a3b8] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-[#252a35] dark:bg-[#1a1d23] dark:text-white dark:placeholder:text-slate-500"
+                  disabled={loading}
+                  className="h-10 w-full rounded-md border border-[#e2e8f0] bg-white px-3 text-base text-[#1a1d23] placeholder:text-[#94a3b8] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:cursor-not-allowed disabled:opacity-70 dark:border-[#252a35] dark:bg-[#1a1d23] dark:text-white dark:placeholder:text-slate-500"
                 />
               </div>
 
@@ -131,7 +137,8 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="h-10 w-full rounded-md border border-[#e2e8f0] bg-white px-3 text-base text-[#1a1d23] placeholder:text-[#94a3b8] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-[#252a35] dark:bg-[#1a1d23] dark:text-white dark:placeholder:text-slate-500"
+                  disabled={loading}
+                  className="h-10 w-full rounded-md border border-[#e2e8f0] bg-white px-3 text-base text-[#1a1d23] placeholder:text-[#94a3b8] outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:cursor-not-allowed disabled:opacity-70 dark:border-[#252a35] dark:bg-[#1a1d23] dark:text-white dark:placeholder:text-slate-500"
                 />
               </div>
 
