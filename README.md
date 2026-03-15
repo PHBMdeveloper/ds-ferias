@@ -18,7 +18,9 @@ Aplicação interna para gestão de férias (colaborador, gestor e RH) construí
   - **Autoprovação proibida**:
     - Ninguém pode aprovar nem reprovar a **própria solicitação** (checado na API).
   - **Escopo do Gestor**:
-    - Gestor só vê na tela de aprovação as férias dos **colaboradores cujo `managerId` = id do gestor**.
+    - Gestor só vê na tela de aprovação as férias dos **colaboradores cujo `managerId` = id do gestor** (e, no caso de Gerente, também dos subordinados dos coordenadores).
+  - **Exclusão de solicitações**:
+    - Colaborador pode excluir apenas as **próprias** solicitações (enquanto não aprovadas pelo RH). Coordenador e Gerente só podem excluir solicitações **da própria equipe**; RH pode excluir qualquer solicitação.
   - **Caixa de aprovação x Histórico** (para Gestor/RH):
     - **Caixa de aprovação (`view=inbox`)**:
       - Gestor: apenas solicitações `PENDENTE` do seu time.
@@ -97,8 +99,8 @@ Aplicação interna para gestão de férias (colaborador, gestor e RH) construí
 
 - **Autenticação**
   - Login por **e-mail + senha**.
-  - Senhas armazenadas com **hash SHA-256**.
-  - Sessão via cookie HTTP-only, manipulada em `lib/auth.ts`.
+  - Senhas armazenadas com **hash SHA-256** (em produção, considere migrar para bcrypt/argon2).
+  - Sessão via cookie HTTP-only em `lib/auth.ts`. **Recomendado:** defina `SESSION_SECRET` no `.env` (mín. 16 caracteres) para assinar o cookie com HMAC-SHA256 e evitar falsificação de sessão.
 
 ---
 
@@ -108,29 +110,30 @@ Todos os usuários abaixo usam a **mesma senha**:
 
 - **Senha padrão**: `senha123`
 
+Para criar/atualizar os usuários no banco: `npm run db:seed`.
+
 #### Colaboradores
 
-- **Colaborador 1**
-  - E-mail: `colaborador1@empresa.com`
-- **Colaborador 2**
-  - E-mail: `colaborador2@empresa.com`
-  - Cenário de teste: **quase 2 anos de empresa, nunca tirou férias** → direito a **60 dias** (2 períodos). Para popular: `npm run db:seed` (define `hireDate` em ~24 meses atrás).
+- **Colaborador 1** — `colaborador1@empresa.com`
+- **Colaborador 2** — `colaborador2@empresa.com`  
+  Cenário: **quase 2 anos de empresa** → direito a **60 dias** (o seed define `hireDate` em ~24 meses atrás).
 
-#### Gestores
+#### Coordenadores (Gestores)
 
-- **Gestor Líder**
-  - E-mail: `gestor@empresa.com`
-- **Gestor Projeto**
-  - E-mail: `gestor2@empresa.com`
+- **Gestor Um** — `gestor1@empresa.com`
+- **Gestor Dois** — `gestor2@empresa.com`
+
+#### Gerentes
+
+- **Gerente Um** — `gerente1@empresa.com`
+- **Gerente Dois** — `gerente2@empresa.com`
 
 #### RH
 
-- **RH Master**
-  - E-mail: `rh@empresa.com`
-- **RH Operacional**
-  - E-mail: `rh2@empresa.com`
+- **RH Um** — `rh1@empresa.com`
+- **RH Dois** — `rh2@empresa.com`
 
-> Observação: gestores e RH também podem criar solicitações de férias, mas **não podem aprovar/reprovar as próprias solicitações**. Sempre é necessário outro usuário para aprovar.
+> Observação: gestores e RH também podem criar solicitações de férias, mas **não podem aprovar/reprovar as próprias solicitações**. Sempre é necessário outro usuário na cadeia para aprovar.
 
 ---
 
@@ -142,11 +145,17 @@ Todos os usuários abaixo usam a **mesma senha**:
 
 2. **Variáveis de ambiente**
 
-Crie um arquivo `.env` na pasta `ds-ferias` com pelo menos:
+Copie `.env.example` para `.env` e preencha (ou crie `.env` com):
 
 ```bash
 DATABASE_URL="postgresql://usuario:senha@host:porta/banco"
+
+# Recomendado em produção: assina o cookie de sessão (HMAC). Mín. 16 caracteres.
+# Se não definido, a sessão fica em JSON legado (menos seguro).
+SESSION_SECRET="seu-secret-com-pelo-menos-16-caracteres"
 ```
+
+Opcional: `NOTIFY_WEBHOOK_URL` para notificações (POST JSON em novo pedido / aprovação / reprovação).
 
 3. **Instalar dependências**
 
@@ -174,9 +183,18 @@ npm run dev
 
 A aplicação ficará disponível em `http://localhost:3000`.
 
-6. **Popular usuários**
-   - Use o **Prisma Studio** para criar usuários com os e-mails acima e `passwordHash` gerado para `senha123`, ou reutilize os registros já existentes no seu banco.
-   - Defina o `role` (`COLABORADOR`, `GESTOR`, `RH`) e, para colaboradores, associe o `managerId` ao gestor correto.
+6. **Testes automatizados**
+
+```bash
+npm run test        # modo watch
+npm run test:run    # execução única
+```
+
+Os testes em `tests/vacationRules.test.ts` cobrem regras de papel, aprovação, visibilidade de equipe, validações CLT e cálculo de saldo.
+
+7. **Popular usuários**
+   - Rode `npm run db:seed` para criar/atualizar os usuários de teste (e-mails e papéis listados acima).
+   - Ou use o **Prisma Studio** para criar/editar usuários; defina o `role` e, para colaboradores, associe o `managerId` ao coordenador/gerente correto.
 
 ---
 
@@ -188,6 +206,9 @@ A aplicação ficará disponível em `http://localhost:3000`.
 - **UI colaborador**: Saldo único no sidebar (Pendente / Disponível por extenso, sem número verde em destaque); status **Pendente aprovação**; botões **Excluir solicitação** e **Editar período**; subtítulo do card "Informe as datas de cada período de férias"; regras CLT no card; resumo com total desta solicitação, já no ciclo, total no ciclo e aviso quando ultrapassar direito; bloco **Nenhuma solicitação** com largura adequada; card **Fluxo de Aprovação** removido.
 - **Layout**: Responsivo (mobile com coluna única, formulário acessível); sidebar mais larga no desktop; tema claro/escuro.
 - **Seed**: Colaborador 2 com `hireDate` ~24 meses atrás para cenário de 60 dias (`npm run db:seed`).
+- **Segurança e auditoria**: Cookie de sessão assinado com HMAC quando `SESSION_SECRET` está definido; Coordenador/Gerente só podem excluir solicitações da própria equipe; edição de solicitação pendente permitida para qualquer papel de nível 1 (FUNCIONARIO/COLABORADOR).
+- **Performance**: Dashboard e export de CSV usam filtro de visibilidade no banco (`lib/requestVisibility.ts`) para que Coordenador e Gerente não carreguem todas as solicitações.
+- **Testes**: Vitest para `lib/vacationRules.ts` (papéis, aprovação, visibilidade, CLT, saldo).
 
 ---
 
@@ -226,9 +247,20 @@ A aplicação ficará disponível em `http://localhost:3000`.
 - **Notificações**: `lib/notifications.ts` com `notifyNewRequest`, `notifyApproved`, `notifyRejected`. Chamadas ao criar solicitação e ao aprovar/reprovar. Por padrão só registra em log; para envio real, defina `NOTIFY_WEBHOOK_URL` no `.env` (POST JSON com o evento).
 - **Relatórios**: export de solicitações (CSV) já existente, agora com todos os filtros; **Relatório de saldo** (CSV) em `/api/reports/balance` (botão "Relatório de saldo (CSV)" para RH na tela de Gestão de Férias).
 
+### Documentação de engenharia
+
+Na pasta `docs/`:
+
+- **`system_audit.md`** — Auditoria do sistema (bugs, permissões, CLT, severidade).
+- **`security_audit.md`** — Autenticação, sessão, autorização, validação.
+- **`performance_report.md`** — Queries, filtros, sugestões de índice.
+- **`engineering_roadmap.md`** — Plano de melhorias priorizado.
+- **`agent_report.md`** — Resumo de melhorias aplicadas, bugs corrigidos e sugestões futuras.
+
 ### O que ainda falta / para melhorar
 
 - Integração de notificações com e-mail (ex.: Resend) ou Slack/Teams além do webhook genérico.
+- Migração do hash de senha para bcrypt/argon2 (roadmap em `docs/engineering_roadmap.md`).
 - Calendário consolidado, limite de pessoas em férias por equipe, relatórios gerenciais adicionais (conforme roadmap abaixo).
 
 ---
@@ -291,6 +323,18 @@ Sugestões baseadas em padrões comuns de portais internos de férias em empresa
 Estas melhorias não estão implementadas ainda, mas o código atual (modelo de dados, histórico, separação por papéis e validações no backend) já prepara um bom terreno para evoluir o sistema nessa direção.
 
 ---
+
+### Scripts disponíveis
+
+| Script | Descrição |
+|--------|-----------|
+| `npm run dev` | Servidor de desenvolvimento |
+| `npm run build` | Gera Prisma Client e build de produção |
+| `npm run start` | Sobe o servidor em modo produção |
+| `npm run test` | Roda testes Vitest (watch) |
+| `npm run test:run` | Roda testes Vitest (uma vez) |
+| `npm run db:seed` | Popula/atualiza usuários de teste |
+| `npm run db:check-visibility` | Lista visibilidade de solicitações por usuário (script de diagnóstico) |
 
 ### Referências
 
