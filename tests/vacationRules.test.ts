@@ -1,12 +1,19 @@
 import { describe, it, expect } from "vitest";
 import {
   getRoleLevel,
+  getRoleLabel,
+  ROLE_COLOR,
+  getNextApprovalStatus,
   canApproveRequest,
   hasTeamVisibility,
   validateCltPeriods,
   validateCltPeriod,
   calculateVacationBalance,
   getNextApprover,
+  getApprovalSteps,
+  getApprovalProgress,
+  detectTeamConflicts,
+  checkBlackoutPeriods,
 } from "@/lib/vacationRules";
 
 describe("getRoleLevel", () => {
@@ -201,6 +208,37 @@ describe("calculateVacationBalance", () => {
   });
 });
 
+describe("getRoleLabel", () => {
+  it("returns label for known roles", () => {
+    expect(getRoleLabel("FUNCIONARIO")).toBe("Funcionário(a)");
+    expect(getRoleLabel("COORDENADOR")).toBe("Coordenador(a)");
+    expect(getRoleLabel("GERENTE")).toBe("Gerente");
+    expect(getRoleLabel("RH")).toBe("RH / Admin");
+  });
+  it("returns role as-is for unknown", () => {
+    expect(getRoleLabel("UNKNOWN")).toBe("UNKNOWN");
+  });
+});
+
+describe("ROLE_COLOR", () => {
+  it("returns color for known roles", () => {
+    expect(ROLE_COLOR["FUNCIONARIO"]).toBe("blue");
+    expect(ROLE_COLOR["RH"]).toBe("emerald");
+  });
+});
+
+describe("getNextApprovalStatus", () => {
+  it("returns APROVADO_COORDENADOR for level 2", () => {
+    expect(getNextApprovalStatus("COORDENADOR")).toBe("APROVADO_COORDENADOR");
+  });
+  it("returns APROVADO_GERENTE for level 3", () => {
+    expect(getNextApprovalStatus("GERENTE")).toBe("APROVADO_GERENTE");
+  });
+  it("returns APROVADO_RH for level 4", () => {
+    expect(getNextApprovalStatus("RH")).toBe("APROVADO_RH");
+  });
+});
+
 describe("getNextApprover", () => {
   it("returns Coordenador for PENDENTE from Funcionario", () => {
     expect(getNextApprover("PENDENTE", "FUNCIONARIO")).toContain("Coordenador");
@@ -213,5 +251,163 @@ describe("getNextApprover", () => {
   });
   it("returns null for APROVADO_RH", () => {
     expect(getNextApprover("APROVADO_RH", "FUNCIONARIO")).toBeNull();
+  });
+});
+
+describe("getApprovalSteps", () => {
+  it("returns 3 steps for FUNCIONARIO", () => {
+    expect(getApprovalSteps("FUNCIONARIO")).toEqual(["Coordenador(a)", "Gerente", "RH"]);
+  });
+  it("returns 2 steps for COORDENADOR", () => {
+    expect(getApprovalSteps("COORDENADOR")).toEqual(["Gerente", "RH"]);
+  });
+  it("returns 1 step for GERENTE", () => {
+    expect(getApprovalSteps("GERENTE")).toEqual(["RH"]);
+  });
+  it("returns empty for RH", () => {
+    expect(getApprovalSteps("RH")).toEqual([]);
+  });
+});
+
+describe("getApprovalProgress", () => {
+  it("returns 0 for PENDENTE", () => {
+    expect(getApprovalProgress("PENDENTE")).toBe(0);
+  });
+  it("returns 1 for APROVADO_COORDENADOR/APROVADO_GESTOR", () => {
+    expect(getApprovalProgress("APROVADO_COORDENADOR")).toBe(1);
+    expect(getApprovalProgress("APROVADO_GESTOR")).toBe(1);
+  });
+  it("returns 2 for APROVADO_GERENTE", () => {
+    expect(getApprovalProgress("APROVADO_GERENTE")).toBe(2);
+  });
+  it("returns 3 for APROVADO_RH", () => {
+    expect(getApprovalProgress("APROVADO_RH")).toBe(3);
+  });
+  it("returns 0 for REPROVADO", () => {
+    expect(getApprovalProgress("REPROVADO")).toBe(0);
+  });
+});
+
+describe("detectTeamConflicts", () => {
+  const futureStart = new Date("2026-07-01");
+  const futureEnd = new Date("2026-07-14");
+
+  it("returns zeros for empty team", () => {
+    const r = detectTeamConflicts(futureStart, futureEnd, []);
+    expect(r.conflictingCount).toBe(0);
+    expect(r.teamSize).toBe(0);
+    expect(r.isBlocked).toBe(false);
+    expect(r.isWarning).toBe(false);
+  });
+
+  it("detects no conflict when no overlapping requests", () => {
+    const r = detectTeamConflicts(futureStart, futureEnd, [
+      { name: "A", requests: [{ startDate: new Date("2025-01-01"), endDate: new Date("2025-01-10"), status: "APROVADO_RH" }] },
+    ]);
+    expect(r.conflictingCount).toBe(0);
+    expect(r.names).toEqual([]);
+  });
+
+  it("detects conflict when member has overlapping approved request", () => {
+    const r = detectTeamConflicts(futureStart, futureEnd, [
+      { name: "A", requests: [{ startDate: new Date("2026-07-05"), endDate: new Date("2026-07-12"), status: "APROVADO_RH" }] },
+    ]);
+    expect(r.conflictingCount).toBe(1);
+    expect(r.names).toEqual(["A"]);
+    expect(r.isWarning).toBe(true);
+  });
+
+  it("ignores REPROVADO/CANCELADO", () => {
+    const r = detectTeamConflicts(futureStart, futureEnd, [
+      { name: "A", requests: [{ startDate: new Date("2026-07-05"), endDate: new Date("2026-07-12"), status: "REPROVADO" }] },
+    ]);
+    expect(r.conflictingCount).toBe(0);
+  });
+});
+
+describe("checkBlackoutPeriods", () => {
+  it("returns null when no blackouts", () => {
+    expect(checkBlackoutPeriods(new Date("2026-06-01"), new Date("2026-06-14"), [])).toBeNull();
+  });
+
+  it("returns null when request does not overlap blackout", () => {
+    const blackouts = [{ startDate: new Date("2026-07-01"), endDate: new Date("2026-07-15"), reason: "Fechamento" }];
+    expect(checkBlackoutPeriods(new Date("2026-06-01"), new Date("2026-06-14"), blackouts)).toBeNull();
+  });
+
+  it("returns message when request overlaps blackout", () => {
+    const blackouts = [{ startDate: new Date("2026-06-05"), endDate: new Date("2026-06-20"), reason: "Fechamento" }];
+    const msg = checkBlackoutPeriods(new Date("2026-06-10"), new Date("2026-06-18"), blackouts);
+    expect(msg).toContain("bloqueado");
+    expect(msg).toContain("Fechamento");
+  });
+
+  it("applies department-specific blackout only to same department", () => {
+    const blackouts = [{ startDate: new Date("2026-06-05"), endDate: new Date("2026-06-20"), reason: "TI", department: "TI" }];
+    expect(checkBlackoutPeriods(new Date("2026-06-10"), new Date("2026-06-18"), blackouts, "Vendas")).toBeNull();
+    expect(checkBlackoutPeriods(new Date("2026-06-10"), new Date("2026-06-18"), blackouts, "TI")).toContain("bloqueado");
+  });
+});
+
+describe("validateCltPeriod (weekend)", () => {
+  it("rejects start on Friday (local date)", () => {
+    const start = new Date(2026, 5, 5); // 5 = June, Friday
+    const end = new Date(2026, 5, 19);
+    const err = validateCltPeriod(start, end);
+    expect(err).toBeTruthy();
+    expect(err).toContain("sexta");
+  });
+
+  it("rejects end on Saturday (local date)", () => {
+    const start = new Date(2026, 5, 3);
+    const end = new Date(2026, 5, 13); // Saturday
+    const err = validateCltPeriod(start, end);
+    expect(err).toBeTruthy();
+    expect(err).toContain("sábado");
+  });
+});
+
+describe("validateCltPeriods (overlap and 14 days)", () => {
+  const in60 = new Date();
+  in60.setDate(in60.getDate() + 60);
+
+  it("rejects overlapping periods (weekday ends)", () => {
+    const monday = new Date(2026, 5, 1);
+    const p1 = { start: new Date(monday), end: new Date(monday.getTime() + 9 * 86400000) };
+    const p2 = { start: new Date(monday.getTime() + 5 * 86400000), end: new Date(monday.getTime() + 14 * 86400000) };
+    const err = validateCltPeriods([p1, p2], { checkAdvanceNotice: false, existingDaysInCycle: 0 });
+    expect(err).toContain("sobrepor");
+  });
+
+  it("rejects invalid period (end < start)", () => {
+    const start = new Date(in60);
+    const end = new Date(in60.getTime() - 86400000);
+    expect(validateCltPeriods([{ start, end }], { checkAdvanceNotice: false })).toContain("inválido");
+  });
+
+  it("rejects total cycle exceeding entitledDays", () => {
+    const p1 = { start: new Date(in60), end: new Date(in60.getTime() + 13 * 86400000) };
+    const p2 = { start: new Date(in60.getTime() + 20 * 86400000), end: new Date(in60.getTime() + 29 * 86400000) };
+    const err = validateCltPeriods([p1, p2], { checkAdvanceNotice: false, existingDaysInCycle: 10, entitledDays: 30 });
+    expect(err).toContain("30");
+  });
+});
+
+describe("calculateVacationBalance (null hireDate)", () => {
+  it("returns hasEntitlement true and 30 entitled when hireDate is null", () => {
+    const balance = calculateVacationBalance(null, []);
+    expect(balance.hasEntitlement).toBe(true);
+    expect(balance.entitledDays).toBe(30);
+    expect(balance.availableDays).toBe(30);
+  });
+
+  it("counts pending days when hireDate is null (current year)", () => {
+    const year = new Date().getFullYear();
+    const requests = [
+      { startDate: new Date(year, 5, 1), endDate: new Date(year, 5, 15), status: "PENDENTE" },
+    ];
+    const balance = calculateVacationBalance(undefined, requests);
+    expect(balance.pendingDays).toBe(15);
+    expect(balance.availableDays).toBeLessThan(30);
   });
 });
