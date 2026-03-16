@@ -231,8 +231,8 @@ describe("getNextApprovalStatus", () => {
   it("returns APROVADO_COORDENADOR for level 2", () => {
     expect(getNextApprovalStatus("COORDENADOR")).toBe("APROVADO_COORDENADOR");
   });
-  it("returns APROVADO_GERENTE for level 3", () => {
-    expect(getNextApprovalStatus("GERENTE")).toBe("APROVADO_GERENTE");
+  it("returns APROVADO_COORDENADOR for level 3 (Coordenador ou Gerente aprovam a mesma etapa)", () => {
+    expect(getNextApprovalStatus("GERENTE")).toBe("APROVADO_COORDENADOR");
   });
   it("returns APROVADO_RH for level 4", () => {
     expect(getNextApprovalStatus("RH")).toBe("APROVADO_RH");
@@ -243,10 +243,10 @@ describe("getNextApprover", () => {
   it("returns Coordenador for PENDENTE from Funcionario", () => {
     expect(getNextApprover("PENDENTE", "FUNCIONARIO")).toContain("Coordenador");
   });
-  it("returns Gerente for APROVADO_COORDENADOR", () => {
-    expect(getNextApprover("APROVADO_COORDENADOR", "FUNCIONARIO")).toContain("Gerente");
+  it("returns RH for APROVADO_COORDENADOR", () => {
+    expect(getNextApprover("APROVADO_COORDENADOR", "FUNCIONARIO")).toContain("RH");
   });
-  it("returns RH for APROVADO_GERENTE", () => {
+  it("returns RH for APROVADO_GERENTE (legado)", () => {
     expect(getNextApprover("APROVADO_GERENTE", "FUNCIONARIO")).toContain("RH");
   });
   it("returns null for APROVADO_RH", () => {
@@ -255,14 +255,14 @@ describe("getNextApprover", () => {
 });
 
 describe("getApprovalSteps", () => {
-  it("returns 3 steps for FUNCIONARIO", () => {
-    expect(getApprovalSteps("FUNCIONARIO")).toEqual(["Coordenador(a)", "Gerente", "RH"]);
+  it("returns 2 steps (Coordenador/Gerente → RH) for FUNCIONARIO", () => {
+    expect(getApprovalSteps("FUNCIONARIO")).toEqual(["Coordenador(a) / Gerente", "RH"]);
   });
-  it("returns 2 steps for COORDENADOR", () => {
-    expect(getApprovalSteps("COORDENADOR")).toEqual(["Gerente", "RH"]);
+  it("returns same 2 steps for COORDENADOR", () => {
+    expect(getApprovalSteps("COORDENADOR")).toEqual(["Coordenador(a) / Gerente", "RH"]);
   });
-  it("returns 1 step for GERENTE", () => {
-    expect(getApprovalSteps("GERENTE")).toEqual(["RH"]);
+  it("returns same 2 steps for GERENTE", () => {
+    expect(getApprovalSteps("GERENTE")).toEqual(["Coordenador(a) / Gerente", "RH"]);
   });
   it("returns empty for RH", () => {
     expect(getApprovalSteps("RH")).toEqual([]);
@@ -277,11 +277,11 @@ describe("getApprovalProgress", () => {
     expect(getApprovalProgress("APROVADO_COORDENADOR")).toBe(1);
     expect(getApprovalProgress("APROVADO_GESTOR")).toBe(1);
   });
-  it("returns 2 for APROVADO_GERENTE", () => {
-    expect(getApprovalProgress("APROVADO_GERENTE")).toBe(2);
+  it("returns 1 for APROVADO_GERENTE (legado, ainda etapa intermediária)", () => {
+    expect(getApprovalProgress("APROVADO_GERENTE")).toBe(1);
   });
-  it("returns 3 for APROVADO_RH", () => {
-    expect(getApprovalProgress("APROVADO_RH")).toBe(3);
+  it("returns 2 for APROVADO_RH", () => {
+    expect(getApprovalProgress("APROVADO_RH")).toBe(2);
   });
   it("returns 0 for REPROVADO", () => {
     expect(getApprovalProgress("REPROVADO")).toBe(0);
