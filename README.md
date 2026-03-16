@@ -6,7 +6,7 @@ Sistema interno de gestão de férias com fluxo de aprovação em cadeia (Coorde
 
 ## Visão geral
 
-- **Colaborador (FUNCIONARIO/COLABORADOR):** cria solicitações, edita/exclui as pendentes, acompanha histórico e saldo.
+- **Colaborador (FUNCIONARIO/COLABORADOR):** cria solicitações, cancela as pendentes (antes da aprovação final) e acompanha histórico, saldo e calendário.
 - **Coordenador:** aprova/reprova férias do **seu time**, exclui solicitações da equipe e acessa a aba **Times** (todos os reportes diretos com status explícito).
 - **Gerente:** aprova solicitações dos coordenadores e dos times sob sua gestão; vê **Times** agrupados por coordenador.
 - **RH:** aprovação final, agrupada por gerente/coordenador; **Times** com todos os colaboradores; Backoffice; relatórios e export CSV.
@@ -30,7 +30,7 @@ Períodos em que a empresa não permite férias (blackout) são configurados pel
 
 ---
 
-## Arquitetura do projeto (pós-refatoração)
+## Arquitetura do projeto
 
 - **`app/`** — Rotas (dashboard, login, admin, API).
 - **`components/`** — UI por domínio:
@@ -39,10 +39,12 @@ Períodos em que a empresa não permite férias (blackout) são configurados pel
   - **layout/** — EmptyState, ExportButton, ícones.
 - **`lib/`** — Auth, regras de férias (`vacationRules.ts`), visibilidade (`requestVisibility.ts`), filtros do dashboard (`dashboardFilters.ts`), Prisma, utils.
 - **`repositories/`** — Acesso a dados (Prisma): vacation, user, blackout.
-- **`services/`** — Lógica de negócio e orquestração: `dashboardDataService`, `teamMembersService`.
+- **`services/`** — Lógica de negócio e orquestração: `dashboardDataService`, `teamMembersService`, `vacationRequestListService`.
 - **`types/`** — Tipos compartilhados (ex.: `dashboard.ts`).
 
-Detalhes em **`docs/refactor_report.md`**.
+Detalhes em:
+- `docs/project_overview.md` — visão geral de contexto e módulos.
+- `docs/architecture.md` — arquitetura detalhada.
 
 ---
 
@@ -99,11 +101,11 @@ Aplicação em `http://localhost:3000`.
 ```bash
 npm run test          # watch
 npm run test:run      # uma vez
-npm run test:coverage # cobertura (meta: ≥85%)
-npm run test:mutation # Stryker mutation testing (meta: ≥80%)
+npm run test:coverage # cobertura (meta: ≥90%)
+npm run test:mutation # Stryker mutation testing (meta: ≥85%)
 ```
 
-Testes em `tests/` cobrem `lib/`, `services/` e `repositories/` (papéis, aprovação, visibilidade, CLT, auth, notificações, etc.). **Cobertura de testes:** meta ≥85%. **Mutation testing (Stryker):** o build de mutação falha se o mutation score ficar abaixo de 80% (`stryker.config.json` → `thresholds.break`).
+Testes em `tests/` cobrem `lib/`, `services/` e `repositories` (papéis, aprovação, visibilidade, CLT, auth, notificações, serviços de dashboard, etc.). **Cobertura de testes:** meta ≥90%. **Mutation testing (Stryker):** o build de mutação falha se o mutation score ficar abaixo de 85% (`stryker.config.json` → `thresholds.break`).
 
 ---
 
@@ -117,7 +119,7 @@ Testes em `tests/` cobrem `lib/`, `services/` e `repositories/` (papéis, aprova
 | `npm run test` | Testes Vitest (watch) |
 | `npm run test:run` | Testes Vitest (uma execução) |
 | `npm run test:coverage` | Cobertura de código (relatório em `coverage/`) |
-| `npm run test:mutation` | Stryker: mutation testing (≥80% para passar) |
+| `npm run test:mutation` | Stryker: mutation testing (≥85% para passar) |
 | `npm run db:seed` | Popula/atualiza usuários de teste |
 | `npm run db:check-visibility` | Diagnóstico de visibilidade de solicitações por usuário |
 
@@ -125,11 +127,19 @@ Testes em `tests/` cobrem `lib/`, `services/` e `repositories/` (papéis, aprova
 
 ## Documentação em `docs/`
 
-- **`refactor_analysis.md`** — Análise que motivou a refatoração (arquivos grandes, responsabilidades).
-- **`refactor_plan.md`** — Plano de estrutura (repositórios, services, componentes).
-- **`refactor_report.md`** — Relatório final: arquivos criados, arquitetura atual e recomendações.
-- **`mobile_usability.md`** — Usabilidade em mobile: viewport, saldo na sidebar, alvos de toque (≥44px), ajustes e recomendações.
-- **`project_state.md`**, **`code_review.md`**, **`product_improvements.md`**, **`next_engineering_roadmap.md`**, **`final_engineering_review.md`** — Estado do projeto, revisão de código, produto, roadmap e relatório final de engenharia.
+- **`project_overview.md`** — visão geral, domínio, módulos principais e regras críticas.
+- **`architecture.md`** — arquitetura detalhada (camadas, services, repositories, lib).
+- **`engineering_review.md`** — análise técnica e dívidas de engenharia.
+- **`product_notes.md`** — notas de produto/UX por papel (colaborador, gestor, RH).
+- **`next_steps.md`** — roadmap de curto, médio e longo prazo.
+- **`architecture_audit.md`** — auditoria de arquitetura (forças, riscos, recomendações).
+- **`nextjs_best_practices.md`** — uso de Next.js (Server/Client Components, rotas, loading/error).
+- **`performance_audit.md`** — riscos de performance e recomendações.
+- **`database_review.md`** — revisão de modelagem/índices com Prisma.
+- **`security_review.md`** — revisões de autenticação, autorização e validação.
+- **`testing_strategy.md`** — estratégia de testes, cobertura e mutation testing.
+- **`developer_experience.md`** — DX, onboarding e sugestões para novos devs.
+- **`engineering_roadmap.md`** — roadmap de engenharia (alto/médio/baixo impacto).
 
 ---
 
