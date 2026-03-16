@@ -63,7 +63,9 @@ export function AppSidebar({
               aria-label="Sair da conta"
               className="inline-flex items-center gap-1.5 rounded-md border border-red-100 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 shadow-sm transition hover:bg-red-100 hover:text-red-800 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-inset dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-300 dark:hover:bg-red-900/40"
             >
-              <IconLogout className="h-3.5 w-3.5" />
+              <span className="inline-flex h-3.5 w-3.5 items-center justify-center">
+                <IconLogout />
+              </span>
               <span>Sair</span>
             </button>
           </form>
