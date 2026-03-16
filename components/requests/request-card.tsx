@@ -45,23 +45,24 @@ export function RequestCard({
   const showActions = isOwner || (!!userId && request.userId !== userId);
   const start = new Date(request.startDate);
   const end = new Date(request.endDate);
-  const startDay = start.getDate();
-  const endDay = end.getDate();
-  const startMonth = start.toLocaleDateString("pt-BR", { month: "short" });
-  const endMonth = end.toLocaleDateString("pt-BR", { month: "short" });
-  const monthLabel = startMonth === endMonth ? startMonth : `${startMonth}/${endMonth}`;
+  const startLabel = start
+    .toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })
+    .toUpperCase();
+  const endLabel = end
+    .toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })
+    .toUpperCase();
 
   return (
     <div className="rounded-lg border border-[#e2e8f0] bg-white transition-shadow hover:shadow-sm dark:border-[#252a35] dark:bg-[#1a1d23]">
       <div className="p-4 sm:p-5">
         <div className="flex flex-wrap items-start justify-between gap-3 sm:flex-nowrap">
           <div className="flex min-w-0 flex-1 items-center gap-3">
-            <div className="flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-lg bg-blue-50 text-xs leading-tight dark:bg-blue-900/20">
-              <span className="text-base font-bold text-blue-700 dark:text-blue-400">
-                {startDay}-{endDay}
+            <div className="flex h-14 w-16 shrink-0 flex-col items-center justify-center rounded-lg bg-blue-50 text-[11px] leading-tight dark:bg-blue-900/20">
+              <span className="font-bold text-blue-700 dark:text-blue-400">
+                {startLabel}
               </span>
-              <span className="uppercase font-semibold text-blue-500 dark:text-blue-400">
-                {monthLabel}
+              <span className="mt-0.5 font-bold uppercase text-blue-500 dark:text-blue-300">
+                {endLabel}
               </span>
             </div>
             <div className="min-w-0 flex-1">
