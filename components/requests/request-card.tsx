@@ -43,30 +43,35 @@ export function RequestCard({
       })
     : false;
   const showActions = isOwner || (!!userId && request.userId !== userId);
+  const start = new Date(request.startDate);
+  const end = new Date(request.endDate);
+  const startDay = start.getDate();
+  const endDay = end.getDate();
+  const monthShort = start.toLocaleDateString("pt-BR", { month: "short" });
 
   return (
     <div className="rounded-lg border border-[#e2e8f0] bg-white transition-shadow hover:shadow-sm dark:border-[#252a35] dark:bg-[#1a1d23]">
       <div className="p-4 sm:p-5">
         <div className="flex flex-wrap items-start justify-between gap-3 sm:flex-nowrap">
           <div className="flex min-w-0 flex-1 items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 flex-col items-center justify-center rounded-lg bg-blue-50 dark:bg-blue-900/20">
-              <span className="text-lg font-bold leading-none text-blue-700 dark:text-blue-400">
-                {new Date(request.startDate).getDate()}
+            <div className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-lg bg-blue-50 text-[11px] leading-tight dark:bg-blue-900/20">
+              <span className="font-bold text-blue-700 dark:text-blue-400">
+                {startDay}-{endDay}
               </span>
-              <span className="text-[9px] uppercase text-blue-500 dark:text-blue-400">
-                {new Date(request.startDate).toLocaleDateString("pt-BR", { month: "short" })}
+              <span className="uppercase text-blue-500 dark:text-blue-400">
+                {monthShort}
               </span>
             </div>
             <div className="min-w-0 flex-1">
               {!isOwner && request.user && (
                 <div className="flex flex-wrap items-center gap-2">
-                  <p className="truncate text-base font-semibold text-[#1a1d23] dark:text-white">
+                  <p className="truncate text-lg font-semibold text-[#1a1d23] dark:text-white">
                     {request.user.name}
                   </p>
                   <RoleChip role={request.user.role ?? "FUNCIONARIO"} />
                 </div>
               )}
-              <p className="truncate text-base text-[#64748b] dark:text-slate-400">
+              <p className="truncate text-base font-medium text-[#475569] dark:text-slate-300">
                 {formatDateRange(request.startDate, request.endDate)}
               </p>
               {request.user?.department && (

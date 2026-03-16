@@ -62,7 +62,7 @@ export function getRoleLabel(role: string): string {
 export function getNextApprovalStatus(approverRole: string): string {
   const level = ROLE_LEVEL[approverRole] ?? 1;
   if (level >= 4) return "APROVADO_RH";
-  if (level === 3) return "APROVADO_GERENTE";
+  // Primeira etapa única: Coordenador OU Gerente podem aprovar para APROVADO_COORDENADOR
   return "APROVADO_COORDENADOR";
 }
 
@@ -104,14 +104,12 @@ export function canApproveRequest(
 function getRequiredApproverLevel(status: string, requesterLevel: number): number | null {
   switch (status) {
     case "PENDENTE":
-      // Precisa do próximo nível acima do solicitante
-      return requesterLevel + 1;
+      // Primeira etapa pode ser feita por Coordenador OU Gerente (nível 2+)
+      return 2;
     case "APROVADO_COORDENADOR":
     case "APROVADO_GESTOR": // legado
-      // Precisa de Gerente (nível 3) ou superior
-      return 3;
-    case "APROVADO_GERENTE":
-      // Precisa de RH (nível 4)
+    case "APROVADO_GERENTE": // legado
+      // Após primeira aprovação, apenas RH conclui
       return 4;
     default:
       // Status terminal: APROVADO_RH, REPROVADO, CANCELADO
@@ -144,10 +142,9 @@ export function getNextApprover(status: string, requesterRole: string): string |
 export function getApprovalSteps(requesterRole: string): string[] {
   const level = ROLE_LEVEL[requesterRole] ?? 1;
 
-  if (level >= 4) return []; // RH não precisa de aprovação de outros (ou precisa de GERENTE)
-  if (level === 3) return ["RH"]; // Gerente só precisa do RH
-  if (level === 2) return ["Gerente", "RH"]; // Coordenador: Gerente → RH
-  return ["Coordenador(a)", "Gerente", "RH"]; // Funcionário: todos os níveis
+  if (level >= 4) return []; // RH não precisa de aprovação de outros
+  // Para Funcionário/Colaborador, Coordenador ou Gerente: duas etapas visíveis
+  return ["Coordenador(a) / Gerente", "RH"];
 }
 
 /**
@@ -155,12 +152,16 @@ export function getApprovalSteps(requesterRole: string): string[] {
  */
 export function getApprovalProgress(status: string): number {
   switch (status) {
-    case "PENDENTE": return 0;
+    case "PENDENTE":
+      return 0;
     case "APROVADO_COORDENADOR":
-    case "APROVADO_GESTOR": return 1;
-    case "APROVADO_GERENTE": return 2;
-    case "APROVADO_RH": return 3;
-    default: return 0;
+    case "APROVADO_GESTOR": // legado
+    case "APROVADO_GERENTE": // legado
+      return 1;
+    case "APROVADO_RH":
+      return 2;
+    default:
+      return 0;
   }
 }
 

@@ -14,8 +14,8 @@ import {
  * usadas nas APIs e no dashboard se comportam de forma consistente.
  */
 
-describe("Workflow: approval chain (Coordenador → Gerente → RH)", () => {
-  it("PENDENTE can be approved by Coordenador only", () => {
+describe("Workflow: approval chain (Coordenador/ Gerente → RH)", () => {
+  it("PENDENTE can be approved by Coordenador or Gerente", () => {
     const request = { userId: "f1", status: "PENDENTE", user: { role: "FUNCIONARIO" } };
     expect(canApproveRequest("COORDENADOR", "c1", request)).toBe(true);
     expect(canApproveRequest("GERENTE", "g1", request)).toBe(true);
@@ -23,16 +23,8 @@ describe("Workflow: approval chain (Coordenador → Gerente → RH)", () => {
     expect(getNextApprovalStatus("COORDENADOR")).toBe("APROVADO_COORDENADOR");
   });
 
-  it("APROVADO_COORDENADOR can be approved by Gerente only (not Coordenador)", () => {
+  it("APROVADO_COORDENADOR can be approved by RH only (not Coordenador nem Gerente)", () => {
     const request = { userId: "f1", status: "APROVADO_COORDENADOR", user: { role: "FUNCIONARIO" } };
-    expect(canApproveRequest("COORDENADOR", "c1", request)).toBe(false);
-    expect(canApproveRequest("GERENTE", "g1", request)).toBe(true);
-    expect(canApproveRequest("RH", "r1", request)).toBe(true);
-    expect(getNextApprovalStatus("GERENTE")).toBe("APROVADO_GERENTE");
-  });
-
-  it("APROVADO_GERENTE can be approved by RH only", () => {
-    const request = { userId: "f1", status: "APROVADO_GERENTE", user: { role: "FUNCIONARIO" } };
     expect(canApproveRequest("COORDENADOR", "c1", request)).toBe(false);
     expect(canApproveRequest("GERENTE", "g1", request)).toBe(false);
     expect(canApproveRequest("RH", "r1", request)).toBe(true);
@@ -42,8 +34,8 @@ describe("Workflow: approval chain (Coordenador → Gerente → RH)", () => {
   it("approval progress matches chain", () => {
     expect(getApprovalProgress("PENDENTE")).toBe(0);
     expect(getApprovalProgress("APROVADO_COORDENADOR")).toBe(1);
-    expect(getApprovalProgress("APROVADO_GERENTE")).toBe(2);
-    expect(getApprovalProgress("APROVADO_RH")).toBe(3);
+    expect(getApprovalProgress("APROVADO_GERENTE")).toBe(1);
+    expect(getApprovalProgress("APROVADO_RH")).toBe(2);
   });
 });
 

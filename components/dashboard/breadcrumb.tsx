@@ -2,7 +2,7 @@ import Link from "next/link";
 
 const VIEW_LABELS: Record<string, string> = {
   minhas: "Minhas Férias",
-  inbox: "Caixa de entrada",
+  inbox: "Caixa de Aprovação",
   historico: "Histórico",
   times: "Times",
 };
