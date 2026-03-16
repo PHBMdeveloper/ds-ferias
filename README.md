@@ -11,7 +11,7 @@ Sistema interno de gestão de férias com fluxo de aprovação em cadeia (Coorde
 - **Gerente:** aprova solicitações dos coordenadores e dos times sob sua gestão; vê **Times** agrupados por coordenador.
 - **RH:** aprovação final, agrupada por gerente/coordenador; **Times** com todos os colaboradores; Backoffice; relatórios e export CSV.
 
-Fluxo: **PENDENTE** → Coordenador → **APROVADO_COORDENADOR** → Gerente → **APROVADO_GERENTE** → RH → **APROVADO_RH**. Ninguém aprova a própria solicitação.
+Fluxo: **PENDENTE** → **Coordenador ou Gerente** (primeira aprovação, status `APROVADO_COORDENADOR`) → **RH** (`APROVADO_RH`). Ninguém aprova a própria solicitação.
 
 ---
 
@@ -25,6 +25,8 @@ Implementadas em `lib/vacationRules.ts`:
 - **Aviso prévio:** 30 dias; feriados (SP + nacionais) considerados.
 - **Conflitos:** não sobrepor outra solicitação pendente ou aprovada.
 - **Saldo:** `calculateVacationBalance` retorna `entitledDays`, `availableDays`, `pendingDays`, `usedDays`.
+- **Datas e timezone:** todos os cálculos de dias/semana usam datas **normalizadas em UTC** para evitar diferenças entre ambientes.
+- **Feriados nacionais:** carregados automaticamente via BrasilAPI (com cache em memória por ano), com fallback local para garantir CLT mesmo se a API externa estiver indisponível.
 
 Períodos em que a empresa não permite férias (blackout) são configurados pelo RH e bloqueiam novas solicitações.
 

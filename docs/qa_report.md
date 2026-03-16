@@ -71,12 +71,13 @@ No geral, os workflows principais por papel estão coerentes com as docs e as re
 - **Saldo de férias:**  
   - `calculateVacationBalance` calcula `entitledDays`, `pendingDays`, `usedDays`, `availableDays` com base em `hireDate` e status das requests; trata casos sem hireDate como 30 dias de direito. Coberto em testes de balance.  
 - **CLT / datas / feriados:**  
+-  - Cálculos de dias e diffs agora usam datas normalizadas em UTC (`toUtcMidnight`, `daysBetweenInclusive`), reduzindo o risco de comportamento diferente por timezone.  
   - Validação de aviso prévio de 30 dias, início não em sexta/sábado e término não em sábado/domingo.  
-  - Uso de feriados (São Paulo + nacionais) via `isSaoPauloHoliday` para impedir início nos 2 dias que antecedem feriado.  
+  - Uso de feriados (São Paulo + nacionais) via `isSaoPauloHoliday`, que consulta primeiro um cache de feriados nacionais alimentado automaticamente pela BrasilAPI (`ensureNationalHolidaysLoaded`) e depois aplica a lista fixa + regras móveis como fallback.  
 
 **Riscos e bordas identificados:**
 
-- Cálculos baseados em `new Date()` e `setHours(0,0,0,0)` são sensíveis a timezone; já mitigados em parte nos testes, mas ainda exigem cuidado em produção (diferenças de fuso podem causar +/–1 dia em cenários extremos).  
+- Dependência de timezone foi significativamente reduzida com a normalização em UTC, mas ainda é importante rodar testes em ambientes de staging com timezone diferente para garantir ausência de regressões.  
 - `hasOverlappingRequest` está duplicado apenas na rota de criação; não há uma função reutilizável exposta no domínio (risco de divergência se lógica for expandida em outros pontos no futuro).  
 - Cenários com múltiplos períodos, múltiplas solicitações em ciclos diferentes e alterações manuais pelo RH são complexos, embora a lógica atual pareça consistente com as regras descritas.
 
@@ -116,7 +117,7 @@ Casos analisados logicamente com base em código e testes:
 - **R1 — Falta de testes de API end-to-end:** Toda a validação depende de testes de domínio/serviços; mudanças em rotas podem introduzir regressões não cobertas por testes.  
 - **R2 — Validação de entrada limitada:** Ausência de schemas formais deixa margem para inconsistência entre rotas e mensagens de erro, especialmente em `login`, `vacation-requests` POST/UPDATE e `admin` PATCH.  
 - **R3 — Módulo de domínio grande (`vacationRules.ts`):** Qualquer alteração nesse arquivo tem impacto amplo; risco de regressão se futuras mudanças não forem bem testadas.  
-- **R4 — Dependência de timezone:** Cálculos de datas podem ter comportamento diferente em ambientes com timezone distintos, apesar dos ajustes em testes.  
+- **R4 — Timezone e feriados (mitigado em parte):** Lógica de datas foi migrada para UTC e feriados nacionais passaram a ser carregados automaticamente via API externa com cache, mas ainda é necessário monitorar ambientes com timezone distintos e garantir fallback adequado caso a API fique indisponível.  
 - **R5 — Performance de queries sem índices secundários:** `schema.prisma` não inclui índices explícitos para colunas de alto uso (`VacationRequest.userId/status/startDate/endDate`, `User.managerId`); risco de lentidão em ambientes com grande volume de dados, afetando dashboards e relatórios.  
 - **R6 — Autenticação com SHA-256:** Do ponto de vista de segurança real, o hash de senha é mais fraco que o ideal (bcrypt/argon2).  
 
