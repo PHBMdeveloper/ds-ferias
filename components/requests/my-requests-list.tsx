@@ -40,7 +40,7 @@ export function MyRequestsList({
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-base font-semibold text-[#1a1d23] dark:text-white">
+        <h3 className="text-lg font-semibold text-[#1a1d23] dark:text-white">
           Histórico de solicitações
         </h3>
         <ExportButton href="/api/vacation-requests/export" />
@@ -57,17 +57,21 @@ export function MyRequestsList({
       />
 
       {upcoming.length > 0 && (
-        <section className="rounded-lg border border-[#e2e8f0] bg-white p-4 dark:border-[#252a35] dark:bg-[#1a1d23]">
-          <h4 className="text-sm font-semibold text-[#1a1d23] dark:text-white">
+        <section className="rounded-lg border border-[#e2e8f0] bg-white p-4 text-base dark:border-[#252a35] dark:bg-[#1a1d23]">
+          <h4 className="text-base font-semibold text-[#1a1d23] dark:text-white">
             Próximas férias
           </h4>
           <p className="mt-1 text-sm text-[#64748b] dark:text-slate-400">
             Próximos períodos aprovados ou pendentes, em ordem de data de início.
           </p>
-          <ul className="mt-3 space-y-1.5 text-sm text-[#475569] dark:text-slate-300">
+          <ul className="mt-3 space-y-3 text-sm text-[#475569] dark:text-slate-300">
             {upcoming.map((r) => {
               const start = new Date(r.startDate);
               const end = new Date(r.endDate);
+              const backWithAbono = r.abono ? new Date(end.getTime()) : null;
+              if (backWithAbono) {
+                backWithAbono.setDate(backWithAbono.getDate() - 10);
+              }
               const diffDays = Math.round(
                 (start.getTime() - today.getTime()) / (24 * 60 * 60 * 1000),
               );
@@ -78,13 +82,26 @@ export function MyRequestsList({
                     ? "começa amanhã"
                     : `começa em ${diffDays} dias`;
               return (
-                <li key={r.id} className="flex items-center justify-between">
-                  <span>
-                    {start.toLocaleDateString("pt-BR")} → {end.toLocaleDateString("pt-BR")}
-                  </span>
-                  <span className="text-xs text-[#64748b] dark:text-slate-400">
-                    {label} · {r.status}
-                  </span>
+                <li key={r.id} className="flex flex-col gap-1 rounded-md bg-[#f8fafc] px-3 py-2 dark:bg-[#020617]">
+                  <div className="flex flex-wrap items-center justify-between gap-1">
+                    <span className="font-medium">
+                      {start.toLocaleDateString("pt-BR")} → {end.toLocaleDateString("pt-BR")}
+                    </span>
+                    <span className="text-xs text-[#64748b] dark:text-slate-400">
+                      {label} · {r.status}
+                    </span>
+                  </div>
+                  {backWithAbono && (
+                    <div className="flex flex-wrap gap-1.5">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
+                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                        Retorno: {backWithAbono.toLocaleDateString("pt-BR")}
+                      </span>
+                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-medium text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200">
+                        Abono estimado: 10 dias
+                      </span>
+                    </div>
+                  )}
                 </li>
               );
             })}

@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+
 type CalendarEntry = {
   startDate: Date | string;
   endDate: Date | string;
@@ -27,8 +29,10 @@ function getStatusColor(status: string): string {
 
 export function MonthlyCalendar({ entries }: Props) {
   const today = new Date();
-  const year = today.getFullYear();
-  const month = today.getMonth(); // 0-11
+  const [currentMonth, setCurrentMonth] = useState(() => new Date(today.getFullYear(), today.getMonth(), 1));
+
+  const year = currentMonth.getFullYear();
+  const month = currentMonth.getMonth(); // 0-11
 
   const firstDay = new Date(year, month, 1);
   const lastDay = new Date(year, month + 1, 0);
@@ -41,7 +45,12 @@ export function MonthlyCalendar({ entries }: Props) {
     const current = new Date(year, month, d);
     const matching = entries.filter((e) => {
       const start = new Date(e.startDate);
-      const end = new Date(e.endDate);
+      const endRaw = new Date(e.endDate);
+      // Se houver abono 1/3, destacamos apenas o período estimado de descanso (até 10 dias a menos)
+      const end =
+        e.abono && !isNaN(endRaw.getTime())
+          ? new Date(endRaw.getTime() - 10 * 24 * 60 * 60 * 1000)
+          : endRaw;
       start.setHours(0, 0, 0, 0);
       end.setHours(0, 0, 0, 0);
       return current >= start && current <= end;
@@ -54,7 +63,7 @@ export function MonthlyCalendar({ entries }: Props) {
 
   const blanks = (firstWeekday + 6) % 7; // alinhar para semana começando em segunda
 
-  const monthLabel = today.toLocaleDateString("pt-BR", {
+  const monthLabel = currentMonth.toLocaleDateString("pt-BR", {
     month: "long",
     year: "numeric",
   });
@@ -65,9 +74,31 @@ export function MonthlyCalendar({ entries }: Props) {
         <h4 className="text-sm font-semibold text-[#1a1d23] dark:text-white">
           Calendário deste mês
         </h4>
-        <span className="text-xs text-[#64748b] dark:text-slate-400 capitalize">
-          {monthLabel}
-        </span>
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            aria-label="Mês anterior"
+            className="flex h-6 w-6 items-center justify-center rounded-md border border-[#e2e8f0] text-xs text-[#64748b] hover:bg-[#f5f6f8] dark:border-[#252a35] dark:text-slate-300 dark:hover:bg-[#1e2330]"
+            onClick={() =>
+              setCurrentMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))
+            }
+          >
+            ‹
+          </button>
+          <span className="min-w-[96px] text-center text-xs text-[#64748b] dark:text-slate-400 capitalize">
+            {monthLabel}
+          </span>
+          <button
+            type="button"
+            aria-label="Próximo mês"
+            className="flex h-6 w-6 items-center justify-center rounded-md border border-[#e2e8f0] text-xs text-[#64748b] hover:bg-[#f5f6f8] dark:border-[#252a35] dark:text-slate-300 dark:hover:bg-[#1e2330]"
+            onClick={() =>
+              setCurrentMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1))
+            }
+          >
+            ›
+          </button>
+        </div>
       </div>
       <div className="mt-3 grid grid-cols-7 gap-1 text-center text-xs text-[#64748b] dark:text-slate-400">
         {["S", "T", "Q", "Q", "S", "S", "D"].map((dow) => (
@@ -112,7 +143,7 @@ export function MonthlyCalendar({ entries }: Props) {
           <span className="h-1.5 w-1.5 rounded-full bg-current/80" /> Aprovado RH
         </span>
         <span className="inline-flex items-center gap-1 rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-semibold text-white">
-          <span className="rounded-sm bg-white/20 px-1 text-[9px]">A</span> Dia com pedido de abono 1/3
+          <span className="rounded-sm bg-white/20 px-1 text-[9px]">A</span> Dia com pedido de abono 1/3 (retorno até 10 dias antes)
         </span>
         <span className="inline-flex items-center gap-1 rounded-full bg-amber-600 px-2 py-0.5 text-[10px] font-semibold text-white">
           <span className="rounded-sm bg-white/20 px-1 text-[9px]">13</span> Dia com pedido de adiantamento de 13º

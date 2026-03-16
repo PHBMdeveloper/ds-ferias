@@ -47,6 +47,10 @@ export function RequestCard({
   const showActions = isOwner || (!!userId && request.userId !== userId);
   const start = new Date(request.startDate);
   const end = new Date(request.endDate);
+  const backWithAbono =
+    request.abono && !isNaN(end.getTime())
+      ? new Date(end.getTime() - 10 * 24 * 60 * 60 * 1000)
+      : null;
   const startLabel = start
     .toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })
     .toUpperCase();
@@ -79,11 +83,41 @@ export function RequestCard({
               <p className="truncate text-base font-medium text-[#475569] dark:text-slate-300">
                 {formatDateRange(request.startDate, request.endDate)}
               </p>
+              {request.abono && backWithAbono && (
+                <div className="mt-1 flex flex-wrap gap-1.5">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                    Retorno: {backWithAbono.toLocaleDateString("pt-BR")}
+                  </span>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-medium text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200">
+                    Abono estimado: 10 dias
+                  </span>
+                </div>
+              )}
               {(request.abono || request.thirteenth) && (
-                <p className="mt-1 text-sm text-[#0f172a] dark:text-slate-200">
-                  {request.abono && <span className="mr-2 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">Abono 1/3</span>}
-                  {request.thirteenth && <span className="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">Adiantamento 13º</span>}
-                </p>
+                <div className="mt-1 space-y-0.5 text-sm text-[#0f172a] dark:text-slate-200">
+                  <p>
+                    {request.abono && (
+                      <span className="mr-2 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
+                        Abono 1/3
+                      </span>
+                    )}
+                    {request.thirteenth && (
+                      <span className="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
+                        Adiantamento 13º
+                      </span>
+                    )}
+                  </p>
+                  {request.abono && (
+                    <p className="text-[11px] text-[#64748b] dark:text-slate-400">
+                      Com Abono 1/3, o colaborador pode converter até 10 dias em pagamento. Ex.: 30 dias solicitados
+                      podem resultar em ~20 dias de descanso + 10 dias em abono, conforme aprovação do RH.
+                      {backWithAbono && (
+                        <> Retorno estimado em {backWithAbono.toLocaleDateString("pt-BR")} (10 dias antes do fim corrido).</>
+                      )}
+                    </p>
+                  )}
+                </div>
               )}
               {request.user?.department && (
                 <p className="truncate text-sm text-[#94a3b8]">{request.user.department}</p>

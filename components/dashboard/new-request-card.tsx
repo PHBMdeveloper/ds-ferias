@@ -205,7 +205,7 @@ export function NewRequestCardClient({ canRequest = true, balance }: Props) {
             onChange={(e) => setAbono(e.target.checked)}
           />
           <span className="min-w-0">
-            Solicitar conversão de <span className="font-semibold">1/3 das férias em abono</span> (venda de férias),
+            Solicitar conversão de <span className="font-semibold">1/3 das férias em abono (10 dias)</span> (venda de férias),
             conforme permitido pela CLT.
           </span>
         </label>

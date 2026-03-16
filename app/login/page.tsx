@@ -167,14 +167,15 @@ export default function LoginPage() {
 
 function TestUsersPanel() {
   const users = [
-    { role: "Funcionária", email: "colaborador1@empresa.com" },
-    { role: "Funcionária", email: "colaborador2@empresa.com" },
-    { role: "Coordenador", email: "gestor1@empresa.com" },
-    { role: "Coordenador", email: "gestor2@empresa.com" },
-    { role: "Gerente", email: "gerente1@empresa.com" },
-    { role: "Gerente", email: "gerente2@empresa.com" },
-    { role: "RH / Admin", email: "rh1@empresa.com" },
-    { role: "RH / Admin", email: "rh2@empresa.com" },
+    { role: "Funcionário1", email: "colaborador1@empresa.com" },
+    { role: "Funcionário2", email: "colaborador2@empresa.com" },
+    { role: "Funcionária3", email: "colaborador3@empresa.com" },
+    { role: "Coordenador1", email: "gestor1@empresa.com" },
+    { role: "Coordenador2", email: "gestor2@empresa.com" },
+    { role: "Gerente1", email: "gerente1@empresa.com" },
+    { role: "Gerente2", email: "gerente2@empresa.com" },
+    { role: "RH / Admin (RH1)", email: "rh1@empresa.com" },
+    { role: "RH / Admin (RH2)", email: "rh2@empresa.com" },
   ];
 
   return (
