@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
 import { getRoleLevel, getRoleLabel, calculateVacationBalance } from "@/lib/vacationRules";
+import { findUsersWithVacationForBalance } from "@/repositories/userRepository";
 
 /** GET: relatório CSV de saldo de férias por colaborador (apenas RH). */
 export async function GET() {
@@ -11,20 +11,7 @@ export async function GET() {
     return NextResponse.json({ error: "Acesso restrito ao RH" }, { status: 403 });
   }
 
-  const users = await prisma.user.findMany({
-    orderBy: [{ name: "asc" }],
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      role: true,
-      department: true,
-      hireDate: true,
-      vacationRequests: {
-        select: { startDate: true, endDate: true, status: true },
-      },
-    },
-  });
+  const users = await findUsersWithVacationForBalance();
 
   const header = [
     "Nome",

@@ -84,10 +84,23 @@ describe("Workflow: permission checks (who can approve whom)", () => {
 });
 
 describe("Workflow: request creation validation (CLT + blackout)", () => {
-  const futureStart = new Date();
-  futureStart.setDate(futureStart.getDate() + 60);
-  const futureEnd = new Date(futureStart);
-  futureEnd.setDate(futureEnd.getDate() + 13);
+  // Escolhe um período futuro que não caia em sexta/sábado (início) nem sábado/domingo (término),
+  // para não ser reprovado pelas regras de DSR.
+  const baseStart = new Date();
+  baseStart.setDate(baseStart.getDate() + 60);
+  function pickValidPeriod() {
+    let start = new Date(baseStart);
+    let end = new Date(start);
+    end.setDate(end.getDate() + 13);
+    // 0=domingo,1=segunda,...,5=sexta,6=sábado
+    while ([5, 6].includes(start.getDay()) || [0, 6].includes(end.getDay())) {
+      start.setDate(start.getDate() + 1);
+      end = new Date(start);
+      end.setDate(end.getDate() + 13);
+    }
+    return { start, end };
+  }
+  const { start: futureStart, end: futureEnd } = pickValidPeriod();
 
   it("valid period passes validateCltPeriods with checkAdvanceNotice", () => {
     const err = validateCltPeriods([{ start: futureStart, end: futureEnd }], {

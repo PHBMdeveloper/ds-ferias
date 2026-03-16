@@ -2,6 +2,7 @@ import type { VacationBalance } from "@/lib/vacationRules";
 import { EmptyState } from "@/components/layout/empty-state";
 import { ExportButton } from "@/components/layout/export-button";
 import { RequestCard } from "@/components/requests/request-card";
+import { MonthlyCalendar } from "@/components/calendar/MonthlyCalendar";
 
 type RequestLike = {
   id: string;
@@ -43,13 +44,21 @@ export function MyRequestsList({
         <ExportButton href="/api/vacation-requests/export" />
       </div>
 
+      <MonthlyCalendar
+        entries={requests.map((r) => ({
+          startDate: r.startDate,
+          endDate: r.endDate,
+          status: r.status,
+        }))}
+      />
+
       {upcoming.length > 0 && (
         <section className="rounded-lg border border-[#e2e8f0] bg-white p-4 dark:border-[#252a35] dark:bg-[#1a1d23]">
           <h4 className="text-sm font-semibold text-[#1a1d23] dark:text-white">
             Próximas férias
           </h4>
           <p className="mt-1 text-sm text-[#64748b] dark:text-slate-400">
-            Use esta visão como um “calendário rápido” dos próximos períodos aprovados ou pendentes.
+            Próximos períodos aprovados ou pendentes, em ordem de data de início.
           </p>
           <ul className="mt-3 space-y-1.5 text-sm text-[#475569] dark:text-slate-300">
             {upcoming.map((r) => {

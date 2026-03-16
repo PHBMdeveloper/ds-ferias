@@ -1,0 +1,109 @@
+"use client";
+
+type CalendarEntry = {
+  startDate: Date | string;
+  endDate: Date | string;
+  status: string;
+};
+
+type Props = {
+  entries: CalendarEntry[];
+};
+
+const STATUS_COLOR: Record<string, string> = {
+  PENDENTE: "bg-amber-200 text-amber-900 dark:bg-amber-900/60 dark:text-amber-200",
+  APROVADO_COORDENADOR: "bg-blue-200 text-blue-900 dark:bg-blue-900/60 dark:text-blue-200",
+  APROVADO_GERENTE: "bg-indigo-200 text-indigo-900 dark:bg-indigo-900/60 dark:text-indigo-200",
+  APROVADO_RH: "bg-emerald-200 text-emerald-900 dark:bg-emerald-900/60 dark:text-emerald-200",
+  REPROVADO: "bg-red-200 text-red-900 dark:bg-red-900/60 dark:text-red-200",
+  CANCELADO: "bg-slate-200 text-slate-900 dark:bg-slate-800 dark:text-slate-200",
+};
+
+function getStatusColor(status: string): string {
+  return STATUS_COLOR[status] ?? "bg-slate-200 text-slate-800 dark:bg-slate-800 dark:text-slate-200";
+}
+
+export function MonthlyCalendar({ entries }: Props) {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = today.getMonth(); // 0-11
+
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0);
+  const daysInMonth = lastDay.getDate();
+
+  const firstWeekday = firstDay.getDay(); // 0 (dom) - 6 (sáb)
+
+  const days: { day: number; statuses: string[] }[] = [];
+  for (let d = 1; d <= daysInMonth; d++) {
+    const current = new Date(year, month, d);
+    const statuses = entries
+      .filter((e) => {
+        const start = new Date(e.startDate);
+        const end = new Date(e.endDate);
+        start.setHours(0, 0, 0, 0);
+        end.setHours(0, 0, 0, 0);
+        return current >= start && current <= end;
+      })
+      .map((e) => e.status);
+    days.push({ day: d, statuses });
+  }
+
+  const blanks = (firstWeekday + 6) % 7; // alinhar para semana começando em segunda
+
+  const monthLabel = today.toLocaleDateString("pt-BR", {
+    month: "long",
+    year: "numeric",
+  });
+
+  return (
+    <section aria-label="Calendário de férias" className="rounded-lg border border-[#e2e8f0] bg-white p-4 dark:border-[#252a35] dark:bg-[#1a1d23]">
+      <div className="flex items-center justify-between">
+        <h4 className="text-sm font-semibold text-[#1a1d23] dark:text-white">
+          Calendário deste mês
+        </h4>
+        <span className="text-xs text-[#64748b] dark:text-slate-400 capitalize">
+          {monthLabel}
+        </span>
+      </div>
+      <div className="mt-3 grid grid-cols-7 gap-1 text-center text-xs text-[#64748b] dark:text-slate-400">
+        {["S", "T", "Q", "Q", "S", "S", "D"].map((dow) => (
+          <div key={dow} className="py-1 font-medium">
+            {dow}
+          </div>
+        ))}
+        {Array.from({ length: blanks }).map((_, i) => (
+          <div key={`blank-${i}`} />
+        ))}
+        {days.map(({ day, statuses }) => {
+          const isToday = day === today.getDate();
+          const hasStatus = statuses.length > 0;
+          const mainStatus = hasStatus ? statuses[0] : "";
+          return (
+            <div
+              key={day}
+              className={[
+                "flex h-10 flex-col items-center justify-center rounded-md border text-xs",
+                "border-transparent",
+                isToday ? "border-blue-500" : "border-transparent",
+                hasStatus ? getStatusColor(mainStatus) : "bg-[#f5f6f8] dark:bg-[#0f1117] text-[#475569] dark:text-slate-300",
+              ].join(" ")}
+            >
+              <span className="font-semibold">{day}</span>
+            </div>
+          );
+        })}
+      </div>
+      <div className="mt-3 flex flex-wrap gap-2 text-[10px] text-[#64748b] dark:text-slate-400">
+        <span className="font-semibold">Legenda:</span>
+        <span className={["inline-flex items-center gap-1 rounded-full px-2 py-0.5", getStatusColor("PENDENTE")].join(" ")}>
+          <span className="h-1.5 w-1.5 rounded-full bg-current/80" /> Pendente
+        </span>
+        <span className={["inline-flex items-center gap-1 rounded-full px-2 py-0.5", getStatusColor("APROVADO_RH")].join(" ")}>
+          <span className="h-1.5 w-1.5 rounded-full bg-current/80" /> Aprovado RH
+        </span>
+      </div>
+    </section>
+  );
+}
+

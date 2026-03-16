@@ -109,14 +109,20 @@ export async function POST(request: Request) {
     prisma.blackoutPeriod.findMany(),
     prisma.user.findUnique({
       where: { id: user.id },
-      select: { hireDate: true, department: true, vacationRequests: true },
+      select: {
+        hireDate: true,
+        department: true,
+        vacationRequests: {
+          select: { startDate: true, endDate: true, status: true },
+        },
+      },
     }),
   ]);
 
   // Saldo do ciclo (dias no ciclo + direito total) para validação e limite da solicitação
   const balanceForValidation =
     userFull && userFull.vacationRequests
-      ? calculateVacationBalance(userFull.hireDate, userFull.vacationRequests as any)
+      ? calculateVacationBalance(userFull.hireDate, userFull.vacationRequests)
       : null;
   const existingDaysInCycle = balanceForValidation
     ? balanceForValidation.pendingDays + balanceForValidation.usedDays

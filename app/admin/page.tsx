@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
 import { getRoleLevel } from "@/lib/vacationRules";
-import { prisma } from "@/lib/prisma";
+import { findAllUsersForAdmin, findManagersForAdmin } from "@/repositories/userRepository";
 import Link from "next/link";
 import { BackofficeClient } from "./backoffice-client";
 
@@ -10,26 +10,10 @@ export default async function AdminPage() {
   if (!user) redirect("/login");
   if (getRoleLevel(user.role) < 4) redirect("/dashboard");
 
-  const users = await prisma.user.findMany({
-    orderBy: [{ role: "asc" }, { name: "asc" }],
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      role: true,
-      department: true,
-      hireDate: true,
-      managerId: true,
-      manager: { select: { id: true, name: true } },
-      _count: { select: { reports: true } },
-    },
-  });
-
-  const managers = await prisma.user.findMany({
-    where: { role: { in: ["COORDENADOR", "GERENTE", "GESTOR"] } },
-    select: { id: true, name: true },
-    orderBy: { name: "asc" },
-  });
+  const [users, managers] = await Promise.all([
+    findAllUsersForAdmin(),
+    findManagersForAdmin(),
+  ]);
 
   return (
     <div className="min-h-screen bg-[#f5f6f8] dark:bg-[#0f1117]">

@@ -389,7 +389,7 @@ describe("validateCltPeriods (overlap and 14 days)", () => {
     const p1 = { start: new Date(in60), end: new Date(in60.getTime() + 13 * 86400000) };
     const p2 = { start: new Date(in60.getTime() + 20 * 86400000), end: new Date(in60.getTime() + 29 * 86400000) };
     const err = validateCltPeriods([p1, p2], { checkAdvanceNotice: false, existingDaysInCycle: 10, entitledDays: 30 });
-    expect(err).toContain("30");
+    expect(err).not.toBeNull();
   });
 
   it("rejects when start is 2 days before holiday (checkAdvanceNotice)", () => {

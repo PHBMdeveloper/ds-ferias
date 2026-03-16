@@ -61,3 +61,45 @@ export async function findAllEmployees() {
     include: baseInclude,
   });
 }
+
+export async function findAllUsersForAdmin() {
+  return prisma.user.findMany({
+    orderBy: [{ role: "asc" }, { name: "asc" }],
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      department: true,
+      hireDate: true,
+      managerId: true,
+      manager: { select: { id: true, name: true } },
+      _count: { select: { reports: true } },
+    },
+  });
+}
+
+export async function findManagersForAdmin() {
+  return prisma.user.findMany({
+    where: { role: { in: ["COORDENADOR", "GERENTE", "GESTOR"] } },
+    select: { id: true, name: true },
+    orderBy: { name: "asc" },
+  });
+}
+
+export async function findUsersWithVacationForBalance() {
+  return prisma.user.findMany({
+    orderBy: [{ name: "asc" }],
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      department: true,
+      hireDate: true,
+      vacationRequests: {
+        select: { startDate: true, endDate: true, status: true },
+      },
+    },
+  });
+}
