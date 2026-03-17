@@ -4,6 +4,10 @@ import { Toaster } from "sonner";
 import { Analytics } from "@vercel/analytics/next";
 import { DashboardNavProvider } from "@/components/dashboard-nav-provider";
 import "./globals.css";
+import { Geist } from "next/font/google";
+import { cn } from "@/lib/utils";
+
+const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 export const metadata: Metadata = {
   title: "Editora Globo - Férias",
@@ -22,7 +26,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-BR" suppressHydrationWarning>
+    <html lang="pt-BR" suppressHydrationWarning className={cn("font-sans", geist.variable)}>
       <body className="antialiased bg-background text-foreground">
         <a
           href="#main"
