@@ -85,11 +85,11 @@ export function RequestCard({
               </p>
               {request.abono && backWithAbono && (
                 <div className="mt-1 flex flex-wrap gap-1.5">
-                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
                     <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
                     Retorno: {backWithAbono.toLocaleDateString("pt-BR")}
                   </span>
-                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-medium text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200">
                     Abono estimado: 10 dias
                   </span>
                 </div>
@@ -109,7 +109,7 @@ export function RequestCard({
                     )}
                   </p>
                   {request.abono && (
-                    <p className="text-[11px] text-[#64748b] dark:text-slate-400 break-words">
+                    <p className="text-xs text-[#64748b] dark:text-slate-400 break-words">
                       Com Abono 1/3, o colaborador pode converter até 10 dias em pagamento.
                       {backWithAbono && (
                         <> Retorno estimado em {backWithAbono.toLocaleDateString("pt-BR")} (10 dias antes do fim corrido).</>

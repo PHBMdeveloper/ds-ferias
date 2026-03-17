@@ -136,7 +136,7 @@ function TeamMemberRow({
       {requestsSummary.length > 0 && (
         <div className="border-t border-[#e2e8f0] dark:border-[#252a35]">
           <div className="space-y-2 p-4 pt-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-[#94a3b8] dark:text-slate-500">
+            <p className="text-sm font-semibold uppercase tracking-wide text-[#94a3b8] dark:text-slate-500">
               Solicitações
             </p>
               <ul className="space-y-1.5">
@@ -155,7 +155,7 @@ function TeamMemberRow({
                       <div className="flex flex-1 flex-col gap-0.5 text-[#475569] dark:text-slate-400">
                         <span>{formatDateRange(r.startDate, r.endDate)}</span>
                         {backWithAbono && (
-                          <span className="text-xs text-[#64748b] dark:text-slate-400">
+                          <span className="text-sm text-[#64748b] dark:text-slate-400">
                             Retorno estimado em{" "}
                             <span className="font-semibold text-[#0f172a] dark:text-slate-100">
                               {backWithAbono.toLocaleDateString("pt-BR")}
@@ -164,7 +164,7 @@ function TeamMemberRow({
                           </span>
                         )}
                       </div>
-                      <span className="rounded-full bg-slate-200 px-2 py-0.5 text-xs font-medium text-slate-700 dark:bg-slate-700 dark:text-slate-300">
+                      <span className="rounded-full bg-slate-200 px-2 py-0.5 text-sm font-medium text-slate-700 dark:bg-slate-700 dark:text-slate-300">
                         {statusLabel(r.status)}
                       </span>
                     </li>

@@ -17,12 +17,12 @@ function formatStatus(status: string): string {
 export function HistorySection({ history }: { history: HistoryEntry[] }) {
   return (
     <div className="mt-4 rounded-md border border-[#e2e8f0] bg-[#f5f6f8] p-3 dark:border-[#252a35] dark:bg-[#0f1117]">
-      <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-[#64748b] dark:text-slate-400">Histórico</p>
+      <p className="mb-2 text-base font-semibold uppercase tracking-wide text-[#64748b] dark:text-slate-400">Histórico</p>
       <div className="space-y-1.5">
         {history.map((h, idx) => (
           <div
             key={idx}
-            className="flex items-start gap-2 text-sm text-[#475569] dark:text-slate-400"
+            className="flex items-start gap-2 text-base text-[#475569] dark:text-slate-400"
           >
             <span className="mt-0.5 shrink-0 text-[#94a3b8]">→</span>
             <span className="shrink-0 font-medium">
