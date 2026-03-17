@@ -49,11 +49,6 @@ export async function POST(request: Request) {
   }
 }
 
-import { NextResponse } from "next/server";
-import { getSessionUser } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
-import { getRoleLevel } from "@/lib/vacationRules";
-
 /** GET: lista usuários (apenas RH). */
 export async function GET() {
   const user = await getSessionUser();
