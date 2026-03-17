@@ -206,6 +206,15 @@ describe("calculateVacationBalance", () => {
     expect(balance.usedDays).toBe(15);
     expect(balance.availableDays).toBeLessThanOrEqual(balance.entitledDays - 15);
   });
+
+  it("caps entitlement at 60 days (2 períodos aquisitivos) mesmo após muitos anos", () => {
+    const hireDate = new Date();
+    hireDate.setFullYear(hireDate.getFullYear() - 10);
+    const balance = calculateVacationBalance(hireDate, []);
+    expect(balance.hasEntitlement).toBe(true);
+    expect(balance.entitledDays).toBe(60);
+    expect(balance.availableDays).toBe(60);
+  });
 });
 
 describe("getRoleLabel", () => {

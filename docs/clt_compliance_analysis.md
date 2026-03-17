@@ -59,7 +59,7 @@ Fontes consultadas incluem: texto consolidado da CLT, materiais de orientação 
 
 **Conformidade:**  
 ✅ Em linha com a CLT para aquisição de 30 dias a cada 12 meses.  
-⚠️ Não diferencia formalmente períodos aquisitivos (anos civis) nem trata prescrição/caducidade de férias não gozadas.
+✅ O cálculo de saldo agora considera formalmente períodos aquisitivos: a cada 12 meses trabalhados o colaborador adquire 30 dias, mas o sistema limita o saldo a **no máximo 2 períodos (60 dias)** e desconsidera, para efeito de saldo, pedidos muito antigos (mais de 24 meses), tratando-os como prescritos de forma simplificada.
 
 ### Fracionamento e duração
 

@@ -60,6 +60,7 @@ model User {
   vacationRequests VacationRequest[]
   historyEntries   VacationRequestHistory[] @relation("HistoryChangedByUser")
   blackoutPeriods  BlackoutPeriod[]
+  acquisitionPeriods AcquisitionPeriod[]
 
   managerId String?
   manager   User?   @relation("ManagerReports", fields: [managerId], references: [id])
@@ -125,3 +126,29 @@ model BlackoutPeriod {
 
   createdAt   DateTime  @default(now())
 }
+
+// ============================================================
+// PERÍODOS AQUISITIVOS DE FÉRIAS
+// ============================================================
+// Registro explícito dos ciclos de 12 meses em que o colaborador
+// adquire direito a férias. Útil para relatórios de férias vencidas,
+// múltiplos períodos pendentes e políticas internas.
+model AcquisitionPeriod {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+
+  /// Início do período aquisitivo (inclusive)
+  startDate DateTime
+  /// Fim do período aquisitivo (inclusive)
+  endDate   DateTime
+
+  /// Dias de direito adquiridos neste período (em geral 30)
+  accruedDays Int
+  /// Dias já gozados/consumidos deste período
+  usedDays    Int      @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+

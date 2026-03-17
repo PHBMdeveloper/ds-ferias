@@ -239,6 +239,8 @@ export type VacationBalance = {
 /**
  * Calcula o saldo de férias de um colaborador.
  * CLT: a cada 12 meses trabalhados, o funcionário adquire 30 dias.
+ * Implementação: considera até 2 períodos aquisitivos completos (60 dias).
+ * Períodos mais antigos são tratados como prescritos para efeito de saldo.
  */
 export function calculateVacationBalance(
   hireDate: Date | null | undefined,
@@ -288,17 +290,25 @@ export function calculateVacationBalance(
 
   // Calcula quantos ciclos completos de 12 meses
   const yearsWorked = Math.floor(monthsWorked / 12);
-  const totalEntitled = yearsWorked * 30;
+  const MAX_CYCLES = 2; // até 2 períodos aquisitivos (60 dias)
+  const cyclesCovered = Math.min(yearsWorked, MAX_CYCLES);
+  const totalEntitled = cyclesCovered * 30;
 
-  // Dias já aprovados (histórico completo)
+  // Considera apenas solicitações dentro da janela dos ciclos cobertos
+  // Aproximação: últimos N*12 meses a partir de hoje
+  const cutoff = new Date(today);
+  cutoff.setMonth(cutoff.getMonth() - cyclesCovered * 12);
+
+  // Dias já aprovados
   const totalUsed = approvedRequests
-    .filter((r) => r.status === "APROVADO_RH")
+    .filter((r) => r.status === "APROVADO_RH" && new Date(r.endDate) >= cutoff)
     .reduce((sum, r) => sum + calcDays(r.startDate, r.endDate), 0);
 
   // Dias em aprovação (pendentes)
   const totalPending = approvedRequests
     .filter((r) =>
-      ["PENDENTE", "APROVADO_COORDENADOR", "APROVADO_GESTOR", "APROVADO_GERENTE"].includes(r.status),
+      ["PENDENTE", "APROVADO_COORDENADOR", "APROVADO_GESTOR", "APROVADO_GERENTE"].includes(r.status) &&
+      new Date(r.endDate) >= cutoff,
     )
     .reduce((sum, r) => sum + calcDays(r.startDate, r.endDate), 0);
 
