@@ -41,16 +41,19 @@ export default function LoginPage() {
     <div className="flex min-h-screen bg-[#f5f6f8] dark:bg-[#0f1117]">
       {/* Painel esquerdo — decorativo */}
       <div className="hidden w-1/2 flex-col justify-between bg-blue-600 p-12 lg:flex">
-        <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/20">
-            <svg className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div className="flex items-center gap-4">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/20">
+            <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
           </div>
-          <span className="text-lg font-bold text-white">Editora Globo - Férias</span>
+          <div className="flex flex-col">
+            <span className="text-3xl font-extrabold tracking-tight text-white">Editora Globo</span>
+            <span className="text-2xl font-semibold text-white/90">Férias</span>
+          </div>
         </div>
 
-        <p className="text-xl font-medium text-white/90">Sistema de férias da Editora Globo.</p>
+        <p className="text-2xl font-medium text-white/90">Sistema de férias da Editora Globo.</p>
 
         <p className="text-sm text-blue-200">© 2026 Editora Globo - Férias</p>
       </div>
@@ -68,7 +71,9 @@ export default function LoginPage() {
             </div>
             <span className="text-base font-bold text-[#1a1d23] dark:text-white">Editora Globo - Férias</span>
           </div>
-          <ThemeToggle />
+          <div className="ml-auto">
+            <ThemeToggle />
+          </div>
         </div>
 
         {/* Formulário centralizado */}
