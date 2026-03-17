@@ -10,6 +10,7 @@ type UserRow = {
   name: string;
   email: string;
   role: string;
+  registration: string;
   department: string | null;
   hireDate: Date | null;
   managerId: string | null;

@@ -70,6 +70,7 @@ export async function findAllUsersForAdmin() {
       name: true,
       email: true,
       role: true,
+      registration: true,
       department: true,
       hireDate: true,
       managerId: true,
