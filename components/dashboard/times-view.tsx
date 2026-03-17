@@ -47,19 +47,19 @@ export function TimesView({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 lg:space-y-7">
       {level === 2 && (
-        <p className="text-sm text-[#64748b] dark:text-slate-400">
+        <p className="text-base text-[#64748b] dark:text-slate-400">
           Todos os colaboradores do seu time, com status de férias explícito. Use o filtro e expanda ou recolha cada time.
         </p>
       )}
       {level === 3 && (
-        <p className="text-sm text-[#64748b] dark:text-slate-400">
+        <p className="text-base text-[#64748b] dark:text-slate-400">
           Férias dos times sob sua gestão, organizadas por coordenador(a). Filtre por nome ou status e expanda os times para ver os colaboradores.
         </p>
       )}
       {teamData.kind === "rh" && (
-        <p className="text-sm text-[#64748b] dark:text-slate-400">
+        <p className="text-base text-[#64748b] dark:text-slate-400">
           Todos os times por gerente e coordenador(a). Filtre e expanda cada gerente ou time para facilitar a navegação.
         </p>
       )}

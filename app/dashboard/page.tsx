@@ -90,13 +90,17 @@ export default async function DashboardPage({
       <div className="flex flex-1 flex-col overflow-hidden">
         <TopBar />
 
-        <main id="main" className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8" tabIndex={-1}>
-          <div className="mb-6">
+        <main
+          id="main"
+          className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8"
+          tabIndex={-1}
+        >
+          <div className="mb-6 lg:mb-7">
             <DashboardBreadcrumb currentView={isTimesView ? "times" : isMyView ? "minhas" : view} />
-            <h1 className="text-2xl font-bold text-[#1a1d23] dark:text-white">
+            <h1 className="text-2xl font-bold text-[#1a1d23] dark:text-white lg:text-3xl">
               {isTimesView ? "Times" : isMyView ? "Minhas Férias" : "Gestão de Férias"}
             </h1>
-            <p className="mt-1 text-base text-[#64748b] dark:text-slate-400">
+            <p className="mt-1 text-base text-[#64748b] dark:text-slate-400 lg:text-lg">
               Bem-vindo(a), {user.name} · {getRoleLabel(user.role)}
               {userDept && (
                 <span className="ml-2 rounded-full bg-[#eff6ff] px-2 py-0.5 text-sm font-medium text-blue-700 dark:bg-blue-900/20 dark:text-blue-300">
@@ -107,7 +111,7 @@ export default async function DashboardPage({
           </div>
 
           {!isMyView && isApprover && !isTimesView && (
-            <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4 lg:gap-5">
               <StatCard label="Total" value={visibleRequests.length} sublabel="Solicitações (sua equipe)" />
               <StatCard label="Pendentes" value={pendingCount} sublabel="Aguardando você" alert={pendingCount > 0} />
               <StatCard label="Aprovadas" value={approvedCount} sublabel="Aprovadas pelo RH" />
@@ -119,7 +123,7 @@ export default async function DashboardPage({
           )}
 
           <div className="grid gap-6 lg:grid-cols-12">
-            <section className="min-w-0 lg:col-span-6">
+            <section className="min-w-0 lg:col-span-10 xl:col-span-11">
               {isTimesView ? (
                 <TimesView userRole={user.role} userId={user.id} teamData={teamData} />
               ) : isApprover && (view === "inbox" || view === "historico") ? (
@@ -136,7 +140,7 @@ export default async function DashboardPage({
               )}
             </section>
 
-            <aside className="min-w-0 space-y-4 lg:col-span-6">
+            <aside className="min-w-0 space-y-4 lg:col-span-2 xl:col-span-1">
               {isMyView && (
                 <div className="min-w-0 rounded-lg border-2 border-blue-200 bg-white dark:border-blue-800/50 dark:bg-[#1a1d23]">
                   <div className="border-b border-[#e2e8f0] bg-blue-50/80 px-5 py-4 dark:border-[#252a35] dark:bg-blue-950/20">
