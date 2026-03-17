@@ -151,10 +151,10 @@ Fontes consultadas incluem: texto consolidado da CLT, materiais de orientação 
 
 ### Média prioridade
 
-3. **Não modelagem explícita de períodos aquisitivos**
-   - **Problema:** o saldo é calculado por ciclos de 12 meses acumulativos, mas não há entidade ou registro claro de períodos aquisitivos e concessivos.
-   - **Risco:** dificuldade para tratar cenários de férias vencidas, múltiplos períodos vencidos e regras internas específicas de prescrição.
-
+3. **Modelagem ainda simplificada de períodos aquisitivos**
+   - **Situação atual:** existe agora uma tabela `AcquisitionPeriod` ligada a `User`, preenchida a partir da `hireDate` com ciclos de 12 meses e 30 dias de direito cada. O saldo é calculado limitando‑se a até 2 períodos (60 dias), e períodos muito antigos deixam de impactar o saldo corrente.
+   - **Limitação:** os períodos ainda não são usados para amarrar cada solicitação de férias a um ciclo específico (não há vínculo `VacationRequest → AcquisitionPeriod`), nem para relatórios avançados de férias vencidas por ciclo.
+   - **Risco remanescente:** relatórios de “férias vencidas” e políticas internas mais sofisticadas (ex.: qual ciclo está sendo consumido primeiro) ainda exigem lógica adicional sobre esses períodos.
 4. **Feriados e DSR centralizados em SP**
    - **Problema:** validações de feriado usam feriados nacionais + São Paulo; outras localidades não são parametrizáveis.
    - **Risco:** em empresas com unidades em outros estados/municípios, a validação poderia divergir das práticas locais.

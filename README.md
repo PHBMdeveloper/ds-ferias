@@ -42,7 +42,7 @@ Períodos em que a empresa não permite férias (blackout) são configurados pel
   - **requests/** — RequestCard, filtros, ManagerView, MyRequestsList, aprovação.
   - **layout/** — EmptyState, ExportButton, ícones.
 - **`lib/`** — Auth, regras de férias (`vacationRules.ts`), visibilidade (`requestVisibility.ts`), filtros do dashboard (`dashboardFilters.ts`), Prisma, utils.
-- **`repositories/`** — Acesso a dados (Prisma): vacation, user, blackout.
+- **`repositories/`** — Acesso a dados (Prisma): vacation, user, blackout, **acquisitionPeriods**.
 - **`services/`** — Lógica de negócio e orquestração: `dashboardDataService`, `teamMembersService`, `vacationRequestListService`.
 - **`types/`** — Tipos compartilhados (ex.: `dashboard.ts`).
 
