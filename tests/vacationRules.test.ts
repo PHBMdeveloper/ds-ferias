@@ -148,8 +148,10 @@ describe("validateCltPeriods", () => {
   });
 
   it("requires at least one period of 14+ days when existingDaysInCycle < 14", () => {
-    const start = new Date(in60);
-    const end = new Date(in60.getTime() + 6 * 86400000);
+    // Datas fixas para evitar cair em fim de semana (regra de término não sábado/domingo)
+    // 2026-06-03 (qua) → 2026-06-09 (ter) = 7 dias
+    const start = new Date("2026-06-03T12:00:00Z");
+    const end = new Date("2026-06-09T12:00:00Z");
     expect(
       validateCltPeriods([{ start, end }], { checkAdvanceNotice: false, existingDaysInCycle: 0 }),
     ).toContain("14");

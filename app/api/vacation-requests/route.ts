@@ -99,9 +99,12 @@ export async function POST(request: Request) {
     periods = periodsRaw
       .filter((p) => p.startDate && p.endDate)
       .slice(0, 3)
-      .map((p) => ({ start: new Date(p.startDate), end: new Date(p.endDate) }));
+      .map((p) => ({
+        start: new Date(`${p.startDate}T12:00:00Z`),
+        end: new Date(`${p.endDate}T12:00:00Z`),
+      }));
   } else if (startDateRaw && endDateRaw) {
-    periods = [{ start: new Date(startDateRaw), end: new Date(endDateRaw) }];
+    periods = [{ start: new Date(`${startDateRaw}T12:00:00Z`), end: new Date(`${endDateRaw}T12:00:00Z`) }];
   }
 
   if (!periods.length) {

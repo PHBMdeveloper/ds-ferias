@@ -77,15 +77,19 @@ export function MyRequestsList({
               );
               const label =
                 diffDays === 0
-                  ? "começa hoje"
+                  ? "Começa hoje"
                   : diffDays === 1
-                    ? "começa amanhã"
-                    : `começa em ${diffDays} dias`;
+                    ? "Começa amanhã"
+                    : `Começa em ${diffDays} dias`;
               return (
                 <li key={r.id} className="flex flex-col gap-1 rounded-md bg-[#f8fafc] px-3 py-2 dark:bg-[#020617]">
                   <div className="flex flex-wrap items-center justify-between gap-1">
-                    <span className="font-medium">
-                      {start.toLocaleDateString("pt-BR")} → {end.toLocaleDateString("pt-BR")}
+                    <span className="inline-flex items-center whitespace-nowrap font-medium leading-none">
+                      <span>{start.toLocaleDateString("pt-BR")}</span>
+                      <span className="mx-1.5 inline-flex items-center justify-center leading-none text-[#64748b] dark:text-slate-400">
+                        →
+                      </span>
+                      <span>{end.toLocaleDateString("pt-BR")}</span>
                     </span>
                     <span className="text-xs text-[#64748b] dark:text-slate-400">
                       {label} · {r.status}

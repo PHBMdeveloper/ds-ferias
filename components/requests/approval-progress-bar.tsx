@@ -31,29 +31,23 @@ export function ApprovalProgressBar({ request }: { request: RequestLike }) {
           </div>
         ))}
       </div>
-      <div className="mt-1.5 flex items-center justify-between">
-        <div className="flex gap-2">
-          {steps.map((step, i) => (
+      <div className="mt-1.5 flex items-start gap-1">
+        {steps.map((step, i) => (
+          <div key={i} className="flex flex-1 items-start">
             <span
-              key={i}
-              className={`text-xs ${
+              className={`block w-full text-center text-xs leading-tight ${
                 i < progress
                   ? "text-blue-600 dark:text-blue-400"
                   : i === progress && !isCompleted
-                  ? "text-amber-600 dark:text-amber-400 font-semibold"
-                  : "text-[#94a3b8]"
+                    ? "font-semibold text-amber-600 dark:text-amber-400"
+                    : "text-[#94a3b8]"
               }`}
             >
               {step}
             </span>
-          ))}
-        </div>
+          </div>
+        ))}
       </div>
-      {nextApprover && !isCompleted && !isRejected && (
-        <p className="mt-1 text-xs font-medium text-[#64748b] dark:text-slate-400">
-          Aguardando: {nextApprover}
-        </p>
-      )}
-    </div>
+</div>
   );
 }

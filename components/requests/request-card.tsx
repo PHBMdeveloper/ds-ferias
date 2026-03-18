@@ -8,6 +8,20 @@ function formatDateRange(start: Date | string, end: Date | string): string {
   return `${new Date(start).toLocaleDateString("pt-BR")} → ${new Date(end).toLocaleDateString("pt-BR")}`;
 }
 
+function DateRangeInline({ start, end }: { start: Date | string; end: Date | string }) {
+  const startLabel = new Date(start).toLocaleDateString("pt-BR");
+  const endLabel = new Date(end).toLocaleDateString("pt-BR");
+  return (
+    <span className="inline-flex items-center whitespace-nowrap leading-none">
+      <span>{startLabel}</span>
+      <span className="mx-1.5 inline-flex items-center justify-center leading-none text-[#64748b] dark:text-slate-400">
+        →
+      </span>
+      <span>{endLabel}</span>
+    </span>
+  );
+}
+
 export type RequestWithUser = {
   id: string;
   userId: string;
@@ -81,7 +95,7 @@ export function RequestCard({
                 </div>
               )}
               <p className="truncate text-base font-medium text-[#475569] dark:text-slate-300">
-                {formatDateRange(request.startDate, request.endDate)}
+                <DateRangeInline start={request.startDate} end={request.endDate} />
               </p>
               {request.abono && backWithAbono && (
                 <div className="mt-1 flex flex-wrap gap-1.5">

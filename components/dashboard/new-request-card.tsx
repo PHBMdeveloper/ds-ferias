@@ -24,6 +24,16 @@ function formatYmdLocal(date: Date): string {
   return `${y}-${m}-${d}`;
 }
 
+function parseYmdLocal(value: string): Date | undefined {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!m) return undefined;
+  const year = Number(m[1]);
+  const month = Number(m[2]);
+  const day = Number(m[3]);
+  if (!year || !month || !day) return undefined;
+  return new Date(year, month - 1, day);
+}
+
 export function NewRequestCardClient({ canRequest = true, balance }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -116,7 +126,7 @@ export function NewRequestCardClient({ canRequest = true, balance }: Props) {
           Regras CLT
         </h2>
 
-        <ul className="space-y-2 text-[15px] leading-relaxed text-[#475569] dark:text-slate-300">
+        <ul className="list-disc space-y-2 pl-5 text-[15px] leading-relaxed text-[#475569] marker:text-blue-500 dark:text-slate-300">
           {[
             "Cada período: 5–30 dias corridos",
             "Um período de 14+ dias (ou já ter no ciclo)",
@@ -126,10 +136,7 @@ export function NewRequestCardClient({ canRequest = true, balance }: Props) {
               ? `Máximo de 3 períodos; total do ciclo 30 dias (você já tem ${existingDaysInCycle} no ciclo)`
               : "Máximo de 3 períodos, totalizando 30 dias",
           ].map((rule, i) => (
-            <li key={i} className="flex gap-2">
-              <span className="mt-1 text-blue-500">•</span>
-              <span>{rule}</span>
-            </li>
+            <li key={i}>{rule}</li>
           ))}
         </ul>
       </section>
@@ -221,7 +228,7 @@ export function NewRequestCardClient({ canRequest = true, balance }: Props) {
           onChange={(e) => setNotes(e.target.value)}
           rows={4}
           placeholder="Ex.: Ajuste de férias por demanda do projeto, alinhado com o gestor."
-          className="w-full rounded-md border border-[#e2e8f0] bg-white px-4 py-3 text-lg outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-[#252a35] dark:bg-[#1a1d23] dark:text-white"
+          className="w-full rounded-md border border-[#e2e8f0] bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-[#252a35] dark:bg-[#1a1d23] dark:text-white"
         />
 
       </section>
@@ -351,7 +358,7 @@ export function NewRequestCardClient({ canRequest = true, balance }: Props) {
               Início
             </label>
             <DatePicker
-              value={period.start ? new Date(period.start) : undefined}
+              value={period.start ? parseYmdLocal(period.start) : undefined}
               onChange={(d) => onChange("start", d ? formatYmdLocal(d) : "")}
               placeholder="Selecionar início"
             />
@@ -361,7 +368,7 @@ export function NewRequestCardClient({ canRequest = true, balance }: Props) {
               Término
             </label>
             <DatePicker
-              value={period.end ? new Date(period.end) : undefined}
+              value={period.end ? parseYmdLocal(period.end) : undefined}
               onChange={(d) => onChange("end", d ? formatYmdLocal(d) : "")}
               placeholder="Selecionar término"
             />
