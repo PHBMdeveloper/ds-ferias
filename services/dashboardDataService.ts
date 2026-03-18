@@ -78,7 +78,8 @@ export function getPendingCount(
     if (userRoleLevel === 2) return r.status === "PENDENTE";
     if (userRoleLevel === 3)
       return ["PENDENTE", "APROVADO_COORDENADOR", "APROVADO_GESTOR"].includes(r.status);
-    if (userRoleLevel === 4) return r.status === "APROVADO_GERENTE";
+    if (userRoleLevel === 4)
+      return ["APROVADO_COORDENADOR", "APROVADO_GESTOR", "APROVADO_GERENTE"].includes(r.status);
     return false;
   }).length;
 }

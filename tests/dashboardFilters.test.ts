@@ -74,6 +74,19 @@ describe("filterRequests", () => {
     expect(out).toHaveLength(1);
   });
 
+  it("filters out request when user has no team visibility", () => {
+    const out = filterRequests("COORDENADOR", "coord-999", [baseReq], {
+      view: "inbox",
+      query: "",
+      status: "TODOS",
+      managerId: "",
+      from: "",
+      to: "",
+      department: "",
+    });
+    expect(out).toHaveLength(0);
+  });
+
   it("filters by department", () => {
     const out = filterRequests("COORDENADOR", "coord-1", [baseReq], {
       view: "inbox",
@@ -85,6 +98,53 @@ describe("filterRequests", () => {
       department: "Vendas",
     });
     expect(out).toHaveLength(0);
+  });
+
+  it("filters by query (case-insensitive)", () => {
+    const out = filterRequests("COORDENADOR", "coord-1", [baseReq], {
+      view: "inbox",
+      query: "jo",
+      status: "TODOS",
+      managerId: "",
+      from: "",
+      to: "",
+      department: "",
+    });
+    expect(out).toHaveLength(1);
+    const out2 = filterRequests("COORDENADOR", "coord-1", [baseReq], {
+      view: "inbox",
+      query: "maria",
+      status: "TODOS",
+      managerId: "",
+      from: "",
+      to: "",
+      department: "",
+    });
+    expect(out2).toHaveLength(0);
+  });
+
+  it("filters by date range (from/to)", () => {
+    const outFromTooLate = filterRequests("COORDENADOR", "coord-1", [baseReq], {
+      view: "inbox",
+      query: "",
+      status: "TODOS",
+      managerId: "",
+      from: "2026-06-10",
+      to: "",
+      department: "",
+    });
+    expect(outFromTooLate).toHaveLength(0);
+
+    const outToTooEarly = filterRequests("COORDENADOR", "coord-1", [baseReq], {
+      view: "inbox",
+      query: "",
+      status: "TODOS",
+      managerId: "",
+      from: "",
+      to: "2026-06-05",
+      department: "",
+    });
+    expect(outToTooEarly).toHaveLength(0);
   });
 
   it("filters by view historico", () => {
@@ -123,6 +183,50 @@ describe("filterRequests", () => {
       query: "",
       status: "TODOS",
       managerId: "ger-1",
+      from: "",
+      to: "",
+      department: "",
+    });
+    expect(out).toHaveLength(0);
+  });
+
+  it("RH with managerId=ALL does not exclude", () => {
+    const reqWithManager = {
+      ...baseReq,
+      status: "APROVADO_COORDENADOR",
+      user: { ...baseReq.user!, manager: { id: "ger-2", managerId: null } },
+    };
+    const out = filterRequests("RH", "rh-1", [reqWithManager], {
+      view: "inbox",
+      query: "",
+      status: "TODOS",
+      managerId: "ALL",
+      from: "",
+      to: "",
+      department: "",
+    });
+    expect(out).toHaveLength(1);
+  });
+
+  it("RH inbox includes APROVADO_COORDENADOR (pendente RH)", () => {
+    const out = filterRequests("RH", "rh-1", [{ ...baseReq, status: "APROVADO_COORDENADOR" }], {
+      view: "inbox",
+      query: "",
+      status: "TODOS",
+      managerId: "",
+      from: "",
+      to: "",
+      department: "",
+    });
+    expect(out).toHaveLength(1);
+  });
+
+  it("RH inbox excludes non-awaited statuses (e.g. PENDENTE)", () => {
+    const out = filterRequests("RH", "rh-1", [{ ...baseReq, status: "PENDENTE" }], {
+      view: "inbox",
+      query: "",
+      status: "TODOS",
+      managerId: "",
       from: "",
       to: "",
       department: "",

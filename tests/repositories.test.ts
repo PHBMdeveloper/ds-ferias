@@ -3,6 +3,10 @@ import { describe, it, expect, vi } from "vitest";
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     vacationRequest: { findMany: vi.fn().mockResolvedValue([]) },
+    acquisitionPeriod: {
+      findMany: vi.fn().mockResolvedValue([]),
+      createMany: vi.fn().mockResolvedValue({ count: 0 }),
+    },
     user: {
       findUnique: vi.fn().mockResolvedValue(null),
       findMany: vi.fn().mockResolvedValue([]),
@@ -16,6 +20,7 @@ import {
   findMyRequests,
   findManagedRequests,
 } from "@/repositories/vacationRepository";
+import { syncAcquisitionPeriodsForUser } from "@/repositories/acquisitionRepository";
 import { findBlackouts } from "@/repositories/blackoutRepository";
 import {
   findUserWithBalance,
@@ -42,6 +47,59 @@ describe("vacationRepository", () => {
     expect(prisma.vacationRequest.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ where: { status: "PENDENTE" } })
     );
+  });
+});
+
+describe("acquisitionRepository", () => {
+  it("returns [] when hireDate is null/undefined", async () => {
+    expect(await syncAcquisitionPeriodsForUser("u1", null)).toEqual([]);
+    expect(await syncAcquisitionPeriodsForUser("u1", undefined)).toEqual([]);
+  });
+
+  it("returns [] when prisma client has no acquisitionPeriod (safety fallback)", async () => {
+    const { prisma } = await import("@/lib/prisma");
+    const original = (prisma as any).acquisitionPeriod;
+    (prisma as any).acquisitionPeriod = undefined;
+    try {
+      const out = await syncAcquisitionPeriodsForUser("u1", new Date("2025-01-01T12:00:00Z"));
+      expect(out).toEqual([]);
+    } finally {
+      (prisma as any).acquisitionPeriod = original;
+    }
+  });
+
+  it("returns existing periods if already present", async () => {
+    const { prisma } = await import("@/lib/prisma");
+    vi.mocked((prisma as any).acquisitionPeriod.findMany).mockResolvedValueOnce([
+      { id: "p1", userId: "u1", startDate: new Date(), endDate: new Date(), accruedDays: 30, usedDays: 0 },
+    ]);
+    const out = await syncAcquisitionPeriodsForUser("u1", new Date("2024-01-01T12:00:00Z"));
+    expect(out).toHaveLength(1);
+    expect((prisma as any).acquisitionPeriod.createMany).not.toHaveBeenCalled();
+  });
+
+  it("creates periods when none exist and returns them", async () => {
+    const { prisma } = await import("@/lib/prisma");
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-01-15T12:00:00Z"));
+
+    // first call: no existing
+    vi.mocked((prisma as any).acquisitionPeriod.findMany)
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([
+        { id: "p1", userId: "u1" },
+        { id: "p2", userId: "u1" },
+      ] as any);
+
+    await syncAcquisitionPeriodsForUser("u1", new Date("2024-01-10T12:00:00Z"));
+
+    expect((prisma as any).acquisitionPeriod.createMany).toHaveBeenCalledTimes(1);
+    const arg = vi.mocked((prisma as any).acquisitionPeriod.createMany).mock.calls[0][0];
+    expect(Array.isArray(arg.data)).toBe(true);
+    expect(arg.data.length).toBeGreaterThan(0);
+    expect(arg.data[0].userId).toBe("u1");
+
+    vi.useRealTimers();
   });
 });
 

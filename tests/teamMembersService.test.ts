@@ -67,7 +67,17 @@ describe("getTeamMembersForTimes", () => {
     mockFindTeamMembersByGerente.mockResolvedValueOnce([
       {
         id: "u1",
-        name: "João",
+        name: "Zeca",
+        department: "TI",
+        hireDate: new Date("2024-01-01"),
+        role: "FUNCIONARIO",
+        managerId: "c1",
+        manager: { id: "c1", name: "Coord A", managerId: "ger-1", manager: null },
+        vacationRequests: [],
+      },
+      {
+        id: "u2",
+        name: "Ana",
         department: "TI",
         hireDate: new Date("2024-01-01"),
         role: "FUNCIONARIO",
@@ -78,7 +88,9 @@ describe("getTeamMembersForTimes", () => {
     ]);
     const result = await getTeamMembersForTimes("ger-1", "GERENTE");
     expect(result.kind).toBe("coord");
-    expect(result.teams.length).toBeGreaterThanOrEqual(0);
+    expect(result.teams.length).toBeGreaterThanOrEqual(1);
+    // garante que o comparator do sort foi exercitado
+    expect(result.teams[0].members.map((m) => m.user.name)).toEqual(["Ana", "Zeca"]);
     expect(mockFindTeamMembersByGerente).toHaveBeenCalledWith("ger-1");
   });
 
@@ -86,7 +98,22 @@ describe("getTeamMembersForTimes", () => {
     mockFindAllEmployees.mockResolvedValueOnce([
       {
         id: "u1",
-        name: "João",
+        name: "Zeca",
+        department: "TI",
+        hireDate: new Date("2024-01-01"),
+        role: "FUNCIONARIO",
+        managerId: "c1",
+        manager: {
+          id: "c1",
+          name: "Coord",
+          managerId: "ger-1",
+          manager: { id: "ger-1", name: "Gerente", managerId: null },
+        },
+        vacationRequests: [],
+      },
+      {
+        id: "u2",
+        name: "Ana",
         department: "TI",
         hireDate: new Date("2024-01-01"),
         role: "FUNCIONARIO",
@@ -103,6 +130,9 @@ describe("getTeamMembersForTimes", () => {
     const result = await getTeamMembersForTimes("rh-1", "RH");
     expect(result.kind).toBe("rh");
     expect("gerentes" in result && result.gerentes.length).toBeGreaterThanOrEqual(0);
+    // garante que o comparator do sort foi exercitado
+    const firstTeamMembers = result.gerentes[0]?.teams[0]?.members?.map((m) => m.user.name) ?? [];
+    expect(firstTeamMembers).toEqual(["Ana", "Zeca"]);
     expect(mockFindAllEmployees).toHaveBeenCalled();
   });
 });

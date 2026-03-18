@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import {
   getRoleLevel,
   getRoleLabel,
@@ -15,6 +15,63 @@ import {
   detectTeamConflicts,
   checkBlackoutPeriods,
 } from "@/lib/vacationRules";
+
+describe("validateCltPeriod (aviso prévio)", () => {
+  it("returns advance notice error when start is < 30 days ahead", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-03-01T12:00:00Z"));
+    const start = new Date("2026-03-25T12:00:00Z"); // 24 dias
+    // terminar em dia útil para não disparar regra de sábado/domingo antes do aviso prévio
+    const end = new Date("2026-04-03T12:00:00Z"); // sexta
+    expect(validateCltPeriod(start, end)).toContain("Aviso prévio mínimo de 30 dias");
+    vi.useRealTimers();
+  });
+
+  it("returns null when start is >= 30 days ahead and other rules pass", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-03-01T12:00:00Z"));
+    // 2026-04-01 é quarta; 10 dias e término em sexta (dia útil)
+    const start = new Date("2026-04-01T12:00:00Z");
+    const end = new Date("2026-04-10T12:00:00Z");
+    expect(validateCltPeriod(start, end)).toBeNull();
+    vi.useRealTimers();
+  });
+});
+
+describe("detectTeamConflicts", () => {
+  it("handles empty team", () => {
+    const out = detectTeamConflicts(new Date("2026-06-01"), new Date("2026-06-10"), []);
+    expect(out.teamSize).toBe(0);
+    expect(out.conflictingCount).toBe(0);
+    expect(out.isBlocked).toBe(false);
+  });
+});
+
+describe("validateCltPeriods (limite do ciclo)", () => {
+  it("errors when total in cycle exceeds entitledDays", () => {
+    // período mínimo de 5 dias (seg → sex) e término em dia útil
+    const start = new Date("2026-06-01T12:00:00Z"); // seg
+    const endSafe = new Date("2026-06-05T12:00:00Z"); // sex (5 dias)
+    const msg = validateCltPeriods(
+      [{ start, end: endSafe }],
+      { checkAdvanceNotice: false, existingDaysInCycle: 29, entitledDays: 30 },
+    );
+    expect(msg).toContain("Total do ciclo não pode ultrapassar 30 dias");
+  });
+});
+
+describe("validateCltPeriods (início sexta/sábado)", () => {
+  it("errors when first period starts on Friday with advance notice check enabled", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-01-01T12:00:00Z"));
+    // 2026-02-06 é sexta; 36 dias à frente
+    const start = new Date("2026-02-06T12:00:00Z");
+    const end = new Date("2026-02-12T12:00:00Z"); // quinta (término em dia útil)
+    const msg = validateCltPeriods([{ start, end }], { checkAdvanceNotice: true, existingDaysInCycle: 14 });
+    expect(msg).toContain("O início das férias não pode ocorrer na sexta ou no sábado");
+    vi.useRealTimers();
+  });
+});
 
 describe("getRoleLevel", () => {
   it("returns 1 for FUNCIONARIO and COLABORADOR", () => {
@@ -84,6 +141,16 @@ describe("canApproveRequest", () => {
         user: { role: "FUNCIONARIO" },
       }),
     ).toBe(true);
+  });
+});
+
+describe("hasTeamVisibility (papel sem visibilidade)", () => {
+  it("returns false for non-approver role", () => {
+    const out = hasTeamVisibility("FUNCIONARIO", "u1", {
+      userId: "u2",
+      user: { managerId: null, manager: null },
+    });
+    expect(out).toBe(false);
   });
 });
 

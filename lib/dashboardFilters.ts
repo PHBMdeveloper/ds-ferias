@@ -57,7 +57,12 @@ export function filterRequests<T extends RequestForFilter>(
     if (filters.view === "inbox") {
       if (userLevel === 2 && r.status !== "PENDENTE") return false;
       if (userLevel === 3 && !["PENDENTE", "APROVADO_COORDENADOR", "APROVADO_GESTOR"].includes(r.status)) return false;
-      if (userLevel >= 4 && r.status !== "APROVADO_GERENTE") return false;
+      if (
+        userLevel >= 4 &&
+        !["APROVADO_COORDENADOR", "APROVADO_GESTOR", "APROVADO_GERENTE"].includes(r.status)
+      ) {
+        return false;
+      }
     } else if (filters.view === "historico") {
       const processed = ["APROVADO_COORDENADOR", "APROVADO_GESTOR", "APROVADO_GERENTE", "APROVADO_RH", "REPROVADO", "CANCELADO"];
       if (!processed.includes(r.status)) return false;

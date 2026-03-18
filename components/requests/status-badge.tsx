@@ -25,7 +25,7 @@ export function StatusBadge({ status }: { status: string }) {
     return (
       <div className="flex flex-wrap items-center gap-1.5">
         <StatusChip color="indigo" label="Aprovado Coord." />
-        <StatusChip color="amber" label="Pend. Gerente" />
+        <StatusChip color="amber" label="Pend. RH" />
       </div>
     );
   }

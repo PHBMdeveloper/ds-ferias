@@ -61,7 +61,6 @@ export default async function DashboardPage({
 
   const visibleRequests = getVisibleRequests(user.role, user.id, managedRequests);
   const pendingCount = getPendingCount(userRoleLevel, visibleRequests);
-  const approvedCount = visibleRequests.filter((r) => r.status === "APROVADO_RH").length;
 
   const isMyView = !isApprover || view === "minhas";
   const isTimesView = isApprover && view === "times";
@@ -111,10 +110,15 @@ export default async function DashboardPage({
           </div>
 
           {!isMyView && isApprover && !isTimesView && (
-            <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4 lg:gap-5">
-              <StatCard label="Total" value={visibleRequests.length} sublabel="Solicitações (sua equipe)" />
-              <StatCard label="Pendentes" value={pendingCount} sublabel="Aguardando você" alert={pendingCount > 0} />
-              <StatCard label="Aprovadas" value={approvedCount} sublabel="Aprovadas pelo RH" />
+            <div className="mb-6 flex">
+              <div className="w-full max-w-sm">
+                <StatCard
+                  label="Pendentes"
+                  value={pendingCount}
+                  sublabel="Aguardando você"
+                  alert={pendingCount > 0}
+                />
+              </div>
             </div>
           )}
 

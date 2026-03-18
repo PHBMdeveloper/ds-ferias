@@ -64,6 +64,32 @@ describe("verifyCredentials", () => {
     expect(result).toBeNull();
   });
 
+  it("logs warning in development when password does not match", async () => {
+    const { prisma } = await import("@/lib/prisma");
+    const prevEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = "development";
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const hashed = hashNewUserPassword("correta");
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({
+      id: "u1",
+      name: "User",
+      email: "u@e.com",
+      role: "FUNCIONARIO",
+      passwordHash: hashed,
+      department: null,
+      hireDate: null,
+      managerId: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as never);
+
+    const result = await verifyCredentials("u@e.com", "errada");
+    expect(result).toBeNull();
+    expect(warnSpy).toHaveBeenCalledWith("[auth] Invalid credentials for", "u@e.com");
+
+    process.env.NODE_ENV = prevEnv;
+  });
+
   it("returns session user when password matches", async () => {
     const { prisma } = await import("@/lib/prisma");
     const hashed = hashNewUserPassword("correta");

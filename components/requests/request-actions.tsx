@@ -23,10 +23,12 @@ export function RequestActions({
   const isPendingRH =
     request.status === "APROVADO_COORDENADOR" || request.status === "APROVADO_GESTOR";
 
+  const canOwnerCancel = isOwner && request.status !== "APROVADO_RH";
+
   const deleteLabel = isOwner
     ? "Cancelar solicitação"
     : isPendingRH
-      ? "Excluir solicitação (pend. Gerente)"
+      ? "Excluir solicitação (pend. RH)"
       : "Excluir solicitação";
 
   const deleteSuccessMessage = isOwner ? "Solicitação cancelada." : "Solicitação excluída.";
@@ -68,20 +70,22 @@ export function RequestActions({
             {isPending && <EditPeriodFormClient request={request} />}
           </>
         )}
-        <ActionButtonForm
-          action={`/api/vacation-requests/${request.id}/delete`}
-          variant="outline"
-          size="sm"
-          label={deleteLabel}
-          loadingLabel={isOwner ? "Cancelando..." : "Excluindo..."}
-          successMessage={deleteSuccessMessage}
-          confirmMessage={
-            isOwner
-              ? "Tem certeza de que deseja cancelar esta solicitação de férias?"
-              : "Tem certeza de que deseja excluir esta solicitação de férias?"
-          }
-          className="ml-auto border-red-200 text-sm font-semibold text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400"
-        />
+        {(canOwnerCancel || !isOwner) && (
+          <ActionButtonForm
+            action={`/api/vacation-requests/${request.id}/delete`}
+            variant="outline"
+            size="sm"
+            label={deleteLabel}
+            loadingLabel={isOwner ? "Cancelando..." : "Excluindo..."}
+            successMessage={deleteSuccessMessage}
+            confirmMessage={
+              isOwner
+                ? "Tem certeza de que deseja cancelar esta solicitação de férias?"
+                : "Tem certeza de que deseja excluir esta solicitação de férias?"
+            }
+            className="ml-auto border-red-200 text-sm font-semibold text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400"
+          />
+        )}
       </div>
     </div>
   );
