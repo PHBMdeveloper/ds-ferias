@@ -75,6 +75,10 @@ model VacationRequest {
   userId    String
   user      User           @relation(fields: [userId], references: [id])
 
+  /// Período aquisitivo ao qual estas férias estão vinculadas (opcional por compatibilidade)
+  acquisitionPeriodId String?
+  acquisitionPeriod   AcquisitionPeriod? @relation(fields: [acquisitionPeriodId], references: [id])
+
   startDate DateTime
   endDate   DateTime
 
@@ -147,6 +151,8 @@ model AcquisitionPeriod {
   accruedDays Int
   /// Dias já gozados/consumidos deste período
   usedDays    Int      @default(0)
+
+  vacationRequests VacationRequest[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

@@ -6,6 +6,7 @@ import {
   getDashboardData,
   getCurrentUserBalance,
   getCurrentUserDepartment,
+  getUserAcquisitionPeriods,
   getVisibleRequests,
   getPendingCount,
 } from "@/services/dashboardDataService";
@@ -54,9 +55,10 @@ export default async function DashboardPage({
     status: statusFilter,
   });
 
-  const [balance, userDept] = await Promise.all([
+  const [balance, userDept, acquisitionPeriods] = await Promise.all([
     getCurrentUserBalance(user.id),
     getCurrentUserDepartment(user.id),
+    getUserAcquisitionPeriods(user.id),
   ]);
 
   const visibleRequests = getVisibleRequests(user.role, user.id, managedRequests);
@@ -146,7 +148,11 @@ export default async function DashboardPage({
                   filters={filters}
                 />
               ) : (
-                <MyRequestsList requests={myRequests} balance={balance} />
+                <MyRequestsList
+                  requests={myRequests}
+                  balance={balance}
+                  acquisitionPeriods={acquisitionPeriods as any}
+                />
               )}
             </section>
 

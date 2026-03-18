@@ -20,9 +20,17 @@ type RequestLike = {
 export function MyRequestsList({
   requests,
   balance,
+  acquisitionPeriods,
 }: {
   requests: RequestLike[];
   balance: VacationBalance;
+  acquisitionPeriods?: Array<{
+    id: string;
+    startDate: Date | string;
+    endDate: Date | string;
+    accruedDays: number;
+    usedDays: number;
+  }>;
 }) {
   if (!requests.length) {
     return <EmptyState message="Você ainda não criou nenhuma solicitação de férias." />;
@@ -37,6 +45,12 @@ export function MyRequestsList({
     .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())
     .slice(0, 3);
 
+  const periods = (acquisitionPeriods ?? []).map((p) => ({
+    ...p,
+    start: new Date(p.startDate),
+    end: new Date(p.endDate),
+  }));
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -45,6 +59,41 @@ export function MyRequestsList({
         </h3>
         <ExportButton href="/api/vacation-requests/export" />
       </div>
+
+      {periods.length > 0 && (
+        <section className="rounded-lg border border-[#e2e8f0] bg-white p-4 text-sm dark:border-[#252a35] dark:bg-[#1a1d23]">
+          <h4 className="text-base font-semibold text-[#1a1d23] dark:text-white">
+            Períodos aquisitivos
+          </h4>
+          <p className="mt-1 text-xs text-[#64748b] dark:text-slate-400">
+            Cada linha representa um ciclo de 12 meses trabalhados. Quando os dias usados atingem o direito do período, novas férias passam a consumir o próximo ciclo.
+          </p>
+          <div className="mt-3 grid gap-2 sm:grid-cols-2">
+            {periods.slice(0, 4).map((p) => {
+              const label = `${p.start.toLocaleDateString("pt-BR")} – ${p.end.toLocaleDateString("pt-BR")}`;
+              const status =
+                p.usedDays >= p.accruedDays
+                  ? "Completo"
+                  : p.usedDays > 0
+                    ? "Parcial"
+                    : "Ainda não utilizado";
+              return (
+                <div
+                  key={p.id}
+                  className="flex items-center justify-between rounded-md bg-[#f8fafc] px-3 py-2 text-xs dark:bg-[#020617]"
+                >
+                  <div className="min-w-0">
+                    <p className="font-medium text-[#0f172a] dark:text-slate-100">{label}</p>
+                    <p className="text-[11px] text-[#64748b] dark:text-slate-400">
+                      {p.usedDays}/{p.accruedDays} dias usados · {status}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       <MonthlyCalendar
         entries={requests.map((r) => ({

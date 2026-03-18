@@ -3,7 +3,7 @@ import { hasTeamVisibility, getRoleLevel, calculateVacationBalance } from "@/lib
 import { findMyRequests, findManagedRequests } from "@/repositories/vacationRepository";
 import { findBlackouts } from "@/repositories/blackoutRepository";
 import { findUserWithBalance, findUserDepartment } from "@/repositories/userRepository";
-import { syncAcquisitionPeriodsForUser } from "@/repositories/acquisitionRepository";
+import { syncAcquisitionPeriodsForUser, findAcquisitionPeriodsForUser } from "@/repositories/acquisitionRepository";
 
 export type DashboardDataParams = {
   userId: string;
@@ -52,6 +52,11 @@ export async function getCurrentUserBalance(userId: string) {
     userFull?.hireDate ?? null,
     (userFull?.vacationRequests ?? []) as Array<{ startDate: Date; endDate: Date; status: string }>
   );
+}
+
+export async function getUserAcquisitionPeriods(userId: string) {
+  await syncAcquisitionPeriodsForUser(userId, null);
+  return findAcquisitionPeriodsForUser(userId);
 }
 
 type RequestWithVisibility = {

@@ -61,3 +61,54 @@ export async function syncAcquisitionPeriodsForUser(
   });
 }
 
+export async function findAcquisitionPeriodsForUser(userId: string) {
+  const ap = (prisma as any)?.acquisitionPeriod;
+  if (!ap?.findMany) return [];
+  return ap.findMany({
+    where: { userId },
+    orderBy: { startDate: "asc" },
+  });
+}
+
+export async function findAcquisitionPeriodForRange(
+  userId: string,
+  start: Date,
+  end: Date,
+) {
+  const ap = (prisma as any)?.acquisitionPeriod;
+  if (!ap?.findMany) return null;
+
+  const periods = await ap.findMany({
+    where: {
+      userId,
+      startDate: { lte: start },
+      endDate: { gte: end },
+    },
+    orderBy: { startDate: "asc" },
+  });
+  return periods[0] ?? null;
+}
+
+export async function addUsedDaysForRequest(
+  userId: string,
+  start: Date,
+  end: Date,
+) {
+  const period = await findAcquisitionPeriodForRange(userId, start, end);
+  if (!period) return null;
+
+  const days =
+    Math.round(
+      (end.setHours(0, 0, 0, 0) - start.setHours(0, 0, 0, 0)) /
+        (24 * 60 * 60 * 1000),
+    ) + 1;
+
+  const ap = (prisma as any)?.acquisitionPeriod;
+  await ap.update({
+    where: { id: period.id },
+    data: { usedDays: period.usedDays + days },
+  });
+
+  return period;
+}
+

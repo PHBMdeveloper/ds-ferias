@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/auth";
 import { canApproveRequest, getNextApprovalStatus, ROLE_LEVEL, detectTeamConflicts } from "@/lib/vacationRules";
+import { addUsedDaysForRequest } from "@/repositories/acquisitionRepository";
 import { notifyApproved } from "@/lib/notifications";
 import { isCuid } from "@/lib/validation";
 import { logger } from "@/lib/logger";
@@ -143,10 +144,25 @@ export async function POST(request: Request, { params }: Params) {
     );
   }
 
+  let acquisitionPeriodId: string | null = null;
+  try {
+    if (nextStatus === "APROVADO_RH") {
+      const period = await addUsedDaysForRequest(
+        existing.userId,
+        new Date(existing.startDate),
+        new Date(existing.endDate),
+      );
+      acquisitionPeriodId = period?.id ?? null;
+    }
+  } catch (err) {
+    logger.warn("Falha ao atualizar usedDays de AcquisitionPeriod", { error: String(err) });
+  }
+
   const updated = await prisma.vacationRequest.update({
     where: { id },
     data: {
       status: nextStatus,
+      acquisitionPeriodId: acquisitionPeriodId ?? undefined,
       [noteField]: body?.note ?? null,
       history: {
         create: {
