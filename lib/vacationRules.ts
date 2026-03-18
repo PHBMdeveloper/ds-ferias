@@ -288,20 +288,22 @@ export function calculateVacationBalance(
     };
   }
 
-  // Um ciclo aquisitivo = 30 dias. Mesmo que o colaborador tenha ciclos acumulados,
-  // o direito por ciclo é sempre 30 dias.
-  const DAYS_PER_CYCLE = 30;
+  // Calcula quantos ciclos completos de 12 meses foram adquiridos
+  const yearsWorked = Math.floor(monthsWorked / 12);
+  const MAX_CYCLES = 2; // até 2 períodos aquisitivos (60 dias)
+  const cyclesCovered = Math.min(yearsWorked, MAX_CYCLES);
+  const totalEntitled = cyclesCovered * 30;
 
-  // Janela do ciclo atual: últimos 12 meses a partir de hoje
+  // Janela: últimos N*12 meses a partir de hoje (cobre todos os ciclos adquiridos)
   const cutoff = new Date(today);
-  cutoff.setMonth(cutoff.getMonth() - 12);
+  cutoff.setMonth(cutoff.getMonth() - cyclesCovered * 12);
 
-  // Dias já aprovados no ciclo atual
+  // Dias já aprovados
   const totalUsed = approvedRequests
     .filter((r) => r.status === "APROVADO_RH" && new Date(r.endDate) >= cutoff)
     .reduce((sum, r) => sum + calcDays(r.startDate, r.endDate), 0);
 
-  // Dias em aprovação (pendentes) no ciclo atual
+  // Dias em aprovação (pendentes)
   const totalPending = approvedRequests
     .filter((r) =>
       ["PENDENTE", "APROVADO_COORDENADOR", "APROVADO_GESTOR", "APROVADO_GERENTE"].includes(r.status) &&
@@ -309,10 +311,10 @@ export function calculateVacationBalance(
     )
     .reduce((sum, r) => sum + calcDays(r.startDate, r.endDate), 0);
 
-  const available = Math.max(0, DAYS_PER_CYCLE - totalUsed - totalPending);
+  const available = Math.max(0, totalEntitled - totalUsed - totalPending);
 
   return {
-    entitledDays: DAYS_PER_CYCLE,
+    entitledDays: totalEntitled,
     usedDays: totalUsed,
     pendingDays: totalPending,
     availableDays: available,

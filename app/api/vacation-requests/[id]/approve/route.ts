@@ -192,16 +192,16 @@ export async function POST(request: Request, { params }: Params) {
     let periodId: string | undefined;
 
     if (nextStatus === "APROVADO_RH") {
-      const period = await tx.acquisitionPeriod.findFirst({
-        where: {
-          userId: current.userId,
-          startDate: { lte: current.startDate },
-          endDate: { gte: current.endDate },
-        },
+      // FIFO: consome o período aquisitivo mais antigo que ainda tenha saldo disponível.
+      // A data das férias NÃO precisa cair dentro do período — CLT permite usar dias
+      // de ciclos anteriores em qualquer data futura.
+      const allPeriods = await tx.acquisitionPeriod.findMany({
+        where: { userId: current.userId },
         orderBy: { startDate: "asc" },
-        select: { id: true },
+        select: { id: true, accruedDays: true, usedDays: true },
       });
-      periodId = period?.id;
+      const oldest = allPeriods.find((p) => p.usedDays < p.accruedDays);
+      periodId = oldest?.id;
     }
 
     const data: Record<string, unknown> = {

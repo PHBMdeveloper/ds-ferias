@@ -2,10 +2,16 @@ import { describe, it, expect, vi } from "vitest";
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
-    vacationRequest: { findMany: vi.fn().mockResolvedValue([]) },
+    vacationRequest: {
+      findMany: vi.fn().mockResolvedValue([]),
+      updateMany: vi.fn().mockResolvedValue({ count: 0 }),
+      update: vi.fn().mockResolvedValue({}),
+    },
     acquisitionPeriod: {
       findMany: vi.fn().mockResolvedValue([]),
       createMany: vi.fn().mockResolvedValue({ count: 0 }),
+      update: vi.fn().mockResolvedValue({}),
+      deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
     },
     user: {
       findUnique: vi.fn().mockResolvedValue(null),
@@ -71,7 +77,7 @@ describe("acquisitionRepository", () => {
   it("returns existing periods if already present", async () => {
     const { prisma } = await import("@/lib/prisma");
     vi.mocked((prisma as any).acquisitionPeriod.findMany).mockResolvedValueOnce([
-      { id: "p1", userId: "u1", startDate: new Date(), endDate: new Date(), accruedDays: 30, usedDays: 0 },
+      { id: "p1", userId: "u1", startDate: new Date("2023-01-01"), endDate: new Date("2023-12-31"), accruedDays: 30, usedDays: 0 },
     ]);
     const out = await syncAcquisitionPeriodsForUser("u1", new Date("2024-01-01T12:00:00Z"));
     expect(out).toHaveLength(1);

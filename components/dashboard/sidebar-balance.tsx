@@ -29,7 +29,7 @@ export function SidebarBalance({ balance }: { balance: VacationBalance }) {
   return (
     <div className="rounded-md bg-[#f5f6f8] px-3 py-3 dark:bg-[#1e2330]">
       <p className="text-center text-sm font-semibold text-[#64748b] dark:text-slate-400">
-        {balance.entitledDays} dias/ciclo
+        {balance.availableDays > 0 ? `${balance.availableDays} disponíveis` : "Saldo zerado"}
       </p>
       <div className="mt-2.5 h-2 overflow-hidden rounded-full bg-[#e2e8f0] dark:bg-[#252a35]">
         <div className="flex h-full">

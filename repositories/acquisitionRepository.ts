@@ -21,11 +21,12 @@ function daysBetweenInclusiveClamped(start: Date, end: Date): number {
 }
 
 /**
- * Gera períodos aquisitivos de 12 meses para um usuário a partir da hireDate.
- * Se já existirem períodos, faz backfill de usedDays a partir de solicitações APROVADO_RH
- * que não tenham acquisitionPeriodId definido (vacações aprovadas antes desta feature).
+ * Gera os períodos aquisitivos para o usuário e faz resync FIFO completo:
+ * recalcula o usedDays de cada período a partir de TODAS as solicitações APROVADO_RH,
+ * do mais antigo para o mais novo (FIFO). Isso garante que períodos mais antigos
+ * sejam consumidos primeiro, independente da data das férias.
  *
- * Hoje são gerados apenas os ciclos até a data atual, com 30 dias de direito cada.
+ * É idempotente: pode ser chamado a qualquer momento sem duplicar dados.
  */
 export async function syncAcquisitionPeriodsForUser(
   userId: string,
@@ -34,82 +35,101 @@ export async function syncAcquisitionPeriodsForUser(
   if (!hireDate) return [];
 
   // Em dev, pode acontecer de o Prisma Client ainda não ter sido regenerado após migrations.
-  // Evita quebrar a aplicação e permite que o deploy/migrate finalize.
   const ap = (prisma as any)?.acquisitionPeriod;
   if (!ap?.findMany || !ap?.createMany) return [];
 
-  const existing: Array<{ id: string; startDate: Date; endDate: Date; accruedDays: number; usedDays: number }> = await ap.findMany({
-    where: { userId },
-    orderBy: { startDate: "asc" },
-  });
-
-  if (existing.length === 0) {
-    // Cria os períodos a partir da hireDate
-    const periods: Array<{ userId: string; startDate: Date; endDate: Date; accruedDays: number; usedDays: number }> = [];
-    const today = new Date();
-    let start = new Date(hireDate);
-
-    while (start < today) {
-      const endExclusive = addMonths(start, 12);
-      const end = new Date(endExclusive.getTime() - 1); // dia anterior ao próximo ciclo
-      periods.push({
-        userId,
-        startDate: start,
-        endDate: end,
-        accruedDays: 30,
-        usedDays: 0,
-      });
-      start = endExclusive;
-    }
-
-    if (periods.length > 0) {
-      await ap.createMany({ data: periods });
-    }
-  }
-
-  // Backfill: busca solicitações APROVADO_RH sem acquisitionPeriodId associado
-  // e credita os dias nos períodos correspondentes.
-  const orphanRequests: Array<{ id: string; startDate: Date; endDate: Date }> =
-    await (prisma as any).vacationRequest.findMany({
-      where: {
-        userId,
-        status: "APROVADO_RH",
-        acquisitionPeriodId: null,
-      },
-      select: { id: true, startDate: true, endDate: true },
-    });
-
-  if (orphanRequests.length > 0) {
-    const allPeriods: Array<{ id: string; startDate: Date; endDate: Date; accruedDays: number; usedDays: number }> = await ap.findMany({
+  let periods: Array<{ id: string; startDate: Date; endDate: Date; accruedDays: number; usedDays: number }> =
+    await ap.findMany({
       where: { userId },
       orderBy: { startDate: "asc" },
     });
 
-    for (const req of orphanRequests) {
-      const period = allPeriods.find(
-        (p) => p.startDate <= req.startDate && p.endDate >= req.endDate,
-      );
-      if (!period) continue;
+  if (periods.length === 0) {
+    const newPeriods: Array<{ userId: string; startDate: Date; endDate: Date; accruedDays: number; usedDays: number }> = [];
+    const today = new Date();
+    let start = new Date(hireDate);
 
-      const days = daysBetweenInclusiveClamped(req.startDate, req.endDate);
-      // Atualiza o banco e o array local para evitar duplo-crédito em caso de múltiplos orphans no mesmo período
-      const newUsedDays = Math.min(period.usedDays + days, period.accruedDays);
-      await ap.update({
-        where: { id: period.id },
-        data: { usedDays: newUsedDays },
-      });
-      await (prisma as any).vacationRequest.update({
-        where: { id: req.id },
-        data: { acquisitionPeriodId: period.id },
-      });
-      period.usedDays = newUsedDays;
+    while (true) {
+      const endExclusive = addMonths(start, 12);
+      // Só cria o ciclo se ele já foi COMPLETO (12 meses cumpridos).
+      // Ciclo ainda em andamento = colaborador ainda não tem direito.
+      if (endExclusive > today) break;
+      const end = new Date(endExclusive.getTime() - 1);
+      newPeriods.push({ userId, startDate: start, endDate: end, accruedDays: 30, usedDays: 0 });
+      start = endExclusive;
+    }
+
+    if (newPeriods.length > 0) {
+      await ap.createMany({ data: newPeriods });
+    }
+
+    periods = await ap.findMany({
+      where: { userId },
+      orderBy: { startDate: "asc" },
+    });
+  }
+
+  // Remove períodos ainda não ganhos (ciclo em andamento) que possam ter sido
+  // criados por versões anteriores do código.
+  const today = new Date();
+  const unearnedIds = periods
+    .filter((p) => new Date(p.endDate) >= today)
+    .map((p) => p.id);
+
+  if (unearnedIds.length > 0) {
+    // Desvincula férias que apontam para períodos não-earned antes de deletar
+    await (prisma as any).vacationRequest.updateMany({
+      where: { userId, acquisitionPeriodId: { in: unearnedIds } },
+      data: { acquisitionPeriodId: null },
+    });
+    await ap.deleteMany({ where: { id: { in: unearnedIds } } });
+    periods = periods.filter((p) => !unearnedIds.includes(p.id));
+  }
+
+  // Resync FIFO completo: recalcula usedDays de cada período a partir das solicitações aprovadas.
+  // Isso corrige atribuições erradas geradas pelo código legado (que usava range de datas).
+  const approvedRequests: Array<{ id: string; startDate: Date; endDate: Date; acquisitionPeriodId: string | null }> =
+    await (prisma as any).vacationRequest.findMany({
+      where: { userId, status: "APROVADO_RH" },
+      orderBy: { startDate: "asc" },
+      select: { id: true, startDate: true, endDate: true, acquisitionPeriodId: true },
+    });
+
+  // Mapa de novos usedDays calculados via FIFO (somente períodos ganhos)
+  const newUsedDays = new Map<string, number>(periods.map((p) => [p.id, 0]));
+  const newPeriodIdForRequest = new Map<string, string>();
+
+  for (const req of approvedRequests) {
+    // FIFO: período mais antigo com saldo disponível
+    const target = periods.find((p) => (newUsedDays.get(p.id) ?? 0) < p.accruedDays);
+    if (!target) continue;
+
+    const days = daysBetweenInclusiveClamped(req.startDate, req.endDate);
+    const current = newUsedDays.get(target.id) ?? 0;
+    newUsedDays.set(target.id, Math.min(current + days, target.accruedDays));
+    newPeriodIdForRequest.set(req.id, target.id);
+  }
+
+  // Aplica diferenças no banco (apenas o que mudou)
+  for (const period of periods) {
+    const computed = newUsedDays.get(period.id) ?? 0;
+    if ((period.usedDays ?? 0) !== computed) {
+      await ap.update({ where: { id: period.id }, data: { usedDays: computed } });
+      period.usedDays = computed;
     }
   }
 
-  return ap.findMany({
-    where: { userId },
-    orderBy: { startDate: "asc" },
-  });
+  for (const req of approvedRequests) {
+    const targetId = newPeriodIdForRequest.get(req.id);
+    if (targetId && req.acquisitionPeriodId !== targetId) {
+      await (prisma as any).vacationRequest.update({
+        where: { id: req.id },
+        data: { acquisitionPeriodId: targetId },
+      });
+    }
+  }
+
+  return periods;
 }
 
 export async function findAcquisitionPeriodsForUser(userId: string) {

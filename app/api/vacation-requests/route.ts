@@ -12,7 +12,6 @@ import { notifyNewRequest } from "@/lib/notifications";
 import { checkRateLimit } from "@/lib/rateLimit";
 import {
   syncAcquisitionPeriodsForUser,
-  findAcquisitionPeriodForRange,
   findAcquisitionPeriodsForUser,
 } from "@/repositories/acquisitionRepository";
 
@@ -157,13 +156,13 @@ export async function POST(request: Request) {
 
   const statusesAwaitingRH = ["PENDENTE", "APROVADO_COORDENADOR", "APROVADO_GESTOR", "APROVADO_GERENTE"] as const;
 
-  // Enforcement "de verdade" por período aquisitivo (AcquisitionPeriod.usedDays).
+  // Enforcement por períodos aquisitivos adquiridos (FIFO — consome o mais antigo com saldo).
+  // A data das férias NÃO precisa cair dentro do período aquisitivo: CLT permite usar dias
+  // de ciclos anteriores a qualquer momento, desde que dentro do prazo legal.
   // Se não houver `hireDate` (dev legados), fazemos fallback para a lógica antiga.
   if (userFull?.hireDate) {
     await syncAcquisitionPeriodsForUser(user.id, userFull.hireDate);
 
-    // Aquisição de direito acontece a cada 12 meses completos trabalhados.
-    // O projeto original limita o direito a até 2 ciclos (60 dias), então aplicamos o mesmo limite aqui.
     const todayUtc = toUtcMidnight(new Date());
     const hireUtc = toUtcMidnight(new Date(userFull.hireDate));
 
@@ -186,119 +185,55 @@ export async function POST(request: Request) {
       );
     }
 
-    const allAcquisitionPeriods = await findAcquisitionPeriodsForUser(user.id);
-    const periodIndexById = new Map<string, number>(
-      allAcquisitionPeriods.map((p: { id: string }, i: number) => [p.id, i]),
-    );
+    // Todos os períodos adquiridos (do mais antigo para o mais novo)
+    const allAcquisitionPeriods: Array<{ id: string; accruedDays: number; usedDays: number }> =
+      await findAcquisitionPeriodsForUser(user.id);
+    const acquiredPeriods = allAcquisitionPeriods.slice(0, acquiredCount);
 
-    type PeriodEnforcement = {
-      acquisitionPeriod: { id: string; startDate: Date; endDate: Date; accruedDays: number; usedDays: number };
-      requestedDays: number;
-      pendingDays: number;
-    };
-
-    const periodsMap = new Map<string, PeriodEnforcement>();
-
-    for (const p of periods) {
-      const acquisitionPeriod = await findAcquisitionPeriodForRange(user.id, p.start, p.end);
-      if (!acquisitionPeriod) {
-        return NextResponse.json(
-          {
-            error:
-              "Período fora dos ciclos aquisitivos adquiridos. Só é permitido solicitar férias dentro do período aquisitivo atual (12 meses).",
-          },
-          { status: 400 },
-        );
-      }
-
-      const idx = periodIndexById.get(acquisitionPeriod.id);
-      if (idx === undefined || idx >= acquiredCount) {
-        return NextResponse.json(
-          {
-            error: "Você ainda não adquiriu o período aquisitivo correspondente (completou os 12 meses).",
-          },
-          { status: 400 },
-        );
-      }
-
-      const key = acquisitionPeriod.id;
-      if (!periodsMap.has(key)) {
-        periodsMap.set(key, {
-          acquisitionPeriod: {
-            id: acquisitionPeriod.id,
-            startDate: acquisitionPeriod.startDate,
-            endDate: acquisitionPeriod.endDate,
-            accruedDays: acquisitionPeriod.accruedDays,
-            usedDays: acquisitionPeriod.usedDays,
-          },
-          requestedDays: 0,
-          pendingDays: 0,
-        });
-      }
-
-      const entry = periodsMap.get(key)!;
-      entry.requestedDays += daysBetweenInclusive(p.start, p.end);
-    }
-
-    if (periodsMap.size === 0) {
+    if (acquiredPeriods.length === 0) {
       return NextResponse.json({ error: "Sem períodos aquisitivos disponíveis para este usuário." }, { status: 400 });
     }
 
-    // Pending days dentro de cada período aquisitivo (conta o que ainda vai consumir no RH).
-    for (const entry of periodsMap.values()) {
-      const pending = await prisma.vacationRequest.findMany({
-        where: {
-          userId: user.id,
-          status: { in: [...statusesAwaitingRH] },
-          AND: [
-            { startDate: { lte: entry.acquisitionPeriod.endDate } },
-            { endDate: { gte: entry.acquisitionPeriod.startDate } },
-          ],
-        },
-        select: { startDate: true, endDate: true, status: true },
-      });
+    // Saldo total adquirido e usado nos períodos efetivamente earned
+    const totalEntitled = acquiredPeriods.reduce((sum, p) => sum + p.accruedDays, 0);
+    const totalUsed = acquiredPeriods.reduce((sum, p) => sum + p.usedDays, 0);
 
-      entry.pendingDays = pending.reduce(
-        (sum, r) => sum + overlapDaysInclusive(r.startDate, r.endDate, entry.acquisitionPeriod.startDate, entry.acquisitionPeriod.endDate),
-        0,
-      );
-    }
-
-    const entitledDays = Array.from(periodsMap.values()).reduce((sum, e) => sum + e.acquisitionPeriod.accruedDays, 0);
-    const existingDaysInCycle = Array.from(periodsMap.values()).reduce(
-      (sum, e) => sum + e.acquisitionPeriod.usedDays + e.pendingDays,
+    // Dias em curso (pendentes de aprovação RH) — deduzidos do saldo total
+    const pendingRequests = await prisma.vacationRequest.findMany({
+      where: {
+        userId: user.id,
+        status: { in: [...statusesAwaitingRH] },
+      },
+      select: { startDate: true, endDate: true },
+    });
+    const totalPending = pendingRequests.reduce(
+      (sum, r) => sum + daysBetweenInclusive(r.startDate, r.endDate),
       0,
     );
 
-    // Validação CLT (fracionamento, aviso prévio e total vs "direito" do conjunto de períodos).
+    const totalAvailable = Math.max(0, totalEntitled - totalUsed - totalPending);
+    const existingDaysInCycle = totalUsed + totalPending;
+
+    // Validação CLT (fracionamento, aviso prévio, etc.)
     const cltError = validateCltPeriods(periods, {
       checkAdvanceNotice: true,
       existingDaysInCycle,
-      entitledDays,
+      entitledDays: totalEntitled,
     });
     if (cltError) return NextResponse.json({ error: cltError }, { status: 400 });
 
-    // Enforcement real: cada período aquisitivo tem um teto (accruedDays - usedDays - pendingDays).
-    for (const entry of periodsMap.values()) {
-      if (entry.acquisitionPeriod.usedDays >= entry.acquisitionPeriod.accruedDays) {
-        return NextResponse.json(
-          {
-            error:
-              "Seu período aquisitivo atual já foi totalmente consumido. Você só poderá solicitar novas férias após a aquisição do próximo período (12 meses).",
-          },
-          { status: 400 },
-        );
-      }
-
-      const available = entry.acquisitionPeriod.accruedDays - entry.acquisitionPeriod.usedDays - entry.pendingDays;
-      if (entry.requestedDays > available) {
-        return NextResponse.json(
-          {
-            error: `Saldo insuficiente no período aquisitivo ${entry.acquisitionPeriod.startDate.toISOString().slice(0, 10)}–${entry.acquisitionPeriod.endDate.toISOString().slice(0, 10)}. Disponível: ${available} dias.`,
-          },
-          { status: 400 },
-        );
-      }
+    // Saldo suficiente?
+    const totalRequestedDays = periods.reduce((sum, p) => sum + daysBetweenInclusive(p.start, p.end), 0);
+    if (totalRequestedDays > totalAvailable) {
+      return NextResponse.json(
+        {
+          error:
+            totalAvailable === 0
+              ? "Seu saldo de férias está zerado. Todos os dias adquiridos já foram usados ou estão pendentes de aprovação."
+              : `Saldo insuficiente. Você tem ${totalAvailable} dia(s) disponível(is) nos ciclos aquisitivos adquiridos.`,
+        },
+        { status: 400 },
+      );
     }
   } else {
     // Fallback: sem hireDate não conseguimos resolver períodos aquisitivos com fidelidade.

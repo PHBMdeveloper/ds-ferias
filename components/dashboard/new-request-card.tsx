@@ -56,14 +56,15 @@ export function NewRequestCardClient({ canRequest = true, balance }: Props) {
   const [over30Days, setOver30Days] = useState(0);
   const [wasOver30, setWasOver30] = useState(false);
   const existingDaysInCycle = balance ? balance.pendingDays + balance.usedDays : 0;
-  const entitledDays = balance?.entitledDays ?? 30;
-  const availableDays = balance?.availableDays ?? Math.max(0, (balance?.entitledDays ?? 30) - existingDaysInCycle);
-  const maxDaysThisRequest = Math.max(0, availableDays);
+  // CLT: por solicitação, o máximo é 30 dias corridos (1 ciclo).
+  const MAX_DAYS_PER_REQUEST = 30;
+  const availableDays = balance?.availableDays ?? Math.max(0, MAX_DAYS_PER_REQUEST - existingDaysInCycle);
+  const maxDaysThisRequest = Math.min(Math.max(0, availableDays), MAX_DAYS_PER_REQUEST);
   const totalOk = maxDaysThisRequest === 0 ? stats.totalDays === 0 : stats.totalDays > 0 && stats.totalDays <= maxDaysThisRequest;
   const hasPeriod14OrMore = stats.periods.some((p) => p.days >= 14);
   const needsPeriod14 = existingDaysInCycle < 14 && !hasPeriod14OrMore;
   const totalWithExisting = existingDaysInCycle + stats.totalDays;
-  const cycleTotalOk = totalWithExisting <= entitledDays;
+  const cycleTotalOk = totalWithExisting <= MAX_DAYS_PER_REQUEST;
 
   function resetForm() {
     setPeriods([
@@ -205,19 +206,9 @@ export function NewRequestCardClient({ canRequest = true, balance }: Props) {
 
       {/* PERÍODOS */}
       <section className="space-y-6">
-        <div className="flex items-center justify-between gap-3">
-          <h2 className="text-xl font-bold text-[#1a1d23] dark:text-white">
-            Períodos de férias
-          </h2>
-          <button
-            type="button"
-            onClick={resetForm}
-            disabled={isPending || submitting}
-            className="flex items-center gap-1.5 rounded-md border border-red-200 bg-red-50 px-3 py-1.5 text-sm font-semibold text-red-600 transition hover:bg-red-100 disabled:opacity-50 dark:border-red-800 dark:bg-red-950/30 dark:text-red-400 dark:hover:bg-red-900/40"
-          >
-            <span>✕</span> Limpar
-          </button>
-        </div>
+        <h2 className="text-xl font-bold text-[#1a1d23] dark:text-white">
+          Períodos de férias
+        </h2>
 
         <PeriodBlock
           index={0}
@@ -287,6 +278,18 @@ export function NewRequestCardClient({ canRequest = true, balance }: Props) {
             />
           </div>
         </details>
+
+        {/* Botão Limpar — discreto, abaixo do 3° período */}
+        <div className="flex justify-start">
+          <button
+            type="button"
+            onClick={resetForm}
+            disabled={isPending || submitting}
+            className="text-sm text-[#94a3b8] underline-offset-2 hover:text-[#475569] hover:underline disabled:opacity-40 dark:text-slate-500 dark:hover:text-slate-300"
+          >
+            Limpar formulário
+          </button>
+        </div>
       </section>
 
       {/* JUSTIFICATIVA */}
