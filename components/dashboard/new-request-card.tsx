@@ -5,6 +5,9 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import type { VacationBalance } from "@/lib/vacationRules";
 import { DatePicker } from "@/components/ui/date-picker";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { useEffect } from "react";
 
 type Props = {
   canRequest?: boolean;
@@ -49,6 +52,9 @@ export function NewRequestCardClient({ canRequest = true, balance }: Props) {
   ]);
 
   const stats = calculatePeriodStats(periods);
+  const [showOver30Dialog, setShowOver30Dialog] = useState(false);
+  const [over30Days, setOver30Days] = useState(0);
+  const [wasOver30, setWasOver30] = useState(false);
   const existingDaysInCycle = balance ? balance.pendingDays + balance.usedDays : 0;
   const entitledDays = balance?.entitledDays ?? 30;
   const availableDays = balance?.availableDays ?? Math.max(0, (balance?.entitledDays ?? 30) - existingDaysInCycle);
@@ -58,6 +64,39 @@ export function NewRequestCardClient({ canRequest = true, balance }: Props) {
   const needsPeriod14 = existingDaysInCycle < 14 && !hasPeriod14OrMore;
   const totalWithExisting = existingDaysInCycle + stats.totalDays;
   const cycleTotalOk = totalWithExisting <= entitledDays;
+
+  function resetForm() {
+    setPeriods([
+      { start: "", end: "" },
+      { start: "", end: "" },
+      { start: "", end: "" },
+    ]);
+    setNotes("");
+    setAbono(false);
+    setThirteenth(false);
+    setShowOver30Dialog(false);
+    setWasOver30(false);
+    setOver30Days(0);
+  }
+
+  // Popup ao selecionar mais de 30 dias na soma dos períodos desta solicitação.
+  // O backend também valida, mas o popup melhora a UX antes do envio.
+  useEffect(() => {
+    const shouldBeOver = stats.totalDays > 30;
+    if (shouldBeOver) {
+      setOver30Days(stats.totalDays);
+    }
+
+    if (shouldBeOver && !wasOver30) {
+      setWasOver30(true);
+      setShowOver30Dialog(true);
+    }
+
+    if (!shouldBeOver && wasOver30) {
+      setWasOver30(false);
+      setShowOver30Dialog(false);
+    }
+  }, [stats.totalDays, wasOver30]);
 
   function updatePeriod(index: number, field: "start" | "end", value: string) {
     const next = [...periods];
@@ -101,10 +140,7 @@ export function NewRequestCardClient({ canRequest = true, balance }: Props) {
       }
 
       toast.success("Solicitação enviada!", { description: "Aguardando aprovação do gestor", duration: 5000 });
-      setPeriods([{ start: "", end: "" }, { start: "", end: "" }, { start: "", end: "" }]);
-      setNotes("");
-      setAbono(false);
-      setThirteenth(false);
+      resetForm();
       startTransition(() => {
         router.refresh();
         setSubmitting(false);
@@ -120,6 +156,32 @@ export function NewRequestCardClient({ canRequest = true, balance }: Props) {
       onSubmit={handleSubmit}
       className="mx-auto max-w-3xl space-y-8 text-[15px] md:text-[16px]"
     >
+      {showOver30Dialog && (
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-xl bg-white p-4 shadow-2xl dark:bg-[#020617]">
+            <Alert className="mb-4 border-amber-200 bg-amber-50/80 text-amber-900 dark:border-amber-400/40 dark:bg-amber-950/40 dark:text-amber-100">
+              <AlertTitle>Total acima do permitido</AlertTitle>
+              <AlertDescription>
+                Você selecionou <strong>{over30Days}</strong> dias na solicitação. O máximo por solicitação é <strong>30</strong> dias.
+                Ajuste os períodos para continuar.
+              </AlertDescription>
+            </Alert>
+            <div className="flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setShowOver30Dialog(false);
+                }}
+              >
+                Ok
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* REGRAS */}
       <section className="rounded-lg border border-[#e2e8f0] bg-[#f5f6f8] p-6 dark:border-[#252a35] dark:bg-[#0f1117]">
         <h2 className="mb-4 text-xl font-bold text-[#1a1d23] dark:text-white">
@@ -143,9 +205,19 @@ export function NewRequestCardClient({ canRequest = true, balance }: Props) {
 
       {/* PERÍODOS */}
       <section className="space-y-6">
-        <h2 className="text-xl font-bold text-[#1a1d23] dark:text-white">
-          Períodos de férias
-        </h2>
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-xl font-bold text-[#1a1d23] dark:text-white">
+            Períodos de férias
+          </h2>
+          <button
+            type="button"
+            onClick={resetForm}
+            disabled={isPending || submitting}
+            className="flex items-center gap-1.5 rounded-md border border-red-200 bg-red-50 px-3 py-1.5 text-sm font-semibold text-red-600 transition hover:bg-red-100 disabled:opacity-50 dark:border-red-800 dark:bg-red-950/30 dark:text-red-400 dark:hover:bg-red-900/40"
+          >
+            <span>✕</span> Limpar
+          </button>
+        </div>
 
         <PeriodBlock
           index={0}
@@ -306,23 +378,35 @@ export function NewRequestCardClient({ canRequest = true, balance }: Props) {
         </section>
       )}
 
-      {/* BOTÃO */}
-      <button
-        type="submit"
-        disabled={
-          isPending ||
-          submitting ||
-          !periods[0].start ||
-          !periods[0].end ||
-          stats.totalDays <= 0 ||
-          !totalOk ||
-          needsPeriod14 ||
-          !cycleTotalOk
-        }
-        className="flex min-h-[56px] w-full items-center justify-center gap-2 rounded-md bg-blue-600 text-xl font-semibold text-white transition hover:bg-blue-700 disabled:opacity-50"
-      >
-        {isPending || submitting ? "Enviando..." : "Enviar solicitação"}
-      </button>
+      {/* BOTÕES */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <Button
+          type="button"
+          variant="outline"
+          disabled={isPending || submitting}
+          className="min-h-[56px] w-full sm:w-40"
+          onClick={resetForm}
+        >
+          Limpar formulário
+        </Button>
+
+        <button
+          type="submit"
+          disabled={
+            isPending ||
+            submitting ||
+            !periods[0].start ||
+            !periods[0].end ||
+            stats.totalDays <= 0 ||
+            !totalOk ||
+            needsPeriod14 ||
+            !cycleTotalOk
+          }
+          className="flex min-h-[56px] w-full flex-1 items-center justify-center gap-2 rounded-md bg-blue-600 text-xl font-semibold text-white transition hover:bg-blue-700 disabled:opacity-50"
+        >
+          {isPending || submitting ? "Enviando..." : "Enviar solicitação"}
+        </button>
+      </div>
     </form>
   );
 

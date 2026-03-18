@@ -200,7 +200,7 @@ function TestUsersPanel() {
       <div className="mb-3 flex items-center justify-between">
         <div>
           <p className="text-base font-semibold">Usuários de teste</p>
-          <p className="text-sm text-[#64748b] dark:text-slate-400">Todos usam a senha <span className="font-mono font-semibold">senha123</span>.</p>
+          <p className="text-sm text-[#64748b] dark:text-slate-400">Todos usam a senha <span className="font-mono font-semibold">senha123</span></p>
         </div>
       </div>
       <div className="grid gap-1 text-base">
