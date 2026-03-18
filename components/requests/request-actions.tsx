@@ -51,21 +51,21 @@ export function RequestActions({
           <>
             <ActionButtonForm
               action={`/api/vacation-requests/${request.id}/approve`}
-              variant="outline"
+              variant="default"
               size="sm"
               label="Aprovar"
               loadingLabel="Aprovando..."
               successMessage="Solicitação aprovada."
-              className="border-emerald-200 bg-emerald-50 text-sm font-semibold text-emerald-700 hover:bg-emerald-100 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-400"
+              className="bg-emerald-600 text-sm font-semibold text-white hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-400"
             />
             <ActionButtonForm
               action={`/api/vacation-requests/${request.id}/reject`}
               variant="outline"
-              size="sm"
+              size="xs"
               label="Reprovar"
               loadingLabel="Reprovando..."
               successMessage="Solicitação reprovada."
-              className="border-red-200 bg-red-50 text-sm font-semibold text-red-700 hover:bg-red-100 dark:border-red-800 dark:bg-red-950/30 dark:text-red-400"
+              className="border-red-200 bg-white text-xs font-semibold text-red-600 hover:bg-red-50 dark:border-red-800 dark:bg-transparent dark:text-red-400"
             />
             {isPending && <EditPeriodFormClient request={request} />}
           </>

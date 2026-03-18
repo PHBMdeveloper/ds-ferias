@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/auth";
-import { canApproveRequest, getNextApprovalStatus, ROLE_LEVEL } from "@/lib/vacationRules";
+import { canApproveRequest, getNextApprovalStatus, ROLE_LEVEL, detectTeamConflicts } from "@/lib/vacationRules";
 import { notifyApproved } from "@/lib/notifications";
 import { isCuid } from "@/lib/validation";
 import { logger } from "@/lib/logger";
@@ -22,6 +22,7 @@ export async function POST(request: Request, { params }: Params) {
   }
 
   const body = await request.json().catch(() => null);
+  const confirmConflict = body?.confirmConflict === true;
 
   const existing = await prisma.vacationRequest.findUnique({
     where: { id },
@@ -84,6 +85,64 @@ export async function POST(request: Request, { params }: Params) {
   const nextStatus = getNextApprovalStatus(user.role) as VacationStatus;
   const noteField = ROLE_LEVEL[user.role] === 2 ? "managerNote" : "hrNote";
 
+  // Alerta de conflito de férias no time.
+  let conflictWarning: string | null = null;
+  let hasConflict = false;
+  try {
+    if (existing.user.managerId && existing.startDate && existing.endDate) {
+      const teammates = await prisma.user.findMany({
+        where: {
+          managerId: existing.user.managerId,
+          NOT: { id: existing.userId },
+        },
+        select: {
+          name: true,
+          vacationRequests: {
+            select: {
+              startDate: true,
+              endDate: true,
+              status: true,
+            },
+          },
+        },
+      });
+
+      const teamMembers = teammates.map((t) => ({
+        name: t.name,
+        requests: t.vacationRequests,
+      }));
+
+      if (teamMembers.length > 0) {
+        const conflict = detectTeamConflicts(
+          new Date(existing.startDate),
+          new Date(existing.endDate),
+          teamMembers,
+        );
+
+        if (conflict.isWarning || conflict.isBlocked) {
+          hasConflict = true;
+          const base =
+            conflict.conflictingCount === 1
+              ? `${conflict.conflictingCount} outra pessoa do time está com férias neste período.`
+              : `${conflict.conflictingCount} pessoas do time estão com férias neste período.`;
+          const severity = conflict.isBlocked
+            ? " Risco alto de conflito de férias no time."
+            : " Avalie se esse conflito é aceitável antes de confirmar.";
+          conflictWarning = `Atenção: ${base}${severity}`;
+        }
+      }
+    }
+  } catch (err) {
+    logger.warn("Falha ao calcular conflito de férias; prosseguindo com aprovação.", { error: String(err) });
+  }
+
+  if (hasConflict && !confirmConflict && conflictWarning) {
+    return NextResponse.json(
+      { error: conflictWarning, requiresConfirmation: true },
+      { status: 409 },
+    );
+  }
+
   const updated = await prisma.vacationRequest.update({
     where: { id },
     data: {
@@ -115,5 +174,5 @@ export async function POST(request: Request, { params }: Params) {
     approverId: user.id,
     newStatus: nextStatus,
   });
-  return NextResponse.json({ request: updated });
+  return NextResponse.json({ request: updated, conflictWarning });
 }

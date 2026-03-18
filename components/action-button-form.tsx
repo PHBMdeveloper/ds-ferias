@@ -1,10 +1,15 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -70,6 +75,8 @@ export function ActionButtonForm({
 }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [conflictMessage, setConflictMessage] = useState<string | null>(null);
+  const [pendingConfirm, setPendingConfirm] = useState<boolean>(false);
 
   function handleClick() {
     if (isPending) return;
@@ -82,44 +89,123 @@ export function ActionButtonForm({
     toggleGlobalLoading(true);
 
     startTransition(async () => {
-      try {
+      const upperMethod = method.toUpperCase();
+
+      async function doRequest(body?: unknown) {
         const res = await fetch(action, {
-          method: method.toUpperCase(),
+          method: upperMethod,
           headers: {
             "Content-Type": "application/json",
           },
+          body: upperMethod === "POST" ? JSON.stringify(body ?? {}) : undefined,
         });
-
         const data = await res.json().catch(() => null);
+        return { res, data };
+      }
+
+      try {
+        // Primeira tentativa
+        let { res, data } = await doRequest();
+
+        if (!res.ok && data?.requiresConfirmation && typeof data.error === "string") {
+          // Guarda mensagem e espera o usuário decidir no modal
+          setConflictMessage(data.error);
+          setPendingConfirm(true);
+          toggleGlobalLoading(false);
+          return;
+        }
 
         if (!res.ok) {
-          toast.error(
-            data?.error ?? "Não foi possível concluir esta ação.",
-          );
+          toast.error(data?.error ?? "Não foi possível concluir esta ação.");
         } else {
           toast.success(successMessage ?? "Ação realizada com sucesso.");
         }
       } catch {
         toast.error("Erro de rede ao comunicar com o servidor.");
       } finally {
-        toggleGlobalLoading(false);
+        if (!pendingConfirm) {
+          toggleGlobalLoading(false);
+        }
+        router.refresh();
       }
-
-      router.refresh();
     });
   }
 
   return (
-    <Button
-      type="button"
-      onClick={handleClick}
-      variant={variant}
-      size={size}
-      disabled={isPending}
-      className={cn("inline-flex items-center gap-1", className)}
-    >
-      {isPending ? loadingLabel ?? label : label}
-    </Button>
+    <>
+      <Button
+        type="button"
+        onClick={handleClick}
+        variant={variant}
+        size={size}
+        disabled={isPending}
+        className={cn("inline-flex items-center gap-1", className)}
+      >
+        {isPending ? loadingLabel ?? label : label}
+      </Button>
+
+      {conflictMessage && pendingConfirm && (
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-xl bg-white p-4 shadow-2xl dark:bg-[#020617]">
+            <Alert className="mb-4 border-amber-200 bg-amber-50/80 text-amber-900 dark:border-amber-400/40 dark:bg-amber-950/40 dark:text-amber-100">
+              <AlertTitle>Conflito de férias no time</AlertTitle>
+              <AlertDescription>{conflictMessage}</AlertDescription>
+            </Alert>
+            <div className="mt-3 flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setPendingConfirm(false);
+                  setConflictMessage(null);
+                }}
+              >
+                Voltar
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                className="bg-amber-600 text-white hover:bg-amber-700 dark:bg-amber-500 dark:hover:bg-amber-400"
+                onClick={() => {
+                  setPendingConfirm(false);
+                  toggleGlobalLoading(true);
+                  startTransition(async () => {
+                    try {
+                      const upperMethod = method.toUpperCase();
+                      const res = await fetch(action, {
+                        method: upperMethod,
+                        headers: {
+                          "Content-Type": "application/json",
+                        },
+                        body:
+                          upperMethod === "POST"
+                            ? JSON.stringify({ confirmConflict: true })
+                            : undefined,
+                      });
+                      const data = await res.json().catch(() => null);
+
+                      if (!res.ok) {
+                        toast.error(data?.error ?? "Não foi possível concluir esta ação.");
+                      } else {
+                        toast.success(successMessage ?? "Ação realizada com sucesso.");
+                      }
+                    } catch {
+                      toast.error("Erro de rede ao comunicar com o servidor.");
+                    } finally {
+                      toggleGlobalLoading(false);
+                      router.refresh();
+                    }
+                  });
+                }}
+              >
+                Aprovar assim mesmo
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
