@@ -1,22 +1,21 @@
 "use client";
 
 import * as React from "react";
-import type { DateRange } from "react-day-picker";
 import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 
 type Props = {
-  value: DateRange;
-  onChange: (value: DateRange) => void;
+  value?: Date;
+  onChange: (value: Date | undefined) => void;
   placeholder?: string;
+  disabled?: boolean;
 };
 
-export function DateRangePicker({ value, onChange, placeholder }: Props) {
-  const label =
-    value.from && value.to
-      ? `${value.from.toLocaleDateString("pt-BR")} – ${value.to.toLocaleDateString("pt-BR")}`
-      : placeholder ?? "Selecione o período";
+export function DatePicker({ value, onChange, placeholder, disabled }: Props) {
+  const label = value
+    ? value.toLocaleDateString("pt-BR")
+    : placeholder ?? "Selecionar data";
 
   return (
     <Popover>
@@ -24,19 +23,20 @@ export function DateRangePicker({ value, onChange, placeholder }: Props) {
         <Button
           type="button"
           variant="outline"
+          disabled={disabled}
           className="w-full justify-between text-left font-normal min-h-[44px]"
         >
-          <span className={value.from && value.to ? "" : "text-[#94a3b8]"}>{label}</span>
+          <span className={value ? "" : "text-[#94a3b8]"}>{label}</span>
           <span className="ml-2 text-xs text-[#64748b] dark:text-slate-400">
-            Abrir calendário
+            Abrir
           </span>
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0" align="start">
         <Calendar
-          mode="range"
+          mode="single"
           selected={value}
-          onSelect={(range) => range && onChange(range)}
+          onSelect={(d) => onChange(d ?? undefined)}
           numberOfMonths={1}
           initialFocus
         />

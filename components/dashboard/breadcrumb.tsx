@@ -9,6 +9,9 @@ const VIEW_LABELS: Record<string, string> = {
 
 export function DashboardBreadcrumb({ currentView }: { currentView: string }) {
   const label = VIEW_LABELS[currentView] ?? "Dashboard";
+  if (currentView === "minhas") {
+    return null;
+  }
   return (
     <nav aria-label="Navegação" className="mb-2 text-sm">
       <ol className="flex flex-wrap items-center gap-1.5 text-[#64748b] dark:text-slate-400">

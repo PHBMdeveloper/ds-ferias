@@ -23,7 +23,12 @@ export async function syncAcquisitionPeriodsForUser(
 ) {
   if (!hireDate) return [];
 
-  const existing = await prisma.acquisitionPeriod.findMany({
+  // Em dev, pode acontecer de o Prisma Client ainda não ter sido regenerado após migrations.
+  // Evita quebrar a aplicação e permite que o deploy/migrate finalize.
+  const ap = (prisma as any)?.acquisitionPeriod;
+  if (!ap?.findMany || !ap?.createMany) return [];
+
+  const existing = await ap.findMany({
     where: { userId },
     orderBy: { startDate: "asc" },
   });
@@ -47,10 +52,10 @@ export async function syncAcquisitionPeriodsForUser(
   }
 
   if (periods.length > 0) {
-    await prisma.acquisitionPeriod.createMany({ data: periods });
+    await ap.createMany({ data: periods });
   }
 
-  return prisma.acquisitionPeriod.findMany({
+  return ap.findMany({
     where: { userId },
     orderBy: { startDate: "asc" },
   });

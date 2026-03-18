@@ -4,8 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import type { VacationBalance } from "@/lib/vacationRules";
-import type { DateRange } from "react-day-picker";
-import { DateRangePicker } from "@/components/ui/date-range-picker";
+import { DatePicker } from "@/components/ui/date-picker";
 
 type Props = {
   canRequest?: boolean;
@@ -17,6 +16,13 @@ type Period = {
   start: string;
   end: string;
 };
+
+function formatYmdLocal(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
 
 export function NewRequestCardClient({ canRequest = true, balance }: Props) {
   const router = useRouter();
@@ -218,9 +224,6 @@ export function NewRequestCardClient({ canRequest = true, balance }: Props) {
           className="w-full rounded-md border border-[#e2e8f0] bg-white px-4 py-3 text-lg outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-[#252a35] dark:bg-[#1a1d23] dark:text-white"
         />
 
-        <p className="text-sm text-[#64748b] dark:text-slate-400">
-          Visível para gestor e RH.
-        </p>
       </section>
 
       {/* OPÇÕES */}
@@ -342,26 +345,27 @@ export function NewRequestCardClient({ canRequest = true, balance }: Props) {
             {label} {required && <span className="text-red-500">*</span>}
           </p>
         )}
-        <div>
-          <DateRangePicker
-            value={{
-              from: period.start ? new Date(period.start) : undefined,
-              to: period.end ? new Date(period.end) : undefined,
-            } as DateRange}
-            onChange={(range) => {
-              const fromStr =
-                range.from instanceof Date ? range.from.toISOString().split("T")[0] : "";
-              const toStr =
-                range.to instanceof Date ? range.to.toISOString().split("T")[0] : "";
-              onChange("start", fromStr);
-              onChange("end", toStr);
-            }}
-            placeholder={
-              label
-                ? `${label} — selecione início e término`
-                : `Período ${index + 1} — selecione início e término`
-            }
-          />
+        <div className="grid gap-2 sm:grid-cols-2">
+          <div className="space-y-1">
+            <label className="block text-base font-medium text-[#475569] dark:text-slate-300">
+              Início
+            </label>
+            <DatePicker
+              value={period.start ? new Date(period.start) : undefined}
+              onChange={(d) => onChange("start", d ? formatYmdLocal(d) : "")}
+              placeholder="Selecionar início"
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="block text-base font-medium text-[#475569] dark:text-slate-300">
+              Término
+            </label>
+            <DatePicker
+              value={period.end ? new Date(period.end) : undefined}
+              onChange={(d) => onChange("end", d ? formatYmdLocal(d) : "")}
+              placeholder="Selecionar término"
+            />
+          </div>
         </div>
         {stat.days > 0 && (
           <div className="flex items-center justify-between rounded-md bg-[#f5f6f8] px-3 py-2 dark:bg-[#0f1117]">
