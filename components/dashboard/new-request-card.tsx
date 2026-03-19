@@ -13,6 +13,7 @@ type Props = {
   canRequest?: boolean;
   /** Saldo completo do ciclo (entitledDays, availableDays, pendingDays, usedDays). Deve vir do dashboard. */
   balance?: VacationBalance | null;
+  userRole?: string;
 };
 
 type Period = {
@@ -37,7 +38,7 @@ function parseYmdLocal(value: string): Date | undefined {
   return new Date(year, month - 1, day);
 }
 
-export function NewRequestCardClient({ canRequest = true, balance }: Props) {
+export function NewRequestCardClient({ canRequest = true, balance, userRole }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [submitting, setSubmitting] = useState(false);
@@ -55,15 +56,16 @@ export function NewRequestCardClient({ canRequest = true, balance }: Props) {
   const [showOver30Dialog, setShowOver30Dialog] = useState(false);
   const [over30Days, setOver30Days] = useState(0);
   const [wasOver30, setWasOver30] = useState(false);
+  const isBusinessDaysRole = userRole === "GERENTE" || userRole === "DIRETOR";
+  const MAX_DAYS_PER_REQUEST = isBusinessDaysRole ? 22 : 30;
   const existingDaysInCycle = balance ? balance.pendingDays + balance.usedDays : 0;
-  // CLT: por solicitação, o máximo é 30 dias corridos (1 ciclo).
-  const MAX_DAYS_PER_REQUEST = 30;
   const availableDays = balance?.availableDays ?? Math.max(0, MAX_DAYS_PER_REQUEST - existingDaysInCycle);
   const maxDaysThisRequest = Math.min(Math.max(0, availableDays), MAX_DAYS_PER_REQUEST);
-  const totalOk = maxDaysThisRequest === 0 ? stats.totalDays === 0 : stats.totalDays > 0 && stats.totalDays <= maxDaysThisRequest;
+  const selectedDays = isBusinessDaysRole ? stats.totalBusinessDays : stats.totalDays;
+  const totalOk = maxDaysThisRequest === 0 ? selectedDays === 0 : selectedDays > 0 && selectedDays <= maxDaysThisRequest;
   const hasPeriod14OrMore = stats.periods.some((p) => p.days >= 14);
-  const needsPeriod14 = existingDaysInCycle < 14 && !hasPeriod14OrMore;
-  const totalWithExisting = existingDaysInCycle + stats.totalDays;
+  const needsPeriod14 = isBusinessDaysRole ? false : existingDaysInCycle < 14 && !hasPeriod14OrMore;
+  const totalWithExisting = existingDaysInCycle + selectedDays;
   const cycleTotalOk = totalWithExisting <= MAX_DAYS_PER_REQUEST;
 
   function resetForm() {
@@ -80,12 +82,12 @@ export function NewRequestCardClient({ canRequest = true, balance }: Props) {
     setOver30Days(0);
   }
 
-  // Popup ao selecionar mais de 30 dias na soma dos períodos desta solicitação.
+  // Popup quando excede o limite do perfil na soma dos períodos desta solicitação.
   // O backend também valida, mas o popup melhora a UX antes do envio.
   useEffect(() => {
-    const shouldBeOver = stats.totalDays > 30;
+    const shouldBeOver = selectedDays > MAX_DAYS_PER_REQUEST;
     if (shouldBeOver) {
-      setOver30Days(stats.totalDays);
+      setOver30Days(selectedDays);
     }
 
     if (shouldBeOver && !wasOver30) {
@@ -97,7 +99,7 @@ export function NewRequestCardClient({ canRequest = true, balance }: Props) {
       setWasOver30(false);
       setShowOver30Dialog(false);
     }
-  }, [stats.totalDays, wasOver30]);
+  }, [selectedDays, wasOver30, MAX_DAYS_PER_REQUEST]);
 
   function updatePeriod(index: number, field: "start" | "end", value: string) {
     const next = [...periods];
@@ -163,7 +165,9 @@ export function NewRequestCardClient({ canRequest = true, balance }: Props) {
             <Alert className="mb-4 border-amber-200 bg-amber-50/80 text-amber-900 dark:border-amber-400/40 dark:bg-amber-950/40 dark:text-amber-100">
               <AlertTitle>Total acima do permitido</AlertTitle>
               <AlertDescription>
-                Você selecionou <strong>{over30Days}</strong> dias na solicitação. O máximo por solicitação é <strong>30</strong> dias.
+                Você selecionou <strong>{over30Days}</strong>{" "}
+                {isBusinessDaysRole ? "dias úteis" : "dias"} na solicitação. O máximo por solicitação é{" "}
+                <strong>{MAX_DAYS_PER_REQUEST}</strong> {isBusinessDaysRole ? "dias úteis" : "dias"}.
                 Ajuste os períodos para continuar.
               </AlertDescription>
             </Alert>
@@ -191,13 +195,17 @@ export function NewRequestCardClient({ canRequest = true, balance }: Props) {
 
         <ul className="list-disc space-y-2 pl-5 text-[15px] leading-relaxed text-[#475569] marker:text-blue-500 dark:text-slate-300">
           {[
-            "Cada período: 5–30 dias corridos",
-            "Um período de 14+ dias (ou já ter no ciclo)",
+            isBusinessDaysRole ? "Cada período: 5–22 dias úteis" : "Cada período: 5–30 dias corridos",
+            isBusinessDaysRole
+              ? "Limite para gerente/diretor: 22 dias úteis por ciclo (segunda a sexta)"
+              : "Um período de 14+ dias (ou já ter no ciclo)",
             "Início não pode ser sexta nem sábado; término não pode ser sábado nem domingo",
             "Aviso prévio mínimo de 30 dias",
-            existingDaysInCycle > 0
-              ? `Máximo de 3 períodos; total do ciclo 30 dias (você já tem ${existingDaysInCycle} no ciclo)`
-              : "Máximo de 3 períodos, totalizando 30 dias",
+            isBusinessDaysRole
+              ? "Dias úteis consideram apenas segunda a sexta (sem sábado/domingo)"
+              : existingDaysInCycle > 0
+                ? `Máximo de 3 períodos; total do ciclo 30 dias (você já tem ${existingDaysInCycle} no ciclo)`
+                : "Máximo de 3 períodos, totalizando 30 dias",
           ].map((rule, i) => (
             <li key={i}>{rule}</li>
           ))}
@@ -217,6 +225,7 @@ export function NewRequestCardClient({ canRequest = true, balance }: Props) {
           period={periods[0]}
           stat={stats.periods[0]}
           onChange={(f, v) => updatePeriod(0, f, v)}
+          isBusinessDaysRole={isBusinessDaysRole}
         />
 
         {/* período 2 */}
@@ -245,6 +254,7 @@ export function NewRequestCardClient({ canRequest = true, balance }: Props) {
               period={periods[1]}
               stat={stats.periods[1]}
               onChange={(f, v) => updatePeriod(1, f, v)}
+              isBusinessDaysRole={isBusinessDaysRole}
             />
           </div>
         </details>
@@ -275,6 +285,7 @@ export function NewRequestCardClient({ canRequest = true, balance }: Props) {
               period={periods[2]}
               stat={stats.periods[2]}
               onChange={(f, v) => updatePeriod(2, f, v)}
+              isBusinessDaysRole={isBusinessDaysRole}
             />
           </div>
         </details>
@@ -361,7 +372,7 @@ export function NewRequestCardClient({ canRequest = true, balance }: Props) {
                     </span>
 
                     <span className="font-semibold text-[#1a1d23] dark:text-white">
-                      {p.days} dias
+                      {isBusinessDaysRole ? `${p.businessDays} dias úteis` : `${p.days} dias`}
                     </span>
                   </div>
                 ),
@@ -375,7 +386,7 @@ export function NewRequestCardClient({ canRequest = true, balance }: Props) {
                 totalOk ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"
               }
             >
-              {stats.totalDays} dias
+              {selectedDays} {isBusinessDaysRole ? "dias úteis" : "dias"}
             </span>
           </div>
         </section>
@@ -400,7 +411,7 @@ export function NewRequestCardClient({ canRequest = true, balance }: Props) {
             submitting ||
             !periods[0].start ||
             !periods[0].end ||
-            stats.totalDays <= 0 ||
+            selectedDays <= 0 ||
             !totalOk ||
             needsPeriod14 ||
             !cycleTotalOk
@@ -424,13 +435,15 @@ export function NewRequestCardClient({ canRequest = true, balance }: Props) {
     period,
     stat,
     onChange,
+    isBusinessDaysRole,
   }: {
     index: number;
     label?: string;
     required?: boolean;
     period: Period;
-    stat: { days: number; isValid: boolean; range: { start: string; end: string } | null };
+    stat: { days: number; businessDays: number; isValid: boolean; range: { start: string; end: string } | null };
     onChange: (field: "start" | "end", value: string) => void;
+    isBusinessDaysRole: boolean;
   }) {
     return (
       <div className="space-y-2">
@@ -468,7 +481,9 @@ export function NewRequestCardClient({ canRequest = true, balance }: Props) {
               className={`text-base font-bold ${stat.isValid ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"
                 }`}
             >
-              {stat.days} {stat.days === 1 ? "dia" : "dias"}
+              {isBusinessDaysRole
+                ? `${stat.businessDays} ${stat.businessDays === 1 ? "dia útil" : "dias úteis"}`
+                : `${stat.days} ${stat.days === 1 ? "dia" : "dias"}`}
             </span>
           </div>
         )}
@@ -484,19 +499,25 @@ export function NewRequestCardClient({ canRequest = true, balance }: Props) {
     const ONE_DAY_MS = 86400000;
 
     const periodStats = periods.map((p) => {
-      if (!p.start || !p.end) return { days: 0, isValid: false, range: null };
+      if (!p.start || !p.end) return { days: 0, businessDays: 0, isValid: false, range: null };
 
       const start = new Date(p.start + "T00:00:00");
       const end = new Date(p.end + "T00:00:00");
 
       if (isNaN(start.getTime()) || isNaN(end.getTime()) || end < start) {
-        return { days: 0, isValid: false, range: null };
+        return { days: 0, businessDays: 0, isValid: false, range: null };
       }
 
       const days = Math.round((end.getTime() - start.getTime()) / ONE_DAY_MS) + 1;
+      let businessDays = 0;
+      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+        const weekday = d.getDay();
+        if (weekday !== 0 && weekday !== 6) businessDays += 1;
+      }
       return {
         days,
-        isValid: days >= 5 && days <= 30,
+        businessDays,
+        isValid: isBusinessDaysRole ? businessDays >= 5 && businessDays <= 22 : days >= 5 && days <= 30,
         range: {
           start: start.toLocaleDateString("pt-BR"),
           end: end.toLocaleDateString("pt-BR"),
@@ -508,6 +529,7 @@ export function NewRequestCardClient({ canRequest = true, balance }: Props) {
       periods: periodStats,
       validPeriods: periodStats.filter((p) => p.days > 0).length,
       totalDays: periodStats.reduce((sum, p) => sum + p.days, 0),
+      totalBusinessDays: periodStats.reduce((sum, p) => sum + p.businessDays, 0),
     };
   }
 

@@ -34,6 +34,41 @@ function overlapDaysInclusive(start: Date, end: Date, rangeStart: Date, rangeEnd
   return daysBetweenInclusive(s, e);
 }
 
+function businessDaysBetweenInclusive(start: Date, end: Date): number {
+  const s = toUtcMidnight(start);
+  const e = toUtcMidnight(end);
+  let count = 0;
+  for (let d = new Date(s); d <= e; d.setUTCDate(d.getUTCDate() + 1)) {
+    const weekday = d.getUTCDay();
+    if (weekday !== 0 && weekday !== 6) count += 1; // seg-sex
+  }
+  return count;
+}
+
+function overlapBusinessDaysInclusive(start: Date, end: Date, rangeStart: Date, rangeEnd: Date): number {
+  const s = new Date(Math.max(toUtcMidnight(start).getTime(), toUtcMidnight(rangeStart).getTime()));
+  const e = new Date(Math.min(toUtcMidnight(end).getTime(), toUtcMidnight(rangeEnd).getTime()));
+  if (e < s) return 0;
+  return businessDaysBetweenInclusive(s, e);
+}
+
+function getCurrentCycleRange(today: Date, hireDate: Date | null | undefined) {
+  const now = toUtcMidnight(today);
+  if (!hireDate) {
+    const start = new Date(Date.UTC(now.getUTCFullYear(), 0, 1));
+    const end = new Date(Date.UTC(now.getUTCFullYear(), 11, 31));
+    return { start, end };
+  }
+
+  const hire = toUtcMidnight(hireDate);
+  let start = new Date(Date.UTC(now.getUTCFullYear(), hire.getUTCMonth(), hire.getUTCDate()));
+  if (start > now) start.setUTCFullYear(start.getUTCFullYear() - 1);
+  const end = new Date(start);
+  end.setUTCFullYear(end.getUTCFullYear() + 1);
+  end.setUTCDate(end.getUTCDate() - 1);
+  return { start, end };
+}
+
 export async function POST(request: Request, { params }: Params) {
   const { id } = await params;
   if (!id || id.trim().length < 3) {
@@ -151,12 +186,44 @@ export async function POST(request: Request, { params }: Params) {
   // Bloqueio e limite por período aquisitivo (AcquisitionPeriod.usedDays)
   const owner = await prisma.user.findUnique({
     where: { id: existing.userId },
-    select: { hireDate: true, department: true },
+    select: { hireDate: true, department: true, role: true },
   });
 
   const statusesAwaitingRH = ["PENDENTE", "APROVADO_COORDENADOR", "APROVADO_GESTOR", "APROVADO_GERENTE"] as const;
 
   if (owner?.hireDate) {
+    if (owner.role === "GERENTE" || owner.role === "DIRETOR") {
+      const WORKING_DAYS_LIMIT_PER_CYCLE = 22;
+      const cycle = getCurrentCycleRange(new Date(), owner.hireDate);
+      const relevantStatuses = ["PENDENTE", "APROVADO_COORDENADOR", "APROVADO_GESTOR", "APROVADO_GERENTE"] as const;
+
+      const cycleRequests = await prisma.vacationRequest.findMany({
+        where: {
+          userId: existing.userId,
+          status: { in: [...relevantStatuses] },
+          id: { not: existing.id },
+          AND: [{ startDate: { lte: cycle.end } }, { endDate: { gte: cycle.start } }],
+        },
+        select: { startDate: true, endDate: true },
+      });
+
+      const usedInCycle = cycleRequests.reduce(
+        (sum, r) => sum + overlapBusinessDaysInclusive(r.startDate, r.endDate, cycle.start, cycle.end),
+        0,
+      );
+      const requestedInCycle = overlapBusinessDaysInclusive(startDate, endDate, cycle.start, cycle.end);
+      const totalInCycle = usedInCycle + requestedInCycle;
+
+      if (totalInCycle > WORKING_DAYS_LIMIT_PER_CYCLE) {
+        return NextResponse.json(
+          {
+            error: `Para ${owner.role === "GERENTE" ? "gerente" : "diretor"}, o limite é de ${WORKING_DAYS_LIMIT_PER_CYCLE} dias úteis por ciclo. Neste ciclo já há ${usedInCycle} dia(s) útil(eis) e esta alteração adiciona ${requestedInCycle}.`,
+          },
+          { status: 400 },
+        );
+      }
+    }
+
     await syncAcquisitionPeriodsForUser(existing.userId, owner.hireDate);
 
     const todayUtc = toUtcMidnight(new Date());

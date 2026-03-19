@@ -172,7 +172,7 @@ export default async function DashboardPage({
                     </p>
                   </div>
                   <div className="min-w-0 p-5">
-                    <NewRequestCardClient canRequest balance={balance} />
+                    <NewRequestCardClient canRequest balance={balance} userRole={user.role} />
                   </div>
                 </div>
               )}

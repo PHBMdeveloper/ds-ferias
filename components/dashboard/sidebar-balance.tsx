@@ -1,6 +1,9 @@
 import type { VacationBalance } from "@/lib/vacationRules";
 
-export function SidebarBalance({ balance }: { balance: VacationBalance }) {
+export function SidebarBalance({ balance, userRole }: { balance: VacationBalance; userRole?: string }) {
+  const isBusinessDaysRole = userRole === "GERENTE" || userRole === "DIRETOR";
+  const cycleBusinessLimit = 22;
+  const usedBusinessInCycle = Math.min(cycleBusinessLimit, Math.max(0, balance.usedDays + balance.pendingDays));
   const usedPct =
     balance.entitledDays > 0
       ? Math.min(100, Math.round((balance.usedDays / balance.entitledDays) * 100))
@@ -29,8 +32,17 @@ export function SidebarBalance({ balance }: { balance: VacationBalance }) {
   return (
     <div className="rounded-md bg-[#f5f6f8] px-3 py-3 dark:bg-[#1e2330]">
       <p className="text-center text-sm font-semibold text-[#64748b] dark:text-slate-400">
-        {balance.availableDays > 0 ? `${balance.availableDays} disponíveis` : "Saldo zerado"}
+        {isBusinessDaysRole
+          ? `${Math.max(0, cycleBusinessLimit - usedBusinessInCycle)} úteis disponíveis`
+          : balance.availableDays > 0
+            ? `${balance.availableDays} disponíveis`
+            : "Saldo zerado"}
       </p>
+      {isBusinessDaysRole && (
+        <p className="mt-1 text-center text-xs font-medium text-[#475569] dark:text-slate-300">
+          {usedBusinessInCycle}/{cycleBusinessLimit} dias úteis do ciclo
+        </p>
+      )}
       <div className="mt-2.5 h-2 overflow-hidden rounded-full bg-[#e2e8f0] dark:bg-[#252a35]">
         <div className="flex h-full">
           <div className="bg-blue-500 transition-all" style={{ width: `${usedPct}%` }} />
@@ -39,15 +51,23 @@ export function SidebarBalance({ balance }: { balance: VacationBalance }) {
       </div>
       <div className="mt-3 grid grid-cols-3 gap-2 text-center">
         <div>
-          <p className="text-base font-bold text-blue-600 dark:text-blue-400">{balance.usedDays}</p>
+          <p className="text-base font-bold text-blue-600 dark:text-blue-400">
+            {isBusinessDaysRole ? Math.min(cycleBusinessLimit, Math.max(0, balance.usedDays)) : balance.usedDays}
+          </p>
           <p className="mt-0.5 text-xs font-medium text-[#64748b] dark:text-slate-400">Usados</p>
         </div>
         <div>
-          <p className="text-base font-bold text-amber-600 dark:text-amber-400">{balance.pendingDays}</p>
+          <p className="text-base font-bold text-amber-600 dark:text-amber-400">
+            {isBusinessDaysRole ? Math.min(cycleBusinessLimit, Math.max(0, balance.pendingDays)) : balance.pendingDays}
+          </p>
           <p className="mt-0.5 text-xs font-medium text-[#64748b] dark:text-slate-400">Pendente</p>
         </div>
         <div>
-          <p className="text-base font-bold text-emerald-600 dark:text-emerald-400">{balance.availableDays}</p>
+          <p className="text-base font-bold text-emerald-600 dark:text-emerald-400">
+            {isBusinessDaysRole
+              ? Math.max(0, cycleBusinessLimit - usedBusinessInCycle)
+              : balance.availableDays}
+          </p>
           <p className="mt-0.5 text-xs font-medium text-[#64748b] dark:text-slate-400">Disponível</p>
         </div>
       </div>
