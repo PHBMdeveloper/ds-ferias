@@ -20,6 +20,27 @@ type RequestLike = {
   }>;
 };
 
+function formatUpcomingStatus(
+  status: string,
+  history?: Array<{ newStatus?: string; changedByUser?: { role?: string | null } | null }>,
+): string {
+  if (status === "PENDENTE") return "Pendente aprovação";
+  if (status === "APROVADO_COORDENADOR" || status === "APROVADO_GESTOR") return "Aprovado coordenador";
+  if (status === "APROVADO_GERENTE") {
+    const approvalEntry =
+      history
+        ?.slice()
+        .reverse()
+        .find((h) => h?.newStatus === "APROVADO_GERENTE") ?? null;
+    const approverRole = approvalEntry?.changedByUser?.role ?? null;
+    if (approverRole === "COORDENADOR" || approverRole === "GESTOR") return "Aprovado coordenador";
+    if (approverRole === "GERENTE") return "Aprovado gerente";
+    if (approverRole === "DIRETOR") return "Aprovado diretor";
+    return "Aprovado";
+  }
+  return status.replace(/_/g, " ").toLowerCase();
+}
+
 export function MyRequestsList({
   requests,
   balance,
@@ -146,7 +167,7 @@ export function MyRequestsList({
                       <span>{end.toLocaleDateString("pt-BR")}</span>
                     </span>
                     <span className="text-xs text-[#64748b] dark:text-slate-400">
-                      {label} · {r.status}
+                      {label} · {formatUpcomingStatus(r.status, r.history)}
                     </span>
                   </div>
                   {backWithAbono && (
