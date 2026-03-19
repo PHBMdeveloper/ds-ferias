@@ -128,7 +128,7 @@ function getRequiredApproverLevel(status: string, _requesterLevel: number): numb
     case "APROVADO_GERENTE": // final atual
       return null;
     default:
-      // Status terminal: APROVADO_RH (legado), REPROVADO, CANCELADO
+      // Status terminal: REPROVADO, CANCELADO
       return null;
   }
 }
@@ -171,7 +171,6 @@ export function getApprovalProgress(status: string): number {
     case "PENDENTE":
       return 0;
     case "APROVADO_GERENTE":
-    case "APROVADO_RH":
     case "APROVADO_COORDENADOR":
     case "APROVADO_GESTOR":
       return 1;
@@ -251,7 +250,7 @@ export function calculateVacationBalance(
 
   if (!hireDate) {
     // Sem data de admissão: assume entitlement completo
-    const usedDays = calcUsedDays(approvedRequests, "APROVADO_RH", currentYear);
+    const usedDays = calcUsedDays(approvedRequests, "APROVADO_GERENTE", currentYear);
     const pendingDays = calcUsedDays(approvedRequests, "PENDENTE", currentYear) +
       calcUsedDays(approvedRequests, "APROVADO_COORDENADOR", currentYear) +
       calcUsedDays(approvedRequests, "APROVADO_GESTOR", currentYear) +
@@ -300,7 +299,7 @@ export function calculateVacationBalance(
 
   // Dias já aprovados
   const totalUsed = approvedRequests
-    .filter((r) => r.status === "APROVADO_RH" && new Date(r.endDate) >= cutoff)
+    .filter((r) => r.status === "APROVADO_GERENTE" && new Date(r.endDate) >= cutoff)
     .reduce((sum, r) => sum + calcDays(r.startDate, r.endDate), 0);
 
   // Dias em aprovação (pendentes)
@@ -439,7 +438,7 @@ export function detectTeamConflicts(
 
   const conflicting = teamMembers.filter((member) =>
     member.requests.some((r) => {
-      const isActive = ["PENDENTE", "APROVADO_COORDENADOR", "APROVADO_GESTOR", "APROVADO_GERENTE", "APROVADO_RH"].includes(r.status);
+      const isActive = ["PENDENTE", "APROVADO_COORDENADOR", "APROVADO_GESTOR", "APROVADO_GERENTE"].includes(r.status);
       if (!isActive) return false;
       // Overlap check: períodos se sobrepõem se start < r.end && end > r.start
       return new Date(start) < new Date(r.endDate) && new Date(end) > new Date(r.startDate);

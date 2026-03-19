@@ -18,7 +18,6 @@ const STATUS_COLOR: Record<string, string> = {
   PENDENTE: "bg-amber-200 text-amber-900 dark:bg-amber-900/60 dark:text-amber-200",
   APROVADO_COORDENADOR: "bg-blue-200 text-blue-900 dark:bg-blue-900/60 dark:text-blue-200",
   APROVADO_GERENTE: "bg-indigo-200 text-indigo-900 dark:bg-indigo-900/60 dark:text-indigo-200",
-  APROVADO_RH: "bg-emerald-200 text-emerald-900 dark:bg-emerald-900/60 dark:text-emerald-200",
   REPROVADO: "bg-red-200 text-red-900 dark:bg-red-900/60 dark:text-red-200",
   CANCELADO: "bg-slate-200 text-slate-900 dark:bg-slate-800 dark:text-slate-200",
 };
@@ -139,8 +138,8 @@ export function MonthlyCalendar({ entries }: Props) {
         <span className={["inline-flex items-center gap-1 rounded-full px-2 py-0.5", getStatusColor("PENDENTE")].join(" ")}>
           <span className="h-1.5 w-1.5 rounded-full bg-current/80" /> Pendente
         </span>
-        <span className={["inline-flex items-center gap-1 rounded-full px-2 py-0.5", getStatusColor("APROVADO_RH")].join(" ")}>
-          <span className="h-1.5 w-1.5 rounded-full bg-current/80" /> Aprovado RH
+        <span className={["inline-flex items-center gap-1 rounded-full px-2 py-0.5", getStatusColor("APROVADO_GERENTE")].join(" ")}>
+          <span className="h-1.5 w-1.5 rounded-full bg-current/80" /> Aprovado
         </span>
         <span className="inline-flex items-center gap-1 rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-semibold text-white">
           <span className="rounded-sm bg-white/20 px-1 text-[9px]">A</span> Dia com pedido de abono 1/3 (retorno até 10 dias antes)

@@ -3,7 +3,6 @@ import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/auth";
 import { checkBlackoutPeriods, getRoleLevel, hasTeamVisibility, validateCltPeriod } from "@/lib/vacationRules";
 import { canIndirectLeaderActWhenDirectOnVacation } from "@/lib/indirectLeaderRule";
-import { isCuid } from "@/lib/validation";
 import {
   syncAcquisitionPeriodsForUser,
   findAcquisitionPeriodForRange,
@@ -14,7 +13,7 @@ type Params = {
   params: Promise<{ id: string }>;
 };
 
-const ACTIVE_STATUSES = ["PENDENTE", "APROVADO_COORDENADOR", "APROVADO_GESTOR", "APROVADO_GERENTE", "APROVADO_RH"] as const;
+const ACTIVE_STATUSES = ["PENDENTE", "APROVADO_COORDENADOR", "APROVADO_GESTOR", "APROVADO_GERENTE"] as const;
 
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -37,7 +36,7 @@ function overlapDaysInclusive(start: Date, end: Date, rangeStart: Date, rangeEnd
 
 export async function POST(request: Request, { params }: Params) {
   const { id } = await params;
-  if (!isCuid(id)) {
+  if (!id || id.trim().length < 3) {
     return NextResponse.json({ error: "ID inválido" }, { status: 400 });
   }
   const user = await getSessionUser();

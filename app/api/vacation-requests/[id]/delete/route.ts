@@ -3,7 +3,6 @@ import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/auth";
 import { ROLE_LEVEL, hasTeamVisibility } from "@/lib/vacationRules";
 import { canIndirectLeaderActWhenDirectOnVacation } from "@/lib/indirectLeaderRule";
-import { isCuid } from "@/lib/validation";
 
 type Params = {
   params: Promise<{ id: string }>;
@@ -22,7 +21,7 @@ function daysBetweenInclusive(start: Date, end: Date): number {
 
 export async function POST(request: Request, { params }: Params) {
   const { id } = await params;
-  if (!isCuid(id)) {
+  if (!id || id.trim().length < 3) {
     return NextResponse.json({ error: "ID inválido" }, { status: 400 });
   }
 
@@ -53,13 +52,13 @@ export async function POST(request: Request, { params }: Params) {
   const isApprover = ROLE_LEVEL[user.role] >= 2;
   const roleLevel = ROLE_LEVEL[user.role];
 
-  // Funcionário pode excluir enquanto não tiver aprovação final do RH
+  // Funcionário pode excluir enquanto não tiver aprovação final do líder direto
   const deletableStatuses = ["PENDENTE", "APROVADO_GESTOR", "APROVADO_COORDENADOR", "APROVADO_GERENTE"];
 
   if (isOwner) {
     if (!deletableStatuses.includes(existing.status)) {
       return NextResponse.json(
-        { error: "Você só pode excluir solicitações que ainda não foram aprovadas pelo RH." },
+        { error: "Você só pode excluir solicitações que ainda não foram aprovadas pelo líder direto." },
         { status: 400 },
       );
     }
@@ -72,11 +71,11 @@ export async function POST(request: Request, { params }: Params) {
     );
   }
 
-  // Pedido já consumido pelo RH: apenas Gerente/RH deve conseguir cancelar/excluir.
-  // Isso evita inconsistência de usadoDays quando houver supressao por papéis menores.
-  if (!isOwner && existing.status === "APROVADO_RH" && roleLevel < 3) {
+  // Pedido aprovado final: apenas Gerente/RH deve conseguir cancelar/excluir.
+  // Isso evita inconsistência de usedDays quando houver supressão por papéis menores.
+  if (!isOwner && existing.status === "APROVADO_GERENTE" && roleLevel < 3) {
     return NextResponse.json(
-      { error: "Somente Gerente ou RH podem cancelar pedidos já aprovados pelo RH." },
+      { error: "Somente Gerente ou RH podem cancelar pedidos já aprovados pelo líder direto." },
       { status: 403 },
     );
   }
@@ -116,9 +115,9 @@ export async function POST(request: Request, { params }: Params) {
     }
   }
 
-  if (existing.status === "APROVADO_RH" && !existing.acquisitionPeriodId) {
+  if (existing.status === "APROVADO_GERENTE" && !existing.acquisitionPeriodId) {
     return NextResponse.json(
-      { error: "Não foi possível cancelar pois o pedido aprovado pelo RH não está vinculado a um periodo aquisitivo." },
+      { error: "Não foi possível cancelar pois o pedido aprovado não está vinculado a um período aquisitivo." },
       { status: 409 },
     );
   }
@@ -126,9 +125,9 @@ export async function POST(request: Request, { params }: Params) {
   const acquisitionPeriodId = existing.acquisitionPeriodId;
 
   await prisma.$transaction(async (tx) => {
-    // Se o pedido foi aprovado pelo RH, precisamos reverter o consumo no período aquisitivo
+    // Se o pedido foi aprovado final, precisamos reverter o consumo no período aquisitivo
     // para manter consistência entre relatórios e saldo.
-    if (existing.status === "APROVADO_RH") {
+    if (existing.status === "APROVADO_GERENTE") {
       const ap = await tx.acquisitionPeriod.findUnique({
         where: { id: acquisitionPeriodId! },
         select: { usedDays: true },

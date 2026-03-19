@@ -45,7 +45,7 @@ export async function GET(request: Request) {
     if (!hasEntitlement) continue;
 
     const hasTakenVacationInYear = u.vacationRequests.some((r) => {
-      if (r.status !== "APROVADO_RH") return false;
+      if (r.status !== "APROVADO_GERENTE") return false;
       const start = new Date(r.startDate);
       return start.getFullYear() === year;
     });

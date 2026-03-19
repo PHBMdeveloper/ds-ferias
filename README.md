@@ -1,6 +1,6 @@
 # Editora Globo - Férias
 
-Sistema interno de gestão de férias com fluxo de aprovação em cadeia (Coordenador → Gerente → RH), regras CLT, **abono 1/3** e **adiantamento de 13º**, além de auditoria completa e **controle por períodos aquisitivos**. Desenvolvido com **Next.js 16** (App Router), **Prisma 7**, **PostgreSQL** e **TailwindCSS**.
+Sistema interno de gestão de férias com fluxo de aprovação pelo líder direto, regras CLT, **abono 1/3** e **adiantamento de 13º**, além de auditoria completa e **controle por períodos aquisitivos**. Desenvolvido com **Next.js 16** (App Router), **Prisma 7**, **PostgreSQL** e **TailwindCSS**.
 
 ---
 
@@ -9,9 +9,9 @@ Sistema interno de gestão de férias com fluxo de aprovação em cadeia (Coorde
 - **Colaborador (FUNCIONARIO/COLABORADOR):** cria solicitações, cancela as pendentes (antes da aprovação final) e acompanha histórico, saldo e calendário.
 - **Coordenador:** aprova/reprova férias do **seu time**, exclui solicitações da equipe e acessa a aba **Times** (todos os reportes diretos com status explícito).
 - **Gerente:** aprova solicitações dos coordenadores e dos times sob sua gestão; vê **Times** agrupados por coordenador.
-- **RH:** aprovação final, agrupada por gerente/coordenador; **Times** com todos os colaboradores; Backoffice; relatórios e export CSV.
+- **RH:** visualização completa, Backoffice, relatórios e export CSV (sem aprovar no fluxo).
 
-Fluxo: **PENDENTE** → **Coordenador ou Gerente** (primeira aprovação, status `APROVADO_COORDENADOR`) → **RH** (`APROVADO_RH`). Ninguém aprova a própria solicitação.
+Fluxo: **PENDENTE** → **Aprovação do líder direto** (`APROVADO_GERENTE`, final). Ninguém aprova a própria solicitação.
 
 ---
 

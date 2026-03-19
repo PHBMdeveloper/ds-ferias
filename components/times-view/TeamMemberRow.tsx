@@ -9,13 +9,19 @@ function formatDateRange(start: string | Date, end: string | Date) {
   return `${s.toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })} – ${e.toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })}`;
 }
 
-function statusLabel(status: string): string {
+function statusLabel(status: string, approvedByRole?: string | null): string {
   const map: Record<string, string> = {
     PENDENTE: "Pendente",
     APROVADO_COORDENADOR: "Aprovado Coord.",
     APROVADO_GESTOR: "Aprovado Coord.",
-    APROVADO_GERENTE: "Aprovado Gerente",
-    APROVADO_RH: "Aprovado RH",
+    APROVADO_GERENTE:
+      approvedByRole === "COORDENADOR" || approvedByRole === "GESTOR"
+        ? "Aprovado Coordenador"
+        : approvedByRole === "GERENTE"
+          ? "Aprovado Gerente"
+          : approvedByRole === "DIRETOR"
+            ? "Aprovado Diretor"
+            : "Aprovado",
     REPROVADO: "Reprovado",
     CANCELADO: "Cancelado",
   };
@@ -72,7 +78,7 @@ export function TeamMemberRow({
                       )}
                     </div>
                     <span className="rounded-full bg-slate-200 px-2 py-0.5 text-sm font-medium text-slate-700 dark:bg-slate-700 dark:text-slate-300">
-                      {statusLabel(r.status)}
+                      {statusLabel(r.status, r.approvedByRole)}
                     </span>
                   </li>
                 );

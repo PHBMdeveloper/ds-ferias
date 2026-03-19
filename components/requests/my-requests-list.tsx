@@ -37,7 +37,7 @@ export function MyRequestsList({
   const upcoming = requests
     .filter((r) => {
       const start = new Date(r.startDate);
-      return start >= today && ["PENDENTE", "APROVADO_COORDENADOR", "APROVADO_GERENTE", "APROVADO_RH"].includes(r.status);
+      return start >= today && ["PENDENTE", "APROVADO_COORDENADOR", "APROVADO_GERENTE"].includes(r.status);
     })
     .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())
     .slice(0, 3);

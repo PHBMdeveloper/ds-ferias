@@ -194,7 +194,7 @@ async function main() {
         userId: u.id,
         startDate: pastStart,
         endDate: pastEnd,
-        status: "APROVADO_RH",
+        status: "APROVADO_GERENTE",
         notes: "Seed: ferias aleatorias aprovadas",
         abono: Math.random() < 0.25,
         thirteenth: Math.random() < 0.25,

@@ -112,7 +112,7 @@ export function filterRequestsByVisibilityAndView(
         return false;
       }
     } else if (view === "historico") {
-      const processed = ["APROVADO_COORDENADOR", "APROVADO_GESTOR", "APROVADO_GERENTE", "APROVADO_RH", "REPROVADO", "CANCELADO"];
+      const processed = ["APROVADO_COORDENADOR", "APROVADO_GESTOR", "APROVADO_GERENTE", "REPROVADO", "CANCELADO"];
       if (!processed.includes(r.status)) return false;
     }
     if (filters.query?.trim() && !r.user?.name?.toLowerCase().includes(filters.query.trim().toLowerCase())) return false;

@@ -41,7 +41,7 @@ async function hasOverlappingRequest(userId: string, startDate: Date, endDate: D
     where: {
       userId,
       status: {
-        in: ["PENDENTE", "APROVADO_COORDENADOR", "APROVADO_GESTOR", "APROVADO_GERENTE", "APROVADO_RH"],
+        in: ["PENDENTE", "APROVADO_COORDENADOR", "APROVADO_GESTOR", "APROVADO_GERENTE"],
       },
       AND: [{ startDate: { lt: endDate } }, { endDate: { gt: startDate } }],
     },

@@ -71,7 +71,7 @@ describe("getCurrentUserBalance", () => {
     mockFindUserWithBalance.mockResolvedValueOnce({
       hireDate: new Date("2023-01-01"),
       vacationRequests: [
-        { startDate: new Date("2025-01-06"), endDate: new Date("2025-01-20"), status: "APROVADO_RH" },
+        { startDate: new Date("2025-01-06"), endDate: new Date("2025-01-20"), status: "APROVADO_GERENTE" },
       ],
     });
     const balance = await getCurrentUserBalance("u1");

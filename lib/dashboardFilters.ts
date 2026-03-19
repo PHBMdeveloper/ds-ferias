@@ -64,7 +64,7 @@ export function filterRequests<T extends RequestForFilter>(
         return false;
       }
     } else if (filters.view === "historico") {
-      const processed = ["APROVADO_COORDENADOR", "APROVADO_GESTOR", "APROVADO_GERENTE", "APROVADO_RH", "REPROVADO", "CANCELADO"];
+      const processed = ["APROVADO_COORDENADOR", "APROVADO_GESTOR", "APROVADO_GERENTE", "REPROVADO", "CANCELADO"];
       if (!processed.includes(r.status)) return false;
     }
     if (filters.query && !r.user?.name?.toLowerCase().includes(filters.query.toLowerCase())) return false;

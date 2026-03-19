@@ -34,7 +34,7 @@ describe("TeamMemberStatusBadge", () => {
       isOnVacationNow: false,
       requests: [
         {
-          status: "APROVADO_RH",
+          status: "APROVADO_GERENTE",
           startDate: future.toISOString(),
           endDate: future.toISOString(),
           abono: false,

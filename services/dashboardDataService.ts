@@ -38,9 +38,7 @@ export async function getDashboardData(params: DashboardDataParams) {
     findBlackouts(),
   ]);
 
-  const teamRequests = managedRequests.filter((r) =>
-    ["APROVADO_GERENTE", "APROVADO_RH"].includes(r.status)
-  );
+  const teamRequests = managedRequests.filter((r) => r.status === "APROVADO_GERENTE");
 
   return { myRequests, managedRequests, blackouts, teamRequests };
 }

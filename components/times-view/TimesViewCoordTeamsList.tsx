@@ -5,6 +5,12 @@ import type { TeamDataCoord, TeamMemberInfoSerialized, VacationRequestSummary } 
 import { TeamMemberRow } from "./TeamMemberRow";
 import { Chevron } from "./Chevron";
 
+function approvedByRoleFromRequest(r: any): string | null {
+  const h = Array.isArray(r?.history) ? r.history : [];
+  const approval = h.slice().reverse().find((x: any) => x?.newStatus === "APROVADO_GERENTE");
+  return approval?.changedByUser?.role ?? null;
+}
+
 export function TimesViewCoordTeamsList({
   teams,
   expanded,
@@ -61,6 +67,7 @@ export function TimesViewCoordTeamsList({
                       endDate: r.endDate,
                       status: r.status,
                       abono: r.abono,
+                      approvedByRole: approvedByRoleFromRequest(r),
                     }))}
                   />
                 ))}

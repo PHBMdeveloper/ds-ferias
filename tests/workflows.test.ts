@@ -35,7 +35,6 @@ describe("Workflow: approval chain (aprovação única do líder direto)", () =>
     expect(getApprovalProgress("PENDENTE")).toBe(0);
     expect(getApprovalProgress("APROVADO_COORDENADOR")).toBe(1);
     expect(getApprovalProgress("APROVADO_GERENTE")).toBe(1);
-    expect(getApprovalProgress("APROVADO_RH")).toBe(1);
   });
 });
 
@@ -142,7 +141,7 @@ describe("Workflow: vacation balance and entitlement", () => {
       {
         startDate: new Date("2025-01-06"),
         endDate: new Date("2025-01-20"),
-        status: "APROVADO_RH",
+        status: "APROVADO_GERENTE",
       },
     ];
     const balance = calculateVacationBalance(hireDate, requests);

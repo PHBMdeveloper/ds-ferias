@@ -23,7 +23,7 @@ describe("notifications", () => {
       userName: "U",
       userEmail: "u@example.com",
       approverName: "A",
-      status: "APROVADO_RH",
+      status: "APROVADO_GERENTE",
     });
     expect(fetchSpy).not.toHaveBeenCalled();
   });
@@ -39,7 +39,7 @@ describe("notifications", () => {
       userName: "U2",
       userEmail: "u2@example.com",
       approverName: "A2",
-      status: "APROVADO_RH",
+      status: "APROVADO_GERENTE",
     });
 
     expect(fetchSpy).toHaveBeenCalledTimes(1);

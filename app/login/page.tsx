@@ -184,16 +184,17 @@ export default function LoginPage() {
 
 function TestUsersPanel() {
   const users = [
-    { role: "Funcionário1", email: "colaborador1@empresa.com" },
-    { role: "Funcionário2", email: "colaborador2@empresa.com" },
-    { role: "Funcionária3", email: "colaborador3@empresa.com" },
-    { role: "Coordenador1", email: "gestor1@empresa.com" },
-    { role: "Coordenador2", email: "gestor2@empresa.com" },
-    { role: "Gerente1", email: "gerente1@empresa.com" },
-    { role: "Gerente2", email: "gerente2@empresa.com" },
-    { role: "Diretor(a)", email: "diretor1@empresa.com" },
-    { role: "RH / Admin (RH1)", email: "rh1@empresa.com" },
-    { role: "RH / Admin (RH2)", email: "rh2@empresa.com" },
+    { role: "RH / Admin", email: "rh1@empresa.com" },
+    { role: "Diretor(a) - Santiago", email: "santiago@empresa.com" },
+    { role: "Gerente - Mendonca", email: "mendonca@empresa.com" },
+    { role: "Gerente - Fabricio", email: "fabricio@empresa.com" },
+    { role: "Gestor - Rapha", email: "rapha@empresa.com" },
+    { role: "Gestor - Joaozinho", email: "joaozinho@empresa.com" },
+    { role: "Gestor - Loran", email: "loran@empresa.com" },
+    { role: "Colaborador - Plataforma 1", email: "p1@empresa.com" },
+    { role: "Colaborador - Design 1", email: "d1@empresa.com" },
+    { role: "Colaborador - Inovacao 1", email: "i1@empresa.com" },
+    { role: "Colaborador - Loran 1", email: "l1@empresa.com" },
   ];
 
   return (

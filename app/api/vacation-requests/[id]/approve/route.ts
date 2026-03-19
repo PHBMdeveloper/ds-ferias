@@ -4,7 +4,6 @@ import { getSessionUser } from "@/lib/auth";
 import { canApproveRequest, getNextApprovalStatus, ROLE_LEVEL, detectTeamConflicts } from "@/lib/vacationRules";
 import { canIndirectLeaderActWhenDirectOnVacation } from "@/lib/indirectLeaderRule";
 import { notifyApproved } from "@/lib/notifications";
-import { isCuid } from "@/lib/validation";
 import { logger } from "@/lib/logger";
 import type { VacationStatus } from "@/generated/prisma/enums";
 
@@ -24,7 +23,7 @@ function daysBetweenInclusive(start: Date, end: Date): number {
 
 export async function POST(request: Request, { params }: Params) {
   const { id } = await params;
-  if (!isCuid(id)) {
+  if (!id || id.trim().length < 3) {
     return NextResponse.json({ error: "ID inválido" }, { status: 400 });
   }
   const user = await getSessionUser();

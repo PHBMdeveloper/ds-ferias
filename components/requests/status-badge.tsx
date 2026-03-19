@@ -20,26 +20,32 @@ export function StatusChip({ color, label }: { color: ChipColor; label: string }
   );
 }
 
-export function StatusBadge({ status }: { status: string }) {
+export function StatusBadge({
+  status,
+  approvedByRole,
+}: {
+  status: string;
+  approvedByRole?: string | null;
+}) {
   if (status === "APROVADO_COORDENADOR" || status === "APROVADO_GESTOR") {
     return (
       <div className="flex flex-wrap items-center gap-1.5">
         <StatusChip color="indigo" label="Aprovado Coord." />
-        <StatusChip color="amber" label="Pend. RH" />
+        <StatusChip color="amber" label="Pend. líder direto" />
       </div>
     );
   }
   if (status === "APROVADO_GERENTE") {
-    return (
-      <div className="flex flex-wrap items-center gap-1.5">
-        <StatusChip color="purple" label="Aprovado Gerente" />
-        <StatusChip color="amber" label="Pend. RH" />
-      </div>
-    );
+    if (approvedByRole === "COORDENADOR" || approvedByRole === "GESTOR") {
+      return <StatusChip color="green" label="Aprovado Coordenador" />;
+    }
+    if (approvedByRole === "GERENTE" || approvedByRole === "DIRETOR") {
+      return <StatusChip color="green" label="Aprovado Gerente" />;
+    }
+    return <StatusChip color="green" label="Aprovado" />;
   }
   const config: Record<string, { color: ChipColor; label: string }> = {
     PENDENTE: { color: "amber", label: "Pendente aprovação" },
-    APROVADO_RH: { color: "green", label: "Aprovado RH" },
     REPROVADO: { color: "red", label: "Reprovado" },
     CANCELADO: { color: "slate", label: "Cancelado" },
   };

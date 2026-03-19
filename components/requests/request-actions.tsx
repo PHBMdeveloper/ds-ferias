@@ -23,12 +23,12 @@ export function RequestActions({
   const isPendingRH =
     request.status === "APROVADO_COORDENADOR" || request.status === "APROVADO_GESTOR";
 
-  const canOwnerCancel = isOwner && request.status !== "APROVADO_RH";
+  const canOwnerCancel = isOwner && request.status !== "APROVADO_GERENTE";
 
   const deleteLabel = isOwner
     ? "Cancelar solicitação"
     : isPendingRH
-      ? "Excluir solicitação (pend. RH)"
+      ? "Excluir solicitação (pend. líder direto)"
       : "Excluir solicitação";
 
   const deleteSuccessMessage = isOwner ? "Solicitação cancelada." : "Solicitação excluída.";

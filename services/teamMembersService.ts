@@ -8,7 +8,7 @@ function isOnVacationNow(
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   return requests.some((r) => {
-    if (r.status !== "APROVADO_RH") return false;
+    if (r.status !== "APROVADO_GERENTE") return false;
     const start = new Date(r.startDate);
     const rawEnd = new Date(r.endDate);
     const end =

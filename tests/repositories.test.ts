@@ -182,7 +182,7 @@ describe("acquisitionRepository", () => {
     expect((prisma as any).acquisitionPeriod.deleteMany).toHaveBeenCalled();
   });
 
-  it("resync FIFO updates usedDays and acquisitionPeriodId for APROVADO_RH", async () => {
+  it("resync FIFO updates usedDays and acquisitionPeriodId for APROVADO_GERENTE", async () => {
     const { prisma } = await import("@/lib/prisma");
 
     const p1 = {

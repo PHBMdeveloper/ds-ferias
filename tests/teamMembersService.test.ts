@@ -33,13 +33,13 @@ describe("getTeamMembersForTimes", () => {
         vacationRequests: [
           // Férias aprovadas sem abono, cobrindo o dia de hoje
           {
-            status: "APROVADO_RH",
+            status: "APROVADO_GERENTE",
             startDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
             endDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000),
           },
           // Férias aprovadas com abono, onde o retorno estimado ainda inclui hoje
           {
-            status: "APROVADO_RH",
+            status: "APROVADO_GERENTE",
             startDate: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
             endDate: new Date(Date.now() + 11 * 24 * 60 * 60 * 1000),
             abono: true,

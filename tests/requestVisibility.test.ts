@@ -113,13 +113,13 @@ describe("filterRequestsByVisibilityAndView", () => {
       "COORDENADOR",
       "coord-1",
       [
-        { ...baseRequest, status: "APROVADO_RH" },
+        { ...baseRequest, status: "APROVADO_GERENTE" },
         { ...baseRequest, status: "PENDENTE", userId: "f2" },
       ],
       { view: "historico" }
     );
     expect(list).toHaveLength(1);
-    expect(list[0].status).toBe("APROVADO_RH");
+    expect(list[0].status).toBe("APROVADO_GERENTE");
   });
 
   it("RH with managerId filter", () => {
@@ -162,7 +162,7 @@ describe("filterRequestsByVisibilityAndView", () => {
       "COORDENADOR",
       "coord-1",
       [{ ...baseRequest, status: "APROVADO_COORDENADOR" }],
-      { view: "historico", status: "APROVADO_RH" }
+      { view: "historico", status: "APROVADO_GERENTE" }
     );
     expect(list).toHaveLength(0);
   });

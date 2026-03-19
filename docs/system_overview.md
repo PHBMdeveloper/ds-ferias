@@ -3,8 +3,8 @@
 Este projeto e um sistema interno de gestao de ferias CLT para um laboratorio/empresa (Editora Globo - Ferias). O objetivo e permitir:
 
 - Colaborador: criar solicitacoes de ferias respeitando regras CLT e bloqueios internos.
-- Gestores: aprovar/reprovar a cadeia hierarquica (Coordenador/; Gerente/; RH).
-- RH: aprovacao final, relatorios, blackouts e auditoria.
+- Gestores: aprovar/reprovar pela regra de lider direto.
+- RH: visualizacao, relatorios, blackouts e auditoria (sem etapa de aprovacao).
 
 ---
 
@@ -20,14 +20,12 @@ Este projeto e um sistema interno de gestao de ferias CLT para um laboratorio/em
 
 ## Papeis e fluxo de aprovacao (status)
 
-- `PENDENTE` -> `APROVADO_COORDENADOR` -> `APROVADO_RH`
-- Aliases legados sao mantidos para compatibilidade:
-  - `APROVADO_GESTOR` e `APROVADO_GERENTE` sao tratados como equivalentes nos pontos historicos do sistema.
+- `PENDENTE` -> `APROVADO_GERENTE` (final)
 
 Regra de permissao e definida em `lib/vacationRules.ts`:
 
 - `ROLE_LEVEL` define hierarquia e habilita proximo status.
-- `canApproveRequest` garante que apenas o nivel adequado aprova a etapa atual.
+- `canApproveRequest` garante que apenas o lider direto (ou indireto sob condicao) pode aprovar.
 - `getNextApprovalStatus` define o proximo status.
 
 ---
@@ -52,7 +50,7 @@ Regra de permissao e definida em `lib/vacationRules.ts`:
 
 3. Consumo do periodo aquisitivo (implementado):
    - O modelo de dados foi estendido para vincular cada `VacationRequest` a um `AcquisitionPeriod`.
-   - Ao aprovar como RH (`APROVADO_RH`), o backend:
+   - Ao aprovar no status final (`APROVADO_GERENTE`), o backend:
      - identifica o `AcquisitionPeriod` que cobre o intervalo do pedido,
      - incrementa `AcquisitionPeriod.usedDays`,
      - preenche `VacationRequest.acquisitionPeriodId`.

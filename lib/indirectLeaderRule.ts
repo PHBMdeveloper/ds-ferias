@@ -34,7 +34,7 @@ export async function canIndirectLeaderActWhenDirectOnVacation({
   });
 
   return (directLeader?.vacationRequests ?? []).some((r) => {
-    if (!["APROVADO_GERENTE", "APROVADO_RH"].includes(r.status)) return false;
+    if (!["APROVADO_GERENTE"].includes(r.status)) return false;
     const start = new Date(r.startDate);
     const rawEnd = new Date(r.endDate);
     const end =

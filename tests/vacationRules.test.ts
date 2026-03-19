@@ -267,10 +267,10 @@ describe("calculateVacationBalance", () => {
     expect(balance.availableDays).toBe(60);
   });
 
-  it("counts used days from APROVADO_RH requests", () => {
+  it("counts used days from APROVADO_GERENTE requests", () => {
     const hireDate = new Date("2023-01-01");
     const requests = [
-      { startDate: new Date("2025-01-06"), endDate: new Date("2025-01-20"), status: "APROVADO_RH" },
+      { startDate: new Date("2025-01-06"), endDate: new Date("2025-01-20"), status: "APROVADO_GERENTE" },
     ];
     const balance = calculateVacationBalance(hireDate, requests);
     expect(balance.usedDays).toBe(15);
@@ -328,9 +328,6 @@ describe("getNextApprover", () => {
   it("returns null for APROVADO_GERENTE (final)", () => {
     expect(getNextApprover("APROVADO_GERENTE", "FUNCIONARIO")).toBeNull();
   });
-  it("returns null for APROVADO_RH", () => {
-    expect(getNextApprover("APROVADO_RH", "FUNCIONARIO")).toBeNull();
-  });
 });
 
 describe("getApprovalSteps", () => {
@@ -359,9 +356,6 @@ describe("getApprovalProgress", () => {
   it("returns 1 for APROVADO_GERENTE (etapa final atual)", () => {
     expect(getApprovalProgress("APROVADO_GERENTE")).toBe(1);
   });
-  it("returns 1 for APROVADO_RH", () => {
-    expect(getApprovalProgress("APROVADO_RH")).toBe(1);
-  });
   it("returns 0 for REPROVADO", () => {
     expect(getApprovalProgress("REPROVADO")).toBe(0);
   });
@@ -381,7 +375,7 @@ describe("detectTeamConflicts", () => {
 
   it("detects no conflict when no overlapping requests", () => {
     const r = detectTeamConflicts(futureStart, futureEnd, [
-      { name: "A", requests: [{ startDate: new Date("2025-01-01"), endDate: new Date("2025-01-10"), status: "APROVADO_RH" }] },
+      { name: "A", requests: [{ startDate: new Date("2025-01-01"), endDate: new Date("2025-01-10"), status: "APROVADO_GERENTE" }] },
     ]);
     expect(r.conflictingCount).toBe(0);
     expect(r.names).toEqual([]);
@@ -389,7 +383,7 @@ describe("detectTeamConflicts", () => {
 
   it("detects conflict when member has overlapping approved request", () => {
     const r = detectTeamConflicts(futureStart, futureEnd, [
-      { name: "A", requests: [{ startDate: new Date("2026-07-05"), endDate: new Date("2026-07-12"), status: "APROVADO_RH" }] },
+      { name: "A", requests: [{ startDate: new Date("2026-07-05"), endDate: new Date("2026-07-12"), status: "APROVADO_GERENTE" }] },
     ]);
     expect(r.conflictingCount).toBe(1);
     expect(r.names).toEqual(["A"]);

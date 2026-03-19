@@ -36,7 +36,10 @@ export type RequestWithUser = {
     role?: string;
     department?: string | null;
   } | null;
-  history?: unknown[];
+  history?: Array<{
+    newStatus?: string;
+    changedByUser?: { role?: string | null } | null;
+  }>;
 };
 
 export function RequestCard({
@@ -61,6 +64,12 @@ export function RequestCard({
   const showActions = isOwner || (!!userId && request.userId !== userId);
   const start = new Date(request.startDate);
   const end = new Date(request.endDate);
+  const approvalEntry =
+    request.history
+      ?.slice()
+      .reverse()
+      .find((h) => h?.newStatus === "APROVADO_GERENTE") ?? null;
+  const approvedByRole = approvalEntry?.changedByUser?.role ?? null;
   const backWithAbono =
     request.abono && !isNaN(end.getTime())
       ? new Date(end.getTime() - 10 * 24 * 60 * 60 * 1000)
@@ -138,7 +147,7 @@ export function RequestCard({
             </div>
           </div>
           <div className="w-full shrink-0 sm:w-auto">
-            <StatusBadge status={request.status} />
+            <StatusBadge status={request.status} approvedByRole={approvedByRole} />
           </div>
         </div>
 

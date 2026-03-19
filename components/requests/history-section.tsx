@@ -12,9 +12,15 @@ type HistoryEntry = {
 
 function formatStatus(status: string): string {
   if (status === "APROVADO_COORDENADOR" || status === "APROVADO_GESTOR") return "Aprovado coordenador";
-  if (status === "APROVADO_GERENTE") return "Aprovado gerente";
-  if (status === "APROVADO_RH") return "Aprovado RH";
+  if (status === "APROVADO_GERENTE") return "Aprovado";
   return status.replace(/_/g, " ");
+}
+
+function formatNewStatus(status: string, changedByRole?: string): string {
+  if (status !== "APROVADO_GERENTE") return formatStatus(status);
+  if (changedByRole === "COORDENADOR" || changedByRole === "GESTOR") return "Aprovado coordenador";
+  if (changedByRole === "GERENTE" || changedByRole === "DIRETOR") return "Aprovado gerente";
+  return "Aprovado";
 }
 
 export function HistorySection({ history }: { history: HistoryEntry[] }) {
@@ -52,7 +58,7 @@ export function HistorySection({ history }: { history: HistoryEntry[] }) {
                   </span>{" "}
                   <span className="text-[#94a3b8]">→</span>{" "}
                   <span className="font-semibold text-[#0f172a] dark:text-slate-100">
-                    {formatStatus(h.newStatus)}
+                    {formatNewStatus(h.newStatus, h.changedByUser?.role)}
                   </span>
                 </span>
 

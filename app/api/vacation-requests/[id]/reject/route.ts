@@ -3,14 +3,13 @@ import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/auth";
 import { ROLE_LEVEL, canApproveRequest } from "@/lib/vacationRules";
 import { notifyRejected } from "@/lib/notifications";
-import { isCuid } from "@/lib/validation";
 import { logger } from "@/lib/logger";
 
 type Params = { params: Promise<{ id: string }> };
 
 export async function POST(request: Request, { params }: Params) {
   const { id } = await params;
-  if (!isCuid(id)) {
+  if (!id || id.trim().length < 3) {
     return NextResponse.json({ error: "ID inválido" }, { status: 400 });
   }
   const user = await getSessionUser();

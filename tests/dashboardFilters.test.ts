@@ -148,7 +148,7 @@ describe("filterRequests", () => {
   });
 
   it("filters by view historico", () => {
-    const out = filterRequests("COORDENADOR", "coord-1", [{ ...baseReq, status: "APROVADO_RH" }], {
+    const out = filterRequests("COORDENADOR", "coord-1", [{ ...baseReq, status: "APROVADO_GERENTE" }], {
       view: "historico",
       query: "",
       status: "TODOS",
@@ -253,19 +253,19 @@ describe("filterRequests", () => {
 
     const ended = {
       ...baseReq,
-      status: "APROVADO_RH",
+      status: "APROVADO_GERENTE",
       startDate: new Date("2026-01-01T00:00:00.000Z"),
       endDate: new Date("2026-01-10T00:00:00.000Z"),
     };
     const upcomingLater = {
       ...baseReq,
-      status: "APROVADO_RH",
+      status: "APROVADO_GERENTE",
       startDate: new Date("2026-02-01T00:00:00.000Z"),
       endDate: new Date("2026-02-10T00:00:00.000Z"),
     };
     const upcomingSoon = {
       ...baseReq,
-      status: "APROVADO_RH",
+      status: "APROVADO_GERENTE",
       startDate: new Date("2026-01-15T00:00:00.000Z"),
       endDate: new Date("2026-01-20T00:00:00.000Z"),
     };
