@@ -62,7 +62,7 @@ export function AppSidebar({
             <DashboardSidebarItem href="/dashboard?view=inbox" icon={<IconInbox />} label="Caixa de Aprovação" active={activeView === "inbox"} badge={pendingCount > 0 ? pendingCount : undefined} badgeAlert />
             <DashboardSidebarItem href="/dashboard?view=historico" icon={<IconHistory />} label="Histórico" active={activeView === "historico"} />
             <DashboardSidebarItem href="/dashboard?view=times" icon={<IconTeams />} label="Times" active={activeView === "times"} />
-            {level >= 4 && <DashboardSidebarItem href="/admin" icon={<IconSettings />} label="Backoffice" />}
+            {level >= 5 && <DashboardSidebarItem href="/admin" icon={<IconSettings />} label="Backoffice" />}
           </>
         )}
       </nav>
@@ -81,7 +81,7 @@ export function AppSidebar({
             <DashboardSidebarItem href="/dashboard?view=inbox" icon={<IconInbox />} label="Caixa de Aprovação" active={activeView === "inbox"} badge={pendingCount > 0 ? pendingCount : undefined} badgeAlert />
             <DashboardSidebarItem href="/dashboard?view=historico" icon={<IconHistory />} label="Histórico" active={activeView === "historico"} />
             <DashboardSidebarItem href="/dashboard?view=times" icon={<IconTeams />} label="Times" active={activeView === "times"} />
-            {level >= 4 && <DashboardSidebarItem href="/admin" icon={<IconSettings />} label="Backoffice" />}
+            {level >= 5 && <DashboardSidebarItem href="/admin" icon={<IconSettings />} label="Backoffice" />}
           </>
         )}
         <div className="my-2 border-t border-[#e2e8f0] dark:border-[#252a35]" />
