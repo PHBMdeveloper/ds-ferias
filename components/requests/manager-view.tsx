@@ -17,7 +17,10 @@ type RequestLike = {
   abono?: boolean;
   thirteenth?: boolean;
   user?: { name?: string; role?: string; department?: string | null; manager?: { id: string; name: string } | null };
-  history?: unknown[];
+  history?: Array<{
+    newStatus?: string;
+    changedByUser?: { role?: string | null } | null;
+  }>;
 };
 
 export function ManagerView({

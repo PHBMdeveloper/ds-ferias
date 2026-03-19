@@ -8,7 +8,10 @@ type RequestWithUser = {
   endDate: Date | string;
   notes?: string | null;
   user?: { name?: string; role?: string; department?: string | null; manager?: { name?: string } | null };
-  history?: unknown[];
+  history?: Array<{
+    newStatus?: string;
+    changedByUser?: { role?: string | null } | null;
+  }>;
 };
 
 function groupByManager(requests: RequestWithUser[]): Record<string, RequestWithUser[]> {
