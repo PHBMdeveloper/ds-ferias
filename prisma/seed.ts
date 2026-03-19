@@ -96,78 +96,52 @@ async function main() {
     },
   });
 
-  // ---- COLABORADORES / FUNCIONÁRIOS (reportam ao Coordenador) ----
-  await prisma.user.upsert({
-    where: { email: "colaborador1@empresa.com" },
-    update: {
-      name: "Colaborador Um",
-      role: "FUNCIONARIO",
-      passwordHash: senhaHash,
-      managerId: gestor1.id,
-      department: "Engenharia",
-      registration: "REG-COL1",
-    },
-    create: {
-      id: "colab1",
-      name: "Colaborador Um",
-      email: "colaborador1@empresa.com",
-      passwordHash: senhaHash,
-      role: "FUNCIONARIO",
-      managerId: gestor1.id,
-      department: "Engenharia",
-      hireDate: new Date("2023-06-01"),
-      registration: "REG-COL1",
-    },
-  });
+  // ---- COLABORADORES / FUNCIONÁRIOS ----
+  // 10 colaboradores no Gestor Um, divididos em dois times:
+  // - Plataforma (5)
+  // - Design System (5)
+  const colaboradores = [
+    { n: 1, nome: "Colaborador Um", time: "Plataforma", hireDate: "2023-06-01" },
+    { n: 2, nome: "Colaborador Dois", time: "Plataforma", hireDate: "2023-07-10" },
+    { n: 3, nome: "Colaboradora Três", time: "Plataforma", hireDate: "2023-08-15" },
+    { n: 4, nome: "Colaborador Quatro", time: "Plataforma", hireDate: "2023-09-20" },
+    { n: 5, nome: "Colaboradora Cinco", time: "Plataforma", hireDate: "2023-10-25" },
+    { n: 6, nome: "Colaborador Seis", time: "Design System", hireDate: "2023-11-05" },
+    { n: 7, nome: "Colaboradora Sete", time: "Design System", hireDate: "2023-12-12" },
+    { n: 8, nome: "Colaborador Oito", time: "Design System", hireDate: "2024-01-18" },
+    { n: 9, nome: "Colaboradora Nove", time: "Design System", hireDate: "2024-02-22" },
+    { n: 10, nome: "Colaborador Dez", time: "Design System", hireDate: "2024-03-15" },
+  ] as const;
 
-  const hireDateColab2 = new Date("2024-02-14");
-  await prisma.user.upsert({
-    where: { email: "colaborador2@empresa.com" },
-    update: {
-      name: "Colaborador Dois",
-      role: "FUNCIONARIO",
-      passwordHash: senhaHash,
-      managerId: gestor2.id,
-      department: "Comercial",
-      hireDate: hireDateColab2,
-      registration: "REG-COL2",
-    },
-    create: {
-      id: "colab2",
-      name: "Colaborador Dois",
-      email: "colaborador2@empresa.com",
-      passwordHash: senhaHash,
-      role: "FUNCIONARIO",
-      managerId: gestor2.id,
-      department: "Comercial",
-      hireDate: hireDateColab2,
-      registration: "REG-COL2",
-    },
-  });
-
-  // Colaborador 3 no time do Gestor 1 (para ter mais de um no time)
-  await prisma.user.upsert({
-    where: { email: "colaborador3@empresa.com" },
-    update: {
-      name: "Colaboradora Três",
-      role: "FUNCIONARIO",
-      passwordHash: senhaHash,
-      managerId: gestor1.id,
-      department: "Engenharia",
-      registration: "REG-COL3",
-    },
-    create: {
-      id: "colab3",
-      name: "Colaboradora Três",
-      email: "colaborador3@empresa.com",
-      passwordHash: senhaHash,
-      role: "FUNCIONARIO",
-      managerId: gestor1.id,
-      department: "Engenharia",
-      hireDate: new Date("2024-01-10"),
-      registration: "REG-COL3",
-    },
-  });
+  for (const c of colaboradores) {
+    const email = `colaborador${c.n}@empresa.com`;
+    const registration = `REG-COL${c.n}`;
+    await prisma.user.upsert({
+      where: { email },
+      update: {
+        name: c.nome,
+        role: "FUNCIONARIO",
+        passwordHash: senhaHash,
+        managerId: gestor1.id,
+        department: "Engenharia",
+        team: c.time,
+        hireDate: new Date(c.hireDate),
+        registration,
+      },
+      create: {
+        id: `colab${c.n}`,
+        name: c.nome,
+        email,
+        passwordHash: senhaHash,
+        role: "FUNCIONARIO",
+        managerId: gestor1.id,
+        department: "Engenharia",
+        team: c.time,
+        hireDate: new Date(c.hireDate),
+        registration,
+      },
+    });
+  }
 
   // RH Dois (opcional, para testes)
   await prisma.user.upsert({
@@ -189,8 +163,10 @@ async function main() {
   console.log("  RH → Gerente → Coordenador → Colaborador");
   console.log("  rh1 (RH)");
   console.log("  ├── gerente1 (GERENTE)");
-  console.log("  │   ├── gestor1 (COORDENADOR) → colab1, colab3");
-  console.log("  │   └── gestor2 (COORDENADOR) → colab2");
+  console.log("  │   ├── gestor1 (COORDENADOR) → colab1..colab10");
+  console.log("  │   │    ├── time: Plataforma (5)");
+  console.log("  │   │    └── time: Design System (5)");
+  console.log("  │   └── gestor2 (COORDENADOR)");
   console.log("  └── gerente2 (GERENTE)");
   console.log("");
   console.log("Logins para testar Times:");

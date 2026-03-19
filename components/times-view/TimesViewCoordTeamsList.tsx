@@ -25,11 +25,11 @@ export function TimesViewCoordTeamsList({
   return (
     <>
       {teams.map((team) => {
-        const key = `team-${team.coordinatorId}`;
+        const key = `team-${team.teamKey}`;
         const isOpen = expanded[key] !== false;
 
         return (
-          <section key={team.coordinatorId} className="space-y-0">
+          <section key={team.teamKey} className="space-y-0">
             <button
               type="button"
               onClick={() => toggle(key)}
@@ -43,7 +43,7 @@ export function TimesViewCoordTeamsList({
               </span>
               <div className="min-w-0 flex-1">
                 <h3 className="text-base font-semibold text-[#1a1d23] dark:text-white">
-                  {team.coordinatorName === "Meu time" ? "Meu time" : `Time de ${team.coordinatorName}`}
+                  {team.teamName}
                 </h3>
                 <p className="text-sm text-[#64748b] dark:text-slate-400">{team.members.length} colaborador(es)</p>
               </div>

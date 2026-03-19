@@ -45,6 +45,8 @@ export type TeamDataCoord = {
   teams: Array<{
     coordinatorId: string;
     coordinatorName: string;
+    teamKey: string;
+    teamName: string;
     members: TeamMemberInfo[];
   }>;
 };
@@ -60,6 +62,8 @@ export type TeamDataRH = {
     teams: Array<{
       coordinatorId: string;
       coordinatorName: string;
+      teamKey: string;
+      teamName: string;
       members: TeamMemberInfo[];
     }>;
   }>;

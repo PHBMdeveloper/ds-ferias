@@ -44,32 +44,53 @@ export async function getTeamMembersForTimes(
 
   if (level === 2) {
     const users = await findTeamMembersByManager(userId);
-    const members = mapUsersToMembers(users);
     return {
       kind: "coord",
-      teams: [{ coordinatorId: userId, coordinatorName: "Meu time", members }],
+      teams: Array.from(
+        users.reduce((acc: Map<string, typeof users>, u) => {
+          const teamName = (u as any).team ?? "Sem time";
+          if (!acc.has(teamName)) acc.set(teamName, []);
+          acc.get(teamName)!.push(u);
+          return acc;
+        }, new Map<string, typeof users>()),
+      ).map(([teamName, teamUsers]) => ({
+        coordinatorId: userId,
+        coordinatorName: "Meu time",
+        teamKey: `${userId}__${teamName}`,
+        teamName,
+        members: mapUsersToMembers(teamUsers as any),
+      })),
     };
   }
 
   if (level === 3) {
     const users = await findTeamMembersByGerente(userId);
     const members = mapUsersToMembers(users);
-    const byCoord: Record<string, TeamMemberInfo[]> = {};
+    const byCoordTeam: Record<string, Record<string, TeamMemberInfo[]>> = {};
     members.forEach((m, i) => {
-      const u = users[i];
+      const u = users[i] as any;
       const coordId = u?.managerId ?? "sem-coord";
-      if (!byCoord[coordId]) byCoord[coordId] = [];
-      byCoord[coordId].push(m);
+      const teamName = u?.team ?? "Sem time";
+      if (!byCoordTeam[coordId]) byCoordTeam[coordId] = {};
+      if (!byCoordTeam[coordId][teamName]) byCoordTeam[coordId][teamName] = [];
+      byCoordTeam[coordId][teamName].push(m);
     });
     const coordNames = new Map<string, string>();
     users.forEach((u) => {
       if (u.managerId && u.manager) coordNames.set(u.managerId, u.manager.name);
     });
-    const teams = Object.entries(byCoord).map(([coordId, mems]) => ({
-      coordinatorId: coordId,
-      coordinatorName: coordNames.get(coordId) ?? "Sem coordenador",
-      members: mems.sort((a, b) => a.user.name.localeCompare(b.user.name)),
-    }));
+    const teams: TeamDataCoord["teams"] = [];
+    for (const [coordId, byTeam] of Object.entries(byCoordTeam)) {
+      for (const [teamName, mems] of Object.entries(byTeam)) {
+        teams.push({
+          coordinatorId: coordId,
+          coordinatorName: coordNames.get(coordId) ?? "Sem coordenador",
+          teamKey: `${coordId}__${teamName}`,
+          teamName,
+          members: mems.sort((a, b) => a.user.name.localeCompare(b.user.name)),
+        });
+      }
+    }
     return { kind: "coord", teams };
   }
 
@@ -80,10 +101,12 @@ export async function getTeamMembersForTimes(
     const m = members[i];
     const gerenteId = (u as { manager?: { manager?: { id: string; name: string } } }).manager?.manager?.id ?? "sem-gerente";
     const coordId = (u as { manager?: { id: string; name: string } }).manager?.id ?? "sem-coord";
+    const teamName = (u as any).team ?? "Sem time";
+    const teamKey = `${coordId}__${teamName}`;
     if (!byGerente.has(gerenteId)) byGerente.set(gerenteId, new Map());
     const byCoord = byGerente.get(gerenteId)!;
-    if (!byCoord.has(coordId)) byCoord.set(coordId, []);
-    byCoord.get(coordId)!.push(m);
+    if (!byCoord.has(teamKey)) byCoord.set(teamKey, []);
+    byCoord.get(teamKey)!.push(m);
   });
   const gerentes: TeamDataRH["gerentes"] = [];
   byGerente.forEach((byCoord, gerenteId) => {
@@ -91,12 +114,15 @@ export async function getTeamMembersForTimes(
       (u) => ((u as { manager?: { manager?: { id: string } } }).manager?.manager?.id ?? "sem-gerente") === gerenteId
     ) as { manager?: { manager?: { name: string }; name: string } } | undefined;
     const gerenteName = firstUser?.manager?.manager?.name ?? "Sem gerente";
-    const teams = Array.from(byCoord.entries()).map(([coordId, mems]) => {
+    const teams = Array.from(byCoord.entries()).map(([teamKey, mems]) => {
+      const [coordId, teamName] = teamKey.split("__");
       const firstInCoord = mems[0];
       const u = users.find((x) => x.id === firstInCoord.user.id) as { manager?: { name: string } } | undefined;
       return {
-        coordinatorId: coordId,
+        coordinatorId: coordId ?? "sem-coord",
         coordinatorName: u?.manager?.name ?? "Sem coordenador",
+        teamKey,
+        teamName: teamName ?? "Sem time",
         members: mems.sort((a, b) => a.user.name.localeCompare(b.user.name)),
       };
     });

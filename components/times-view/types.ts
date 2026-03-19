@@ -21,7 +21,13 @@ export type TeamMemberInfoSerialized = {
 
 export type TeamDataCoord = {
   kind: "coord";
-  teams: { coordinatorId: string; coordinatorName: string; members: TeamMemberInfoSerialized[] }[];
+  teams: {
+    coordinatorId: string;
+    coordinatorName: string;
+    teamKey: string; // chave única (coordenador + time)
+    teamName: string;
+    members: TeamMemberInfoSerialized[];
+  }[];
 };
 
 export type TeamDataRH = {
@@ -29,7 +35,13 @@ export type TeamDataRH = {
   gerentes: {
     gerenteId: string;
     gerenteName: string;
-    teams: { coordinatorId: string; coordinatorName: string; members: TeamMemberInfoSerialized[] }[];
+    teams: {
+      coordinatorId: string;
+      coordinatorName: string;
+      teamKey: string; // chave única (coordenador + time)
+      teamName: string;
+      members: TeamMemberInfoSerialized[];
+    }[];
   }[];
 };
 

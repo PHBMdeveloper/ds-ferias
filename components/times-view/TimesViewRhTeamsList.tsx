@@ -53,11 +53,11 @@ export function TimesViewRhTeamsList({
             {gerenteOpen && (
               <div className="space-y-4 border-l-2 border-[#e2e8f0] pl-4 pt-3 dark:border-[#252a35]">
                 {g.teams.map((team) => {
-                  const teamKey = `${gerenteKey}-team-${team.coordinatorId}`;
+                  const teamKey = `${gerenteKey}-team-${team.teamKey}`;
                   const teamOpen = expanded[teamKey] !== false;
 
                   return (
-                    <div key={team.coordinatorId} className="space-y-0">
+                    <div key={team.teamKey} className="space-y-0">
                       <button
                         type="button"
                         onClick={() => toggle(teamKey)}
@@ -69,7 +69,7 @@ export function TimesViewRhTeamsList({
                         <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-xs font-bold text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300">
                           {team.coordinatorName.charAt(0).toUpperCase()}
                         </span>
-                        <h3 className="text-sm font-semibold text-[#1a1d23] dark:text-white">Time de {team.coordinatorName}</h3>
+                        <h3 className="text-sm font-semibold text-[#1a1d23] dark:text-white">{team.teamName}</h3>
                         <span className="ml-auto text-xs text-[#64748b] dark:text-slate-400">{team.members.length} colaborador(es)</span>
                       </button>
 
