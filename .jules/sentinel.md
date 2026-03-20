@@ -1,0 +1,4 @@
+## 2024-05-18 - [Authentication Bypass via Legacy Cookie Support]
+**Vulnerability:** The `getSessionUser` function in `lib/auth.ts` contained legacy logic that blindly trusted and parsed raw JSON cookies if they didn't contain a "." (dot) character. If an attacker provided a cookie without a dot, it was treated as "legacy" and its JSON was parsed without signature verification, resulting in a critical authentication bypass.
+**Learning:** This existed as a fallback for old cookie formats during a transition, likely relying on the assumption that a dot indicates a signed payload. It fundamentally compromised the security of the application by allowing arbitrary JSON to dictate user session state.
+**Prevention:** Remove fallback logic that assumes a lack of a specific character implies an inherently secure state. All session cookies must be strictly validated against their cryptographic signature, regardless of their format. Fail securely if validation fails.

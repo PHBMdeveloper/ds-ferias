@@ -13,14 +13,16 @@ export type SessionUser = {
   role: Role;
 };
 
-function getSessionSecret(): string | null {
+function getSessionSecret(): string {
   const secret = process.env.SESSION_SECRET;
-  return secret && secret.length >= 16 ? secret : null;
+  if (!secret || secret.length < 16) {
+    throw new Error("SESSION_SECRET must be at least 16 characters long.");
+  }
+  return secret;
 }
 
 function signPayload(payload: string): string {
   const secret = getSessionSecret();
-  if (!secret) return payload;
   const hmac = crypto.createHmac("sha256", secret);
   hmac.update(payload);
   return payload + "." + hmac.digest("base64url");
@@ -28,7 +30,6 @@ function signPayload(payload: string): string {
 
 function verifyPayload(signed: string): string | null {
   const secret = getSessionSecret();
-  if (!secret) return null;
   try {
     const lastDot = signed.lastIndexOf(".");
     if (lastDot === -1) return null;
@@ -76,15 +77,9 @@ export async function getSessionUser(): Promise<SessionUser | null> {
   if (!raw) return null;
 
   try {
-    let payload: string;
-    // Só tenta verificar assinatura quando SESSION_SECRET está definido; caso contrário o cookie
-    // é JSON legado (e pode conter "." no email, ex.: user@empresa.com).
-    if (getSessionSecret() && raw.includes(".")) {
-      payload = verifyPayload(raw) ?? "";
-      if (!payload) return null;
-    } else {
-      payload = raw;
-    }
+    const payload = verifyPayload(raw);
+    if (!payload) return null;
+
     const data = JSON.parse(payload) as SessionUser;
     if (typeof data?.id !== "string" || typeof data?.email !== "string" || typeof data?.role !== "string") {
       return null;
