@@ -7,6 +7,7 @@ const mockFindUserWithBalance = vi.fn().mockResolvedValue(null);
 const mockFindUserDepartment = vi.fn().mockResolvedValue(null);
 const mockSyncAcquisitionPeriodsForUser = vi.fn().mockResolvedValue([]);
 const mockFindAcquisitionPeriodsForUser = vi.fn().mockResolvedValue([]);
+const mockCanIndirectLeaderActWhenDirectOnVacation = vi.fn().mockResolvedValue(false);
 
 vi.mock("@/lib/prisma", () => ({ prisma: {} }));
 vi.mock("@/repositories/vacationRepository", () => ({
@@ -24,6 +25,10 @@ vi.mock("@/repositories/acquisitionRepository", () => ({
   syncAcquisitionPeriodsForUser: (...args: unknown[]) => mockSyncAcquisitionPeriodsForUser(...args),
   findAcquisitionPeriodsForUser: (...args: unknown[]) => mockFindAcquisitionPeriodsForUser(...args),
 }));
+vi.mock("@/lib/indirectLeaderRule", () => ({
+  canIndirectLeaderActWhenDirectOnVacation: (...args: unknown[]) =>
+    mockCanIndirectLeaderActWhenDirectOnVacation(...args),
+}));
 if (!process.env.DATABASE_URL) process.env.DATABASE_URL = "postgresql://localhost:5432/test";
 
 import {
@@ -37,9 +42,11 @@ import {
 
 describe("getDashboardData", () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     mockFindMyRequests.mockResolvedValue([]);
     mockFindManagedRequests.mockResolvedValue([]);
     mockFindBlackouts.mockResolvedValue([]);
+    mockCanIndirectLeaderActWhenDirectOnVacation.mockResolvedValue(false);
   });
 
   it("returns only myRequests for COLABORADOR/FUNCIONARIO", async () => {
@@ -63,6 +70,72 @@ describe("getDashboardData", () => {
     expect(out.managedRequests).toHaveLength(2);
     expect(out.teamRequests).toHaveLength(1);
     expect(out.teamRequests[0].status).toBe("APROVADO_GERENTE");
+  });
+
+  it("for GERENTE, keeps direct reports and only allowed indirect reports", async () => {
+    mockFindManagedRequests.mockResolvedValue([
+      {
+        id: "r-direct",
+        status: "PENDENTE",
+        createdAt: new Date("2026-03-20T12:00:00Z"),
+        userId: "f-direct",
+        user: { managerId: "ger-1", manager: { managerId: "dir-1" } },
+      },
+      {
+        id: "r-indirect-allowed",
+        status: "PENDENTE",
+        createdAt: new Date("2026-03-20T12:00:00Z"),
+        userId: "f-indirect-allowed",
+        user: { managerId: "coord-1", manager: { managerId: "ger-1" } },
+      },
+      {
+        id: "r-indirect-blocked",
+        status: "PENDENTE",
+        createdAt: new Date("2026-03-21T12:00:00Z"),
+        userId: "f-indirect-blocked",
+        user: { managerId: "coord-2", manager: { managerId: "ger-1" } },
+      },
+    ]);
+    mockCanIndirectLeaderActWhenDirectOnVacation
+      .mockResolvedValueOnce(true) // r-indirect-allowed
+      .mockResolvedValueOnce(false); // r-indirect-blocked
+
+    const out = await getDashboardData({ userId: "ger-1", role: "GERENTE" });
+    expect(out.managedRequests.map((r: any) => r.id)).toEqual(["r-direct", "r-indirect-allowed"]);
+    expect(mockCanIndirectLeaderActWhenDirectOnVacation).toHaveBeenCalledTimes(2);
+  });
+
+  it("for DIRETOR, keeps direct reports and only allowed indirect reports", async () => {
+    mockFindManagedRequests.mockResolvedValue([
+      {
+        id: "r-direct-gerente",
+        status: "PENDENTE",
+        createdAt: new Date("2026-03-25T12:00:00Z"),
+        userId: "ger-1",
+        user: { managerId: "dir-1", manager: { managerId: "rh-1" } },
+      },
+      {
+        id: "r-indirect-allowed",
+        status: "PENDENTE",
+        createdAt: new Date("2026-03-26T12:00:00Z"),
+        userId: "f-indirect-allowed",
+        user: { managerId: "ger-2", manager: { managerId: "dir-1" } },
+      },
+      {
+        id: "r-indirect-blocked",
+        status: "PENDENTE",
+        createdAt: new Date("2026-03-27T12:00:00Z"),
+        userId: "f-indirect-blocked",
+        user: { managerId: "ger-3", manager: { managerId: "dir-1" } },
+      },
+    ]);
+    mockCanIndirectLeaderActWhenDirectOnVacation
+      .mockResolvedValueOnce(true) // r-indirect-allowed
+      .mockResolvedValueOnce(false); // r-indirect-blocked
+
+    const out = await getDashboardData({ userId: "dir-1", role: "DIRETOR" });
+    expect(out.managedRequests.map((r: any) => r.id)).toEqual(["r-direct-gerente", "r-indirect-allowed"]);
+    expect(mockCanIndirectLeaderActWhenDirectOnVacation).toHaveBeenCalledTimes(2);
   });
 });
 
@@ -186,13 +259,13 @@ describe("getPendingCount", () => {
     expect(getPendingCount(3, list)).toBe(2);
   });
 
-  it("level 4: counts only APROVADO_GERENTE", () => {
+  it("level 4: counts only PENDENTE", () => {
     const list = [
       req("APROVADO_GERENTE"),
       req("APROVADO_GERENTE"),
       req("PENDENTE"),
     ];
-    expect(getPendingCount(4, list)).toBe(2);
+    expect(getPendingCount(4, list)).toBe(1);
   });
 
   it("other level: returns 0", () => {

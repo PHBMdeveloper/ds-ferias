@@ -2,7 +2,13 @@ import { getApprovalSteps, getApprovalProgress, getNextApprover } from "@/lib/va
 
 type RequestLike = { status: string; user?: { role?: string } | null };
 
-export function ApprovalProgressBar({ request }: { request: RequestLike }) {
+export function ApprovalProgressBar({
+  request,
+  stepLabelOverride,
+}: {
+  request: RequestLike;
+  stepLabelOverride?: string;
+}) {
   const steps = getApprovalSteps(request.user?.role ?? "FUNCIONARIO");
   const progress = getApprovalProgress(request.status);
   const isRejected = request.status === "REPROVADO" || request.status === "CANCELADO";
@@ -43,7 +49,7 @@ export function ApprovalProgressBar({ request }: { request: RequestLike }) {
                     : "text-[#94a3b8]"
               }`}
             >
-              {step}
+              {stepLabelOverride?.trim() ? stepLabelOverride : step}
             </span>
           </div>
         ))}

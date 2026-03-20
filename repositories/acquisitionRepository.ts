@@ -44,6 +44,38 @@ export async function syncAcquisitionPeriodsForUser(
       orderBy: { startDate: "asc" },
     });
 
+  // Dedup defensivo: se existirem períodos duplicados para o mesmo intervalo,
+  // mantém apenas 1 registro canônico, religa requests e remove o restante.
+  if (periods.length > 1) {
+    const byRange = new Map<string, Array<{ id: string; startDate: Date; endDate: Date; accruedDays: number; usedDays: number }>>();
+    for (const p of periods) {
+      const key = `${new Date(p.startDate).toISOString()}::${new Date(p.endDate).toISOString()}`;
+      const list = byRange.get(key) ?? [];
+      list.push(p);
+      byRange.set(key, list);
+    }
+
+    const duplicateIdsToDelete: string[] = [];
+    for (const group of byRange.values()) {
+      if (group.length <= 1) continue;
+      const canonical = [...group].sort((a, b) => (b.usedDays ?? 0) - (a.usedDays ?? 0))[0];
+      const duplicates = group.filter((p) => p.id !== canonical.id);
+      const duplicateIds = duplicates.map((p) => p.id);
+      if (duplicateIds.length === 0) continue;
+
+      await (prisma as any).vacationRequest.updateMany({
+        where: { userId, acquisitionPeriodId: { in: duplicateIds } },
+        data: { acquisitionPeriodId: canonical.id },
+      });
+      duplicateIdsToDelete.push(...duplicateIds);
+    }
+
+    if (duplicateIdsToDelete.length > 0) {
+      await ap.deleteMany({ where: { id: { in: duplicateIdsToDelete } } });
+      periods = periods.filter((p) => !duplicateIdsToDelete.includes(p.id));
+    }
+  }
+
   if (periods.length === 0) {
     const newPeriods: Array<{ userId: string; startDate: Date; endDate: Date; accruedDays: number; usedDays: number }> = [];
     const today = new Date();

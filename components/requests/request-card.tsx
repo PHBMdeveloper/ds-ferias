@@ -35,6 +35,7 @@ export type RequestWithUser = {
     name?: string;
     role?: string;
     department?: string | null;
+    managerId?: string | null;
   } | null;
   history?: Array<{
     newStatus?: string;
@@ -62,6 +63,10 @@ export function RequestCard({
       })
     : false;
   const showActions = isOwner || (!!userId && request.userId !== userId);
+  const isIndirectApproverContext =
+    !!userId && !!request.user?.managerId && request.user.managerId !== userId;
+  const progressStepLabel =
+    !isOwner && isIndirectApproverContext ? "Líder indireto" : undefined;
   const start = new Date(request.startDate);
   const end = new Date(request.endDate);
   const approvalEntry =
@@ -160,7 +165,9 @@ export function RequestCard({
           </div>
         )}
 
-        {request.user && <ApprovalProgressBar request={request} />}
+        {request.user && (
+          <ApprovalProgressBar request={request} stepLabelOverride={progressStepLabel} />
+        )}
 
         {request.history?.length ? <HistorySection history={request.history as Parameters<typeof HistorySection>[0]["history"]} /> : null}
 

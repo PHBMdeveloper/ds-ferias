@@ -127,6 +127,22 @@ async function main() {
     },
   });
 
+  // Coordenador Paulo (abaixo do Mendonca)
+  const paulo = await prisma.user.create({
+    data: {
+      id: "coord-paulo",
+      name: "Paulo",
+      email: "paulo@empresa.com",
+      passwordHash: senhaHash,
+      role: "COORDENADOR",
+      managerId: mendonca.id,
+      registration: "REG-COORD-PAULO",
+      team: "Inteligencia Artificial",
+      department: "Engenharia",
+      hireDate: new Date("2024-02-01T00:00:00Z"),
+    },
+  });
+
   const colaboradores = [
     // Rapha -> Plataforma (4)
     { id: "colab-p1", nome: "Plataforma Um", email: "p1@empresa.com", gestorId: rapha.id, time: "Plataforma", reg: "REG-P1" },
@@ -141,6 +157,8 @@ async function main() {
     { id: "colab-d5", nome: "Design Cinco", email: "d5@empresa.com", gestorId: rapha.id, time: "Design System", reg: "REG-D5" },
     // Joaozinho -> Inovacao (1)
     { id: "colab-i1", nome: "Inovacao Um", email: "i1@empresa.com", gestorId: joaozinho.id, time: "Inovacao", reg: "REG-I1" },
+    // Paulo -> Inteligencia Artificial (1)
+    { id: "colab-ia1", nome: "IA Um", email: "ia1@empresa.com", gestorId: paulo.id, time: "Inteligencia Artificial", reg: "REG-IA1", hireDate: "2025-11-01T00:00:00Z" },
     // Loran -> 3 colaboradores
     { id: "colab-l1", nome: "Loran Um", email: "l1@empresa.com", gestorId: loran.id, time: "Squad Loran", reg: "REG-L1" },
     { id: "colab-l2", nome: "Loran Dois", email: "l2@empresa.com", gestorId: loran.id, time: "Squad Loran", reg: "REG-L2" },
@@ -150,7 +168,8 @@ async function main() {
   const createdEmployees = [];
   for (let i = 0; i < colaboradores.length; i += 1) {
     const c = colaboradores[i];
-    const hireDate = addDays(new Date("2023-01-01T00:00:00Z"), i * 15);
+    const customHireDate = "hireDate" in c && c.hireDate ? new Date(c.hireDate) : null;
+    const hireDate = customHireDate ?? addDays(new Date("2023-01-01T00:00:00Z"), i * 15);
     const user = await prisma.user.create({
       data: {
         id: c.id,
@@ -176,6 +195,7 @@ async function main() {
     rapha,
     joaozinho,
     loran,
+    paulo,
     ...createdEmployees,
   ];
 
@@ -183,6 +203,7 @@ async function main() {
   const today = new Date();
   for (let i = 0; i < allUsersForVacation.length; i += 1) {
     const u = allUsersForVacation[i];
+    if (u.id === paulo.id) continue; // Paulo terá férias fixas abaixo
     const pastStart = addDays(today, -randInt(30, 210));
     const pastEnd = addDays(pastStart, randInt(5, 15));
     const futureStart = addDays(today, randInt(20, 180));
@@ -215,6 +236,20 @@ async function main() {
     });
   }
 
+  // Férias fixas do Paulo: 10/mar -> 08/abr (30 dias corridos)
+  await prisma.vacationRequest.create({
+    data: {
+      id: "seed-approved-coord-paulo-mar-abr",
+      userId: paulo.id,
+      startDate: new Date("2026-03-10T00:00:00Z"),
+      endDate: new Date("2026-04-08T00:00:00Z"),
+      status: "APROVADO_GERENTE",
+      notes: "Seed: férias fixas do Paulo (30 dias)",
+      abono: false,
+      thirteenth: false,
+    },
+  });
+
   console.log("Seed concluido. Senha para todos: senha123");
   console.log("");
   console.log("Hierarquia solicitada:");
@@ -225,6 +260,8 @@ async function main() {
   console.log("      - Design System: 5 colaboradores");
   console.log("    - Gestor: Joaozinho");
   console.log("      - Inovacao: 1 colaborador");
+  console.log("    - Coordenador: Paulo");
+  console.log("      - Inteligencia Artificial: 1 colaborador (admissao nov/2025)");
   console.log("  - Gerente: Fabricio");
   console.log("    - Gestor: Loran");
   console.log("      - Squad Loran: 3 colaboradores");

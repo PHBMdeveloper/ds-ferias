@@ -1,5 +1,6 @@
 import { buildManagedRequestsWhere } from "@/lib/requestVisibility";
 import { hasTeamVisibility, getRoleLevel, calculateVacationBalance } from "@/lib/vacationRules";
+import { canIndirectLeaderActWhenDirectOnVacation } from "@/lib/indirectLeaderRule";
 import { findMyRequests, findManagedRequests } from "@/repositories/vacationRepository";
 import { findBlackouts } from "@/repositories/blackoutRepository";
 import { findUserWithBalance, findUserDepartment } from "@/repositories/userRepository";
@@ -38,9 +39,31 @@ export async function getDashboardData(params: DashboardDataParams) {
     findBlackouts(),
   ]);
 
-  const teamRequests = managedRequests.filter((r) => r.status === "APROVADO_GERENTE");
+  // Regra de líder indireto: gerente/diretor só visualiza card de indireto
+  // quando o líder direto estava de férias no momento da solicitação.
+  const roleLevel = getRoleLevel(role);
+  const managedRequestsFiltered =
+    roleLevel >= 3
+      ? await Promise.all(
+          managedRequests.map(async (r) => {
+            const directLeaderId = r.user?.managerId ?? null;
+            const directLeaderManagerId = r.user?.manager?.managerId ?? null;
+            const isDirectReport = directLeaderId === userId;
+            if (isDirectReport) return r;
+            const canIndirect = await canIndirectLeaderActWhenDirectOnVacation({
+              approverId: userId,
+              directLeaderId,
+              directLeaderManagerId,
+              requestCreatedAt: r.createdAt,
+            });
+            return canIndirect ? r : null;
+          }),
+        ).then((items) => items.filter((x): x is (typeof managedRequests)[number] => !!x))
+      : managedRequests;
 
-  return { myRequests, managedRequests, blackouts, teamRequests };
+  const teamRequests = managedRequestsFiltered.filter((r) => r.status === "APROVADO_GERENTE");
+
+  return { myRequests, managedRequests: managedRequestsFiltered, blackouts, teamRequests };
 }
 
 export async function getCurrentUserBalance(userId: string) {
