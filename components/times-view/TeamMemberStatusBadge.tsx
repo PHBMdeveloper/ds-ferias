@@ -7,10 +7,23 @@ export function TeamMemberStatusBadge({ member }: { member: TeamMemberInfoSerial
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const hasFutureVacation = requests.some((r) => {
+  const hasFutureApprovedVacation = requests.some((r) => {
+    if (r.status !== "APROVADO_GERENTE") return false;
     const start = new Date(r.startDate);
     start.setHours(0, 0, 0, 0);
     return start > today;
+  });
+  const hasFuturePendingVacation = requests.some((r) => {
+    if (!["PENDENTE", "APROVADO_COORDENADOR", "APROVADO_GESTOR"].includes(r.status)) return false;
+    const start = new Date(r.startDate);
+    start.setHours(0, 0, 0, 0);
+    return start > today;
+  });
+  const hasTakenVacation = requests.some((r) => {
+    if (r.status !== "APROVADO_GERENTE") return false;
+    const end = new Date(r.endDate);
+    end.setHours(0, 0, 0, 0);
+    return end < today;
   });
 
   if (isOnVacationNow) {
@@ -22,13 +35,32 @@ export function TeamMemberStatusBadge({ member }: { member: TeamMemberInfoSerial
     );
   }
 
-  if (!isOnVacationNow && (hasFutureVacation || balance.availableDays > 0 || balance.pendingDays > 0)) {
+  if (
+    !isOnVacationNow &&
+    (hasFuturePendingVacation || hasFutureApprovedVacation || balance.availableDays > 0 || balance.pendingDays > 0)
+  ) {
     return (
-      <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">
-        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden />
-        {hasFutureVacation ? "Férias marcadas" : "Férias a tirar"}
-        {!hasFutureVacation && balance.availableDays > 0 && (
-          <span className="font-normal opacity-90"> ({balance.availableDays} dias)</span>
+      <span className="inline-flex flex-wrap items-center gap-1.5">
+        {hasFuturePendingVacation && (
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-3 py-1.5 text-sm font-semibold text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
+            <span className="h-1.5 w-1.5 rounded-full bg-amber-500" aria-hidden />
+            Pendente aprovação
+          </span>
+        )}
+
+        {hasFutureApprovedVacation && !hasTakenVacation && (
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-3 py-1.5 text-sm font-semibold text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden />
+            Férias marcadas
+          </span>
+        )}
+
+        {!hasFuturePendingVacation && !hasFutureApprovedVacation && balance.availableDays > 0 && (
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-3 py-1.5 text-sm font-semibold text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden />
+            Férias a tirar
+            <span className="font-normal opacity-90"> ({balance.availableDays} dias)</span>
+          </span>
         )}
       </span>
     );

@@ -44,6 +44,63 @@ describe("TeamMemberStatusBadge", () => {
     expect(text).toContain("Férias marcadas");
   });
 
+  it("shows both 'Pendente' and 'Férias marcadas' when both exist in future", () => {
+    const futureApproved = new Date();
+    futureApproved.setDate(futureApproved.getDate() + 10);
+    const futurePending = new Date();
+    futurePending.setDate(futurePending.getDate() + 20);
+
+    const text = renderText({
+      ...baseMember,
+      requests: [
+        {
+          status: "APROVADO_GERENTE",
+          startDate: futureApproved.toISOString(),
+          endDate: futureApproved.toISOString(),
+          abono: false,
+        },
+        {
+          status: "PENDENTE",
+          startDate: futurePending.toISOString(),
+          endDate: futurePending.toISOString(),
+          abono: false,
+        },
+      ],
+    });
+
+    expect(text).toContain("Férias marcadas");
+    expect(text).toContain("Pendente");
+  });
+
+  it("hides 'Férias marcadas' when employee already took vacation", () => {
+    const pastApprovedStart = new Date();
+    pastApprovedStart.setDate(pastApprovedStart.getDate() - 30);
+    const pastApprovedEnd = new Date();
+    pastApprovedEnd.setDate(pastApprovedEnd.getDate() - 20);
+    const futureApproved = new Date();
+    futureApproved.setDate(futureApproved.getDate() + 10);
+
+    const text = renderText({
+      ...baseMember,
+      requests: [
+        {
+          status: "APROVADO_GERENTE",
+          startDate: pastApprovedStart.toISOString(),
+          endDate: pastApprovedEnd.toISOString(),
+          abono: false,
+        },
+        {
+          status: "APROVADO_GERENTE",
+          startDate: futureApproved.toISOString(),
+          endDate: futureApproved.toISOString(),
+          abono: false,
+        },
+      ],
+    });
+
+    expect(text).not.toContain("Férias marcadas");
+  });
+
   it("shows 'Férias a tirar' when there is balance but no future request", () => {
     const text = renderText({
       ...baseMember,

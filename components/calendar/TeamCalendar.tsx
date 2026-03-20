@@ -204,7 +204,7 @@ export function TeamCalendar({ members }: Props) {
         <span className="inline-block h-2.5 w-2.5 rounded-full bg-emerald-500" />
         <span>Férias aprovadas</span>
         <span className="ml-3 inline-block h-2.5 w-2.5 rounded-full bg-amber-400" />
-        <span>Férias pendentes</span>
+        <span>Pendente aprovação</span>
         <span className="ml-3 inline-block h-2.5 w-2.5 rounded-full bg-red-300 dark:bg-red-700/70" />
         <span>Capacidade afetada (2+ no mesmo dia)</span>
       </div>
