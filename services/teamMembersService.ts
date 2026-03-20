@@ -36,6 +36,14 @@ function mapUsersToMembers(users: Array<{ id: string; name: string; department?:
   }));
 }
 
+function sortTeamsByCoordinatorAndName<T extends { coordinatorName: string; teamName: string }>(teams: T[]): T[] {
+  return [...teams].sort((a, b) => {
+    const byCoordinator = a.coordinatorName.localeCompare(b.coordinatorName, "pt-BR");
+    if (byCoordinator !== 0) return byCoordinator;
+    return a.teamName.localeCompare(b.teamName, "pt-BR");
+  });
+}
+
 export async function getTeamMembersForTimes(
   userId: string,
   role: string
@@ -97,7 +105,7 @@ export async function getTeamMembersForTimes(
         {
           gerenteId: userId,
           gerenteName: "Minha gestão",
-          teams,
+          teams: sortTeamsByCoordinatorAndName(teams),
         },
       ],
     };
@@ -135,8 +143,12 @@ export async function getTeamMembersForTimes(
         members: mems.sort((a, b) => a.user.name.localeCompare(b.user.name)),
       };
     });
-    gerentes.push({ gerenteId, gerenteName, teams });
+    gerentes.push({
+      gerenteId,
+      gerenteName,
+      teams: sortTeamsByCoordinatorAndName(teams),
+    });
   });
-  gerentes.sort((a, b) => a.gerenteName.localeCompare(b.gerenteName));
+  gerentes.sort((a, b) => a.gerenteName.localeCompare(b.gerenteName, "pt-BR"));
   return { kind: "rh", gerentes };
 }

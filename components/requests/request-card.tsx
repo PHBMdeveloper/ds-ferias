@@ -167,7 +167,7 @@ export function RequestCard({
           </div>
         )}
 
-        {request.user && (
+        {!isOwner && request.user && (
           <ApprovalProgressBar
             request={request}
             stepLabelOverride={progressStepLabel}
