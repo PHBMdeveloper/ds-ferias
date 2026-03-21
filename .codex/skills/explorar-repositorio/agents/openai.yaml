@@ -1,0 +1,4 @@
+interface:
+  display_name: "Explorar Repositório"
+  short_description: "Mapeia arquitetura e fluxos do repo"
+  default_prompt: "Use $explorar-repositorio para mapear este repositório, resumir a arquitetura e indicar por onde começar a alteração."
