@@ -140,11 +140,12 @@ describe("getSessionUser", () => {
     expect(user).toBeNull();
   });
 
-  it("returns user when cookie has valid legacy JSON (no dot)", async () => {
+  it("returns null when cookie has legacy JSON (no dot)", async () => {
+    process.env.SESSION_SECRET = "a".repeat(16);
     const data: SessionUser = { id: "u1", name: "U", email: "u@e.com", role: "FUNCIONARIO" };
     mockGet.mockReturnValue({ value: JSON.stringify(data) });
     const user = await getSessionUser();
-    expect(user).toEqual(data);
+    expect(user).toBeNull();
   });
 
   it("returns user when SESSION_SECRET set and cookie is signed (createSession + getSessionUser)", async () => {
@@ -173,14 +174,9 @@ describe("createSession", () => {
     delete process.env.SESSION_SECRET;
   });
 
-  it("não assina payload quando SESSION_SECRET não está definido", async () => {
+  it("throws error quando SESSION_SECRET não está definido", async () => {
     const user: SessionUser = { id: "u1", name: "U", email: "u@e.com", role: "RH" };
-    await createSession(user);
-    expect(mockSet).toHaveBeenCalledWith(
-      "ds-ferias-session",
-      JSON.stringify(user),
-      expect.objectContaining({ httpOnly: true, maxAge: 60 * 60 * 8 })
-    );
+    await expect(createSession(user)).rejects.toThrow("SESSION_SECRET must be at least 16 characters");
   });
 
   it("assina payload quando SESSION_SECRET está definido (comprimento >= 16)", async () => {
