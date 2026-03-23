@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
 import { getRoleLevel } from "@/lib/vacationRules";
 import { findUsersWithVacationForBalance } from "@/repositories/userRepository";
+import { escapeCsvFormulas } from "@/lib/csv";
 
 /** GET: relatório de adesão — colaboradores com direito a férias que não tiraram férias no ano informado. */
 export async function GET(request: Request) {
@@ -53,9 +54,9 @@ export async function GET(request: Request) {
     if (hasTakenVacationInYear) continue;
 
     lines.push([
-      u.name.replace(/;/g, ","),
-      u.email.replace(/;/g, ","),
-      (u.department ?? "").replace(/;/g, ","),
+      escapeCsvFormulas(u.name.replace(/;/g, ",")),
+      escapeCsvFormulas(u.email.replace(/;/g, ",")),
+      escapeCsvFormulas((u.department ?? "").replace(/;/g, ",")),
       String(year),
       hasEntitlement ? "SIM" : "NAO",
       String(monthsWorked),

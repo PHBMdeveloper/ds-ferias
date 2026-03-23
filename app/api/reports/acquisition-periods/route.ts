@@ -4,6 +4,7 @@ import { getSessionUser } from "@/lib/auth";
 import { getRoleLevel } from "@/lib/vacationRules";
 import { findUsersWithVacationForBalance } from "@/repositories/userRepository";
 import { syncAcquisitionPeriodsForUser } from "@/repositories/acquisitionRepository";
+import { escapeCsvFormulas } from "@/lib/csv";
 
 export async function GET(request: Request) {
   const user = await getSessionUser();
@@ -66,9 +67,9 @@ export async function GET(request: Request) {
           : "NAO_UTILIZADO";
     lines.push(
       [
-        p.user.name.replace(/;/g, ","),
-        p.user.email.replace(/;/g, ","),
-        (p.user.department ?? "").replace(/;/g, ","),
+        escapeCsvFormulas(p.user.name.replace(/;/g, ",")),
+        escapeCsvFormulas(p.user.email.replace(/;/g, ",")),
+        escapeCsvFormulas((p.user.department ?? "").replace(/;/g, ",")),
         p.startDate.toISOString().slice(0, 10),
         p.endDate.toISOString().slice(0, 10),
         String(p.accruedDays),
