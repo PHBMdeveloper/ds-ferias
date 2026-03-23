@@ -26,7 +26,20 @@ export type NotifyEvent =
       managerNote?: string | null;
       hrNote?: string | null;
     }
-  | { type: "REJECTED"; requestId: string; userName: string; userEmail: string; approverName: string; note?: string | null };
+  | { type: "REJECTED"; requestId: string; userName: string; userEmail: string; approverName: string; note?: string | null }
+  | {
+      type: "UPCOMING_VACATION_REMINDER";
+      requestId: string;
+      userName: string;
+      userEmail: string;
+      managerName: string;
+      managerEmail: string;
+      startDate: string;
+      endDate: string;
+      daysUntilStart: number;
+      abono: boolean;
+      thirteenth: boolean;
+    };
 
 function logEvent(event: NotifyEvent) {
   if (process.env.NODE_ENV === "development") {
@@ -119,6 +132,72 @@ async function sendApprovedEmail(event: Extract<NotifyEvent, { type: "APPROVED" 
   });
 }
 
+function renderReminderEmailHtml(event: Extract<NotifyEvent, { type: "UPCOMING_VACATION_REMINDER" }>): string {
+  const brandName = process.env.MAIL_BRAND_NAME?.trim() || "Editora Globo";
+  const hrSignature = process.env.MAIL_HR_SIGNATURE?.trim() || "RH - Editora Globo";
+  const safeBrandName = escapeHtml(brandName);
+  const safeHrSignature = escapeHtml(hrSignature);
+
+  return `
+    <div style="font-family:Arial,sans-serif;color:#1f2937;">
+      <h2 style="margin-bottom:8px;">Lembrete: ferias em ${event.daysUntilStart} dias</h2>
+      <p style="margin:0 0 12px 0;">O colaborador abaixo entrara de ferias em breve.</p>
+      <table style="border-collapse:collapse;width:100%;max-width:760px;">
+        <tr><td style="padding:8px;border:1px solid #ddd;background:#f9f9f9;font-weight:600;">Colaborador</td><td style="padding:8px;border:1px solid #ddd;">${escapeHtml(event.userName)}</td></tr>
+        <tr><td style="padding:8px;border:1px solid #ddd;background:#f9f9f9;font-weight:600;">Inicio</td><td style="padding:8px;border:1px solid #ddd;">${escapeHtml(event.startDate)}</td></tr>
+        <tr><td style="padding:8px;border:1px solid #ddd;background:#f9f9f9;font-weight:600;">Fim</td><td style="padding:8px;border:1px solid #ddd;">${escapeHtml(event.endDate)}</td></tr>
+        <tr><td style="padding:8px;border:1px solid #ddd;background:#f9f9f9;font-weight:600;">Abono</td><td style="padding:8px;border:1px solid #ddd;">${event.abono ? "Sim" : "Nao"}</td></tr>
+        <tr><td style="padding:8px;border:1px solid #ddd;background:#f9f9f9;font-weight:600;">Adiantamento 13o</td><td style="padding:8px;border:1px solid #ddd;">${event.thirteenth ? "Sim" : "Nao"}</td></tr>
+      </table>
+      <p style="margin:14px 0 2px 0;font-size:13px;color:#4b5563;">${safeBrandName}</p>
+      <p style="margin:0;font-size:13px;color:#4b5563;">${safeHrSignature}</p>
+    </div>
+  `;
+}
+
+async function sendReminderEmail(event: Extract<NotifyEvent, { type: "UPCOMING_VACATION_REMINDER" }>): Promise<void> {
+  const apiKey = process.env.RESEND_API_KEY;
+  const from = process.env.MAIL_FROM;
+  if (!apiKey || !from || !event.managerEmail) return;
+
+  const resend = new Resend(apiKey);
+  await resend.emails.send({
+    from,
+    to: [event.managerEmail],
+    subject: `Lembrete: ${event.userName} entra de ferias em ${event.daysUntilStart} dias`,
+    html: renderReminderEmailHtml(event),
+  });
+}
+
+function shouldSendReminderEmail(): boolean {
+  const channels = (process.env.REMINDER_CHANNELS ?? "email").toLowerCase();
+  return channels.includes("email");
+}
+
+function shouldSendReminderSlack(): boolean {
+  const channels = (process.env.REMINDER_CHANNELS ?? "email").toLowerCase();
+  return channels.includes("slack");
+}
+
+async function sendReminderSlack(event: Extract<NotifyEvent, { type: "UPCOMING_VACATION_REMINDER" }>): Promise<void> {
+  const webhook = process.env.SLACK_WEBHOOK_URL;
+  if (!webhook) return;
+
+  const text =
+    `:calendar: *Lembrete de ferias* - ${event.userName} entra de ferias em ${event.daysUntilStart} dias.\n` +
+    `*Inicio:* ${event.startDate}\n*Fim:* ${event.endDate}\n*Abono:* ${event.abono ? "Sim" : "Nao"}\n*13o:* ${event.thirteenth ? "Sim" : "Nao"}\n` +
+    `*Lider:* ${event.managerName} (${event.managerEmail})`;
+
+  const res = await fetch(webhook, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text }),
+  });
+  if (!res.ok) {
+    console.error("[notify] slack reminder failed", res.status, await res.text());
+  }
+}
+
 function getNotifyProvider(): NotifyProvider {
   const raw = (process.env.NOTIFY_PROVIDER ?? "").trim().toLowerCase();
   if (raw === "resend" || raw === "webhook" || raw === "both" || raw === "none") {
@@ -144,6 +223,23 @@ export async function notify(event: NotifyEvent): Promise<void> {
       await sendApprovedEmail(event);
     } catch (err) {
       console.error("[notify] email send error", err);
+    }
+  }
+
+  if (event.type === "UPCOMING_VACATION_REMINDER") {
+    if (shouldSendEmail && shouldSendReminderEmail()) {
+      try {
+        await sendReminderEmail(event);
+      } catch (err) {
+        console.error("[notify] reminder email send error", err);
+      }
+    }
+    if (shouldSendReminderSlack()) {
+      try {
+        await sendReminderSlack(event);
+      } catch (err) {
+        console.error("[notify] reminder slack send error", err);
+      }
     }
   }
 
@@ -235,5 +331,32 @@ export function notifyRejected(payload: {
   return notify({
     type: "REJECTED",
     ...payload,
+  });
+}
+
+export function notifyUpcomingVacationReminder(payload: {
+  requestId: string;
+  userName: string;
+  userEmail: string;
+  managerName: string;
+  managerEmail: string;
+  startDate: Date;
+  endDate: Date;
+  daysUntilStart: number;
+  abono: boolean;
+  thirteenth: boolean;
+}) {
+  return notify({
+    type: "UPCOMING_VACATION_REMINDER",
+    requestId: payload.requestId,
+    userName: payload.userName,
+    userEmail: payload.userEmail,
+    managerName: payload.managerName,
+    managerEmail: payload.managerEmail,
+    startDate: payload.startDate.toISOString().slice(0, 10),
+    endDate: payload.endDate.toISOString().slice(0, 10),
+    daysUntilStart: payload.daysUntilStart,
+    abono: payload.abono,
+    thirteenth: payload.thirteenth,
   });
 }

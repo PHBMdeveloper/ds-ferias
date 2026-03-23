@@ -1,6 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
-import { notify, notifyNewRequest, notifyApproved, notifyRejected } from "@/lib/notifications";
+import {
+  notify,
+  notifyNewRequest,
+  notifyApproved,
+  notifyRejected,
+  notifyUpcomingVacationReminder,
+} from "@/lib/notifications";
 
 const resendSendMock = vi.fn().mockResolvedValue({ id: "mail_123" });
 
@@ -234,6 +240,31 @@ describe("notifications", () => {
     });
 
     expect(logSpy).toHaveBeenCalledWith("[notify]", "NEW_REQUEST", expect.any(Object));
+  });
+
+  it("sends vacation reminder to manager by email", async () => {
+    process.env.NOTIFY_PROVIDER = "resend";
+    process.env.RESEND_API_KEY = "re_test";
+    process.env.MAIL_FROM = "Ferias <ferias@empresa.com>";
+    process.env.REMINDER_CHANNELS = "email";
+
+    await notifyUpcomingVacationReminder({
+      requestId: "r-rem-1",
+      userName: "Colab 1",
+      userEmail: "colab1@empresa.com",
+      managerName: "Gestor 1",
+      managerEmail: "gestor1@empresa.com",
+      startDate: new Date("2026-09-04T12:00:00Z"),
+      endDate: new Date("2026-09-15T12:00:00Z"),
+      daysUntilStart: 7,
+      abono: true,
+      thirteenth: false,
+    });
+
+    expect(resendSendMock).toHaveBeenCalledTimes(1);
+    const args = resendSendMock.mock.calls[0][0];
+    expect(args.to).toEqual(["gestor1@empresa.com"]);
+    expect(args.subject).toContain("entra de ferias em 7 dias");
   });
 });
 

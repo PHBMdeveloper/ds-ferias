@@ -79,6 +79,24 @@ Opcional:
   - `webhook`: somente webhook
   - `both`: e-mail + webhook (padrão)
   - `none`: desativa envios externos (mantém logs locais em dev)
+- `REMINDER_CHANNELS` para lembrete de férias em 7 dias (`email`, `slack` ou `email,slack`).
+- `SLACK_WEBHOOK_URL` para receber lembretes no Slack.
+- `REMINDER_CRON_SECRET` (ou `CRON_SECRET` no Vercel) para proteger a rota de disparo do lembrete.
+
+Lembrete automático (7 dias antes da data de início):
+
+- Endpoint: `POST /api/notifications/vacation-reminders`
+- Autenticação: header `x-cron-secret: <REMINDER_CRON_SECRET>` (ou `Authorization: Bearer <secret>`)
+- Processa solicitações `APROVADO_GERENTE` com início exatamente em 7 dias e notifica o líder direto.
+
+### Deploy na Vercel (cron pronto)
+
+- O arquivo `vercel.json` já configura cron diário em `08:00 UTC` para `POST /api/notifications/vacation-reminders`.
+- No projeto da Vercel, configure as env vars:
+  - banco/sessão: `DATABASE_URL`, `SESSION_SECRET`
+  - notificação: `NOTIFY_PROVIDER`, `RESEND_API_KEY`, `MAIL_FROM`, `MAIL_BRAND_NAME`, `MAIL_LOGO_URL`, `MAIL_HR_SIGNATURE`
+  - lembrete: `REMINDER_CHANNELS`, `SLACK_WEBHOOK_URL` (se usar Slack), `CRON_SECRET` (ou `REMINDER_CRON_SECRET`)
+- No Vercel Cron, o header `Authorization: Bearer <CRON_SECRET>` é enviado automaticamente quando `CRON_SECRET` está definido.
 
 3. **Instalar e preparar o banco:**
 
