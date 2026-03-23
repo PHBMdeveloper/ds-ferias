@@ -69,7 +69,16 @@ DATABASE_URL="postgresql://usuario:senha@host:porta/banco"
 SESSION_SECRET="seu-secret-com-pelo-menos-16-caracteres"
 ```
 
-Opcional: `NOTIFY_WEBHOOK_URL` para notificações (webhook em novo pedido / aprovação / reprovação).
+Opcional:
+
+- `NOTIFY_WEBHOOK_URL` para notificações por webhook (novo pedido / aprovação / reprovação).
+- `RESEND_API_KEY` + `MAIL_FROM` para envio direto de e-mail na aprovação (com fallback para webhook).
+- `MAIL_BRAND_NAME`, `MAIL_LOGO_URL`, `MAIL_HR_SIGNATURE` para personalizar identidade visual/texto do e-mail.
+- `NOTIFY_PROVIDER` para definir estratégia de envio:
+  - `resend`: somente e-mail (Resend)
+  - `webhook`: somente webhook
+  - `both`: e-mail + webhook (padrão)
+  - `none`: desativa envios externos (mantém logs locais em dev)
 
 3. **Instalar e preparar o banco:**
 
@@ -161,7 +170,7 @@ Testes em `tests/` cobrem `lib/`, `services` e `repositories` (papéis, aprovaç
 ## Melhorias futuras sugeridas
 
 - Migrar hash de senha para bcrypt/argon2 e implementar fluxo completo de troca/reset de senha (em vez de senha padrão).
-- Notificações por e-mail (ex.: Resend) ou Slack/Teams.
+- Expandir catálogo de notificações por e-mail/Slack/Teams e templates por papel.
 - Calendário consolidado de férias; limite de pessoas em férias por equipe.
 - Relatórios gerenciais adicionais; delegação temporária de aprovação.
 

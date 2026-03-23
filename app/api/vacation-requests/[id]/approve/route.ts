@@ -21,6 +21,12 @@ function daysBetweenInclusive(start: Date, end: Date): number {
   return Math.round((e.getTime() - s.getTime()) / ONE_DAY_MS) + 1;
 }
 
+function addDays(date: Date, days: number): Date {
+  const d = new Date(date);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d;
+}
+
 export async function POST(request: Request, { params }: Params) {
   const { id } = await params;
   if (!id || id.trim().length < 3) {
@@ -71,7 +77,9 @@ export async function POST(request: Request, { params }: Params) {
     );
   }
 
-  if (existing.user.managerId !== user.id) {
+  const isIndirectApproval = existing.user.managerId !== user.id;
+
+  if (isIndirectApproval) {
     const canIndirect = await canIndirectLeaderActWhenDirectOnVacation({
       approverId: user.id,
       directLeaderId: existing.user.managerId,
@@ -280,13 +288,32 @@ export async function POST(request: Request, { params }: Params) {
     didCommit = true;
   });
 
-  if (didCommit && updated?.user?.name && updated?.user?.email && user.name) {
+  if (didCommit && updated?.user?.name && updated?.user?.email && user.name && user.email) {
+    const recipientSet = new Set<string>([user.email]);
+
+    if (isIndirectApproval && updated.user.managerId) {
+      const directLeader = await prisma.user.findUnique({
+        where: { id: updated.user.managerId },
+        select: { email: true },
+      });
+      if (directLeader?.email) recipientSet.add(directLeader.email);
+    }
+
     notifyApproved({
       requestId: id,
       userName: updated.user.name,
       userEmail: updated.user.email,
       approverName: user.name,
       status: nextStatus,
+      toEmails: Array.from(recipientSet),
+      startDate: updated.startDate,
+      endDate: updated.endDate,
+      returnDate: addDays(updated.endDate, 1),
+      abono: updated.abono,
+      thirteenth: updated.thirteenth,
+      notes: updated.notes,
+      managerNote: updated.managerNote,
+      hrNote: updated.hrNote,
     }).catch(() => {});
   }
 
