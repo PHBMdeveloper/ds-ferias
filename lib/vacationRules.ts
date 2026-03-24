@@ -459,8 +459,10 @@ export function detectTeamConflicts(
     conflictingCount,
     teamSize,
     conflictPercent,
+    /** > 50% do time com férias sobrepostas — mensagem mais grave na aprovação */
     isBlocked: conflictPercent > 50,
-    isWarning: conflictPercent > 30,
+    /** Qualquer outro membro do time com período sobreposto (2+ pessoas no mesmo intervalo) */
+    isWarning: conflictingCount >= 1,
     names: conflicting.map((m) => m.name),
   };
 }

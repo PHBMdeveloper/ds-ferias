@@ -4,6 +4,7 @@ import { TeamCalendar } from "@/components/calendar/TeamCalendar";
 import type { TeamDataRH, TeamMemberInfoSerialized, VacationRequestSummary } from "./types";
 import { TeamMemberRow } from "./TeamMemberRow";
 import { Chevron } from "./Chevron";
+import { getRoleLabel } from "@/lib/vacationRules";
 
 function approvedByRoleFromRequest(r: any): string | null {
   const h = Array.isArray(r?.history) ? r.history : [];
@@ -11,14 +12,67 @@ function approvedByRoleFromRequest(r: any): string | null {
   return approval?.changedByUser?.role ?? null;
 }
 
+const LIDERANCA_DIRETA_CAPACITY_KEY = "__lideranca_direta_gerente__";
+
+/**
+ * Lista ordenada para o calendário consolidado do gerente: seções (direta / indireta),
+ * cargo no rótulo e capacidade por time (não cruza squads diferentes).
+ */
+function buildGerenteConsolidatedCalendarMembers(
+  teams: TeamDataRH["gerentes"][0]["teams"],
+  coordinatorMembers: TeamMemberInfoSerialized[] | undefined,
+): TeamMemberInfoSerialized[] {
+  const out: TeamMemberInfoSerialized[] = [];
+
+  const coordinators = [...(coordinatorMembers ?? [])].sort((a, b) =>
+    (a.user.name ?? "").localeCompare(b.user.name ?? "", "pt-BR", { sensitivity: "base" }),
+  );
+  coordinators.forEach((c) => {
+    out.push({
+      ...c,
+      calendarCapacityGroupKey: LIDERANCA_DIRETA_CAPACITY_KEY,
+      calendarSectionOrder: 0,
+      calendarSectionTitle: "Liderança direta — coordenadores (reportam a você)",
+      calendarDisplayName: `${c.user.name} · ${getRoleLabel(c.user.role)}`,
+    });
+  });
+
+  const sortedTeams = [...teams].sort((a, b) => {
+    const byC = a.coordinatorName.localeCompare(b.coordinatorName, "pt-BR");
+    if (byC !== 0) return byC;
+    return a.teamName.localeCompare(b.teamName, "pt-BR");
+  });
+
+  sortedTeams.forEach((team) => {
+    const mems = [...team.members].sort((a, b) =>
+      (a.user.name ?? "").localeCompare(b.user.name ?? "", "pt-BR", { sensitivity: "base" }),
+    );
+    mems.forEach((m) => {
+      out.push({
+        ...m,
+        calendarCapacityGroupKey: team.teamKey,
+        calendarSectionOrder: 1,
+        calendarSectionTitle: "Colaboradores — liderança indireta (por time)",
+        calendarSubsectionTitle: `${team.coordinatorName} · ${team.teamName}`,
+        calendarDisplayName: `${m.user.name} · ${getRoleLabel(m.user.role)}`,
+      });
+    });
+  });
+
+  return out;
+}
+
 export function TimesViewRhTeamsList({
   gerentes,
   expanded,
   toggle,
+  /** Gerente: exibe calendário consolidado + bloco separado por coordenador. RH: só árvore por gerente/time. */
+  showConsolidatedOverview = false,
 }: {
   gerentes: TeamDataRH["gerentes"];
   expanded: Record<string, boolean>;
   toggle: (key: string) => void;
+  showConsolidatedOverview?: boolean;
 }) {
   if (gerentes.length === 0) {
     return (
@@ -36,6 +90,9 @@ export function TimesViewRhTeamsList({
         const totalMembers = g.teams.reduce((s, t) => s + t.members.length, 0);
         const coordinatorCount = new Set(g.teams.map((t) => t.coordinatorId)).size;
         const totalPeople = totalMembers + coordinatorCount;
+        const consolidatedMembers = showConsolidatedOverview
+          ? buildGerenteConsolidatedCalendarMembers(g.teams, g.coordinatorMembers)
+          : [];
 
         return (
           <div key={g.gerenteId} className="space-y-0">
@@ -53,13 +110,46 @@ export function TimesViewRhTeamsList({
               <div>
                 <h2 className="text-lg font-semibold text-[#1a1d23] dark:text-white">{g.gerenteName}</h2>
                 <p className="text-sm text-[#64748b] dark:text-slate-400">
-                  {g.teams.length} time(s) · {totalMembers} colaborador(es) + {coordinatorCount} coordenador(es) ({totalPeople} pessoas)
+                  {g.teams.length} time(s) · {totalMembers} colaborador(es) + {coordinatorCount}{" "}
+                  coordenador(es) distinto{coordinatorCount === 1 ? "" : "s"} ({totalPeople} pessoas)
                 </p>
               </div>
             </button>
 
             {gerenteOpen && (
-              <div className="space-y-4 border-l-2 border-[#e2e8f0] pl-4 pt-3 dark:border-[#252a35]">
+              <div className="space-y-6 border-l-2 border-[#e2e8f0] pl-4 pt-3 dark:border-[#252a35]">
+                {showConsolidatedOverview && g.teams.length > 0 && (
+                  <section className="rounded-xl border border-[#c7d2fe] bg-[#eef2ff]/60 p-4 dark:border-indigo-900/40 dark:bg-indigo-950/20">
+                    <h3 className="text-base font-semibold text-[#1a1d23] dark:text-white">
+                      Visão geral — time completo
+                    </h3>
+                    <p className="mt-1 text-sm text-[#64748b] dark:text-slate-400">
+                      Agrupado por <span className="font-medium text-[#475569] dark:text-slate-300">liderança direta</span>{" "}
+                      (coordenadores) e <span className="font-medium text-[#475569] dark:text-slate-300">times</span>{" "}
+                      (colaboradores). O alerta vermelho de capacidade vale só{" "}
+                      <span className="font-medium text-[#475569] dark:text-slate-300">dentro do mesmo time</span> ou entre
+                      coordenadores entre si, sem misturar squads.
+                    </p>
+                    {consolidatedMembers.length > 0 ? (
+                      <div className="mt-4">
+                        <TeamCalendar members={consolidatedMembers} capacityScopedByGroup />
+                      </div>
+                    ) : (
+                      <p className="mt-3 text-sm text-[#64748b] dark:text-slate-400">Nenhum colaborador no filtro atual.</p>
+                    )}
+                  </section>
+                )}
+
+                {showConsolidatedOverview && g.teams.length > 0 && (
+                  <div className="border-t border-[#e2e8f0] pt-6 dark:border-[#252a35]">
+                    <h3 className="text-base font-semibold text-[#1a1d23] dark:text-white">Por coordenador</h3>
+                    <p className="mt-1 text-sm text-[#64748b] dark:text-slate-400">
+                      Calendário e lista por time de cada coordenador(a).
+                    </p>
+                  </div>
+                )}
+
+                <div className="space-y-4">
                 {g.teams.map((team) => {
                   const teamKey = `${gerenteKey}-team-${team.teamKey}`;
                   const teamOpen = expanded[teamKey] !== false;
@@ -92,25 +182,63 @@ export function TimesViewRhTeamsList({
 
                       {teamOpen && (
                         <div className="space-y-3 pl-4 pt-2">
-                          {team.members.length > 0 && <TeamCalendar members={team.members as TeamMemberInfoSerialized[]} />}
-                          {team.members.map((member) => (
-                            <TeamMemberRow
-                              key={member.user.id}
-                              member={member}
-                              requestsSummary={(member.requests as VacationRequestSummary[]).map((r) => ({
-                                startDate: r.startDate,
-                                endDate: r.endDate,
-                                status: r.status,
-                                abono: r.abono,
-                                approvedByRole: approvedByRoleFromRequest(r),
-                              }))}
-                            />
-                          ))}
+                          {(() => {
+                            const coordMember = g.coordinatorMembers?.find((m) => m.user.id === team.coordinatorId);
+                            const calendarMembers: TeamMemberInfoSerialized[] = [];
+                            const seen = new Set<string>();
+                            const push = (m: TeamMemberInfoSerialized) => {
+                              if (seen.has(m.user.id)) return;
+                              seen.add(m.user.id);
+                              calendarMembers.push(m);
+                            };
+                            if (coordMember) push(coordMember as TeamMemberInfoSerialized);
+                            for (const m of team.members) push(m as TeamMemberInfoSerialized);
+                            return (
+                              <>
+                                {calendarMembers.length > 0 && (
+                                  <TeamCalendar members={calendarMembers} />
+                                )}
+                                {coordMember && (
+                                  <div className="rounded-md border border-indigo-100/80 bg-indigo-50/40 px-2 py-1.5 dark:border-indigo-900/40 dark:bg-indigo-950/25">
+                                    <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-indigo-800 dark:text-indigo-200">
+                                      Coordenador(a)
+                                    </p>
+                                    <TeamMemberRow
+                                      member={coordMember as TeamMemberInfoSerialized}
+                                      requestsSummary={(
+                                        coordMember.requests as VacationRequestSummary[]
+                                      ).map((r) => ({
+                                        startDate: r.startDate,
+                                        endDate: r.endDate,
+                                        status: r.status,
+                                        abono: r.abono,
+                                        approvedByRole: approvedByRoleFromRequest(r),
+                                      }))}
+                                    />
+                                  </div>
+                                )}
+                                {team.members.map((member) => (
+                                  <TeamMemberRow
+                                    key={member.user.id}
+                                    member={member}
+                                    requestsSummary={(member.requests as VacationRequestSummary[]).map((r) => ({
+                                      startDate: r.startDate,
+                                      endDate: r.endDate,
+                                      status: r.status,
+                                      abono: r.abono,
+                                      approvedByRole: approvedByRoleFromRequest(r),
+                                    }))}
+                                  />
+                                ))}
+                              </>
+                            );
+                          })()}
                         </div>
                       )}
                     </div>
                   );
                 })}
+                </div>
               </div>
             )}
           </div>

@@ -55,6 +55,17 @@ export async function findTeamMembersByGerente(gerenteId: string) {
   });
 }
 
+/** Coordenadores (e alias GESTOR) com gestor direto = gerente. */
+export async function findCoordinatorsByGerente(gerenteId: string) {
+  return prisma.user.findMany({
+    where: {
+      managerId: gerenteId,
+      role: { in: ["COORDENADOR", "GESTOR"] },
+    },
+    include: baseInclude,
+  });
+}
+
 export async function findAllEmployees() {
   return prisma.user.findMany({
     where: { role: { in: ["FUNCIONARIO", "COLABORADOR"] } },

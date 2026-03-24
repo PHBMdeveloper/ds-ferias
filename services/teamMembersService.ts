@@ -1,5 +1,10 @@
 import { getRoleLevel, calculateVacationBalance } from "@/lib/vacationRules";
-import { findTeamMembersByManager, findTeamMembersByGerente, findAllEmployees } from "@/repositories/userRepository";
+import {
+  findTeamMembersByManager,
+  findTeamMembersByGerente,
+  findCoordinatorsByGerente,
+  findAllEmployees,
+} from "@/repositories/userRepository";
 import type { TeamMemberInfo, TeamDataCoord, TeamDataRH } from "@/types/dashboard";
 
 function isOnVacationNow(
@@ -72,8 +77,14 @@ export async function getTeamMembersForTimes(
   }
 
   if (level === 3) {
-    const users = await findTeamMembersByGerente(userId);
+    const [users, coordinatorUsers] = await Promise.all([
+      findTeamMembersByGerente(userId),
+      findCoordinatorsByGerente(userId),
+    ]);
     const members = mapUsersToMembers(users);
+    const coordinatorMembers = mapUsersToMembers(coordinatorUsers).sort((a, b) =>
+      a.user.name.localeCompare(b.user.name, "pt-BR"),
+    );
     const byCoordTeam: Record<string, Record<string, TeamMemberInfo[]>> = {};
     members.forEach((m, i) => {
       const u = users[i] as any;
@@ -105,6 +116,7 @@ export async function getTeamMembersForTimes(
         {
           gerenteId: userId,
           gerenteName: "Minha gestão",
+          coordinatorMembers,
           teams: sortTeamsByCoordinatorAndName(teams),
         },
       ],

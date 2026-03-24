@@ -390,6 +390,20 @@ describe("detectTeamConflicts", () => {
     expect(r.isWarning).toBe(true);
   });
 
+  it("warns on overlap even when conflicting teammate is under 30% of team", () => {
+    const team = [
+      { name: "A", requests: [{ startDate: new Date("2026-07-05"), endDate: new Date("2026-07-12"), status: "APROVADO_GERENTE" }] },
+      { name: "B", requests: [] as { startDate: Date; endDate: Date; status: string }[] },
+      { name: "C", requests: [] },
+      { name: "D", requests: [] },
+    ];
+    const r = detectTeamConflicts(futureStart, futureEnd, team);
+    expect(r.conflictingCount).toBe(1);
+    expect(r.conflictPercent).toBe(25);
+    expect(r.isWarning).toBe(true);
+    expect(r.isBlocked).toBe(false);
+  });
+
   it("ignores REPROVADO/CANCELADO", () => {
     const r = detectTeamConflicts(futureStart, futureEnd, [
       { name: "A", requests: [{ startDate: new Date("2026-07-05"), endDate: new Date("2026-07-12"), status: "REPROVADO" }] },

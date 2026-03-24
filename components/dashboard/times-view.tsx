@@ -55,7 +55,9 @@ export function TimesView({
       )}
       {level === 3 && (
         <p className="text-base text-[#64748b] dark:text-slate-400">
-          Férias dos times sob sua gestão, organizadas por coordenador(a). Filtre por nome ou status e expanda os times para ver os colaboradores.
+          No topo: <span className="font-medium text-[#475569] dark:text-slate-300">visão geral</span> com calendário de
+          todo o time. Abaixo: <span className="font-medium text-[#475569] dark:text-slate-300">por coordenador</span>, com
+          calendário e detalhes de cada time. Use o filtro e expanda &quot;Minha gestão&quot; e cada coordenador.
         </p>
       )}
       {teamData.kind === "rh" && (

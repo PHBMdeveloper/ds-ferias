@@ -14,7 +14,7 @@ type Props = {
   level: number;
 };
 
-export function TimesViewClient({ teamData }: Props) {
+export function TimesViewClient({ teamData, level }: Props) {
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("TODOS");
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
@@ -41,16 +41,28 @@ export function TimesViewClient({ teamData }: Props) {
   const gerentesFiltered = teamData.gerentes
     .map((g) => ({
       ...g,
+      coordinatorMembers: g.coordinatorMembers
+        ? filterMembers(g.coordinatorMembers)
+        : undefined,
       teams: g.teams
         .map((team) => ({ ...team, members: filterMembers(team.members) }))
         .filter((t) => t.members.length > 0),
     }))
-    .filter((g) => g.teams.length > 0);
+    .filter(
+      (g) =>
+        g.teams.length > 0 ||
+        (g.coordinatorMembers !== undefined && g.coordinatorMembers.length > 0),
+    );
 
   return (
     <div className="space-y-6">
       <TimesViewFilterBar query={query} setQuery={setQuery} statusFilter={statusFilter} setStatusFilter={setStatusFilter} />
-      <TimesViewRhTeamsList gerentes={gerentesFiltered} expanded={expanded} toggle={toggle} />
+      <TimesViewRhTeamsList
+        gerentes={gerentesFiltered}
+        expanded={expanded}
+        toggle={toggle}
+        showConsolidatedOverview={level === 3}
+      />
     </div>
   );
 }

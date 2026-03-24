@@ -2,11 +2,13 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const mockFindTeamMembersByManager = vi.fn().mockResolvedValue([]);
 const mockFindTeamMembersByGerente = vi.fn().mockResolvedValue([]);
+const mockFindCoordinatorsByGerente = vi.fn().mockResolvedValue([]);
 const mockFindAllEmployees = vi.fn().mockResolvedValue([]);
 
 vi.mock("@/repositories/userRepository", () => ({
   findTeamMembersByManager: (...args: unknown[]) => mockFindTeamMembersByManager(...args),
   findTeamMembersByGerente: (...args: unknown[]) => mockFindTeamMembersByGerente(...args),
+  findCoordinatorsByGerente: (...args: unknown[]) => mockFindCoordinatorsByGerente(...args),
   findAllEmployees: (...args: unknown[]) => mockFindAllEmployees(...args),
 }));
 if (!process.env.DATABASE_URL) process.env.DATABASE_URL = "postgresql://localhost:5432/test";
@@ -17,6 +19,7 @@ describe("getTeamMembersForTimes", () => {
   beforeEach(() => {
     mockFindTeamMembersByManager.mockClear();
     mockFindTeamMembersByGerente.mockClear();
+    mockFindCoordinatorsByGerente.mockClear();
     mockFindAllEmployees.mockClear();
   });
 
@@ -86,14 +89,28 @@ describe("getTeamMembersForTimes", () => {
         vacationRequests: [],
       },
     ]);
+    mockFindCoordinatorsByGerente.mockResolvedValueOnce([
+      {
+        id: "c1",
+        name: "Coord A",
+        department: "TI",
+        hireDate: new Date("2023-01-01"),
+        role: "COORDENADOR",
+        managerId: "ger-1",
+        manager: { id: "ger-1", name: "Ger", managerId: null, manager: null },
+        vacationRequests: [],
+      },
+    ]);
     const result = await getTeamMembersForTimes("ger-1", "GERENTE");
     expect(result.kind).toBe("rh");
     expect(result.gerentes.length).toBe(1);
     expect(result.gerentes[0].gerenteId).toBe("ger-1");
     expect(result.gerentes[0].teams.length).toBeGreaterThanOrEqual(1);
+    expect(result.gerentes[0].coordinatorMembers?.map((m) => m.user.id)).toEqual(["c1"]);
     // garante que o comparator do sort foi exercitado
     expect(result.gerentes[0].teams[0].members.map((m) => m.user.name)).toEqual(["Ana", "Zeca"]);
     expect(mockFindTeamMembersByGerente).toHaveBeenCalledWith("ger-1");
+    expect(mockFindCoordinatorsByGerente).toHaveBeenCalledWith("ger-1");
   });
 
   it("level 4 (RH): returns rh structure with gerentes", async () => {
