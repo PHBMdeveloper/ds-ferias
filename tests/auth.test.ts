@@ -18,13 +18,13 @@ vi.mock("next/headers", () => ({
 }));
 
 describe("hashNewUserPassword", () => {
-  it("returns hex string of fixed length for sha256", () => {
+  it("returns scrypt hash with salt", () => {
     const hash = hashNewUserPassword("senha123");
-    expect(hash).toMatch(/^[a-f0-9]{64}$/);
+    expect(hash).toMatch(/^scrypt\.[a-f0-9]{32}\.[a-f0-9]{128}$/);
   });
 
-  it("same password produces same hash", () => {
-    expect(hashNewUserPassword("a")).toBe(hashNewUserPassword("a"));
+  it("same password produces different hashes due to salt", () => {
+    expect(hashNewUserPassword("a")).not.toBe(hashNewUserPassword("a"));
   });
 
   it("different passwords produce different hashes", () => {
@@ -110,6 +110,28 @@ describe("verifyCredentials", () => {
       id: "u1",
       name: "User",
       email: "u@e.com",
+      role: "FUNCIONARIO",
+    });
+  });
+
+  it("returns session user when legacy SHA-256 password matches", async () => {
+    const { prisma } = await import("@/lib/prisma");
+    const crypto = await import("crypto");
+    const legacyHash = crypto.createHash("sha256").update("legado").digest("hex");
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({
+      id: "u2",
+      name: "Legacy",
+      email: "legacy@e.com",
+      role: "FUNCIONARIO",
+      passwordHash: legacyHash,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as never);
+    const result = await verifyCredentials("legacy@e.com", "legado");
+    expect(result).toEqual({
+      id: "u2",
+      name: "Legacy",
+      email: "legacy@e.com",
       role: "FUNCIONARIO",
     });
   });
