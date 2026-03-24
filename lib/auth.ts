@@ -46,16 +46,34 @@ function verifyPayload(signed: string): string | null {
   return null;
 }
 
+/**
+ * Gera hash scrypt com salt: "scrypt.salt.hash"
+ */
 function hashPassword(password: string) {
-  return crypto.createHash("sha256").update(password).digest("hex");
+  const salt = crypto.randomBytes(16).toString("hex");
+  const derivedKey = crypto.scryptSync(password, salt, 64);
+  return `scrypt.${salt}.${derivedKey.toString("hex")}`;
+}
+
+/**
+ * Verifica se a senha corresponde ao hash (suporta scrypt e legado sha256)
+ */
+function verifyPassword(password: string, storedHash: string): boolean {
+  if (storedHash.startsWith("scrypt.")) {
+    const [, salt, hash] = storedHash.split(".");
+    const derivedKey = crypto.scryptSync(password, salt, 64);
+    return crypto.timingSafeEqual(Buffer.from(hash, "hex"), derivedKey);
+  }
+  // Fallback para SHA-256 legado
+  const legacyHash = crypto.createHash("sha256").update(password).digest("hex");
+  return crypto.timingSafeEqual(Buffer.from(legacyHash, "hex"), Buffer.from(storedHash, "hex"));
 }
 
 export async function verifyCredentials(email: string, password: string) {
   const user = await prisma.user.findUnique({ where: { email } });
   if (!user) return null;
 
-  const hashed = hashPassword(password);
-  if (user.passwordHash !== hashed) {
+  if (!verifyPassword(password, user.passwordHash)) {
     if (process.env.NODE_ENV === "development") {
       console.warn("[auth] Invalid credentials for", email);
     }
@@ -77,9 +95,11 @@ export async function getSessionUser(): Promise<SessionUser | null> {
 
   try {
     let payload: string;
-    // Só tenta verificar assinatura quando SESSION_SECRET está definido; caso contrário o cookie
-    // é JSON legado (e pode conter "." no email, ex.: user@empresa.com).
-    if (getSessionSecret() && raw.includes(".")) {
+    const secret = getSessionSecret();
+
+    // Se SESSION_SECRET está definido, exigimos assinatura válida.
+    // O fallback para 'raw' sem verificação só ocorre se não houver segredo configurado.
+    if (secret) {
       payload = verifyPayload(raw) ?? "";
       if (!payload) return null;
     } else {
