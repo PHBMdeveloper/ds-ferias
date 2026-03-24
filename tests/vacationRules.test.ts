@@ -13,6 +13,7 @@ import {
   getApprovalSteps,
   getApprovalProgress,
   getApproverRelationshipStepLabel,
+  formatVacationStatusForExport,
   detectTeamConflicts,
   checkBlackoutPeriods,
 } from "@/lib/vacationRules";
@@ -359,6 +360,26 @@ describe("getApprovalProgress", () => {
   });
   it("returns 0 for REPROVADO", () => {
     expect(getApprovalProgress("REPROVADO")).toBe(0);
+  });
+});
+
+describe("formatVacationStatusForExport", () => {
+  it("passes through non-final statuses unchanged", () => {
+    expect(formatVacationStatusForExport("PENDENTE", "COORDENADOR")).toBe("PENDENTE");
+    expect(formatVacationStatusForExport("REPROVADO", null)).toBe("REPROVADO");
+  });
+
+  it("maps APROVADO_GERENTE by approver role", () => {
+    expect(formatVacationStatusForExport("APROVADO_GERENTE", "COORDENADOR")).toBe("APROVADO_COORDENADOR");
+    expect(formatVacationStatusForExport("APROVADO_GERENTE", "GESTOR")).toBe("APROVADO_COORDENADOR");
+    expect(formatVacationStatusForExport("APROVADO_GERENTE", "GERENTE")).toBe("APROVADO_GERENTE");
+    expect(formatVacationStatusForExport("APROVADO_GERENTE", "DIRETOR")).toBe("APROVADO_DIRETORIA");
+    expect(formatVacationStatusForExport("APROVADO_GERENTE", "RH")).toBe("APROVADO_RH");
+  });
+
+  it("uses neutral APROVADO when final status but approver role unknown", () => {
+    expect(formatVacationStatusForExport("APROVADO_GERENTE", null)).toBe("APROVADO");
+    expect(formatVacationStatusForExport("APROVADO_GERENTE", "")).toBe("APROVADO");
   });
 });
 

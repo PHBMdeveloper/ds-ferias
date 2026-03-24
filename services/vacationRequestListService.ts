@@ -36,6 +36,7 @@ const exportInclude = {
         select: {
           name: true,
           email: true,
+          role: true,
         },
       },
     },

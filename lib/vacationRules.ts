@@ -69,6 +69,23 @@ export function getRoleLabel(role: string): string {
   return ROLE_LABEL[role] ?? role;
 }
 
+/**
+ * Texto de status para CSV/relatórios. No banco, aprovação final de coordenador ou gerente
+ * grava o mesmo valor `APROVADO_GERENTE`; aqui discriminamos pelo papel de quem aprovou.
+ */
+export function formatVacationStatusForExport(
+  status: string,
+  approverRoleWhenFinal?: string | null,
+): string {
+  if (status !== "APROVADO_GERENTE") return status;
+  const level = getRoleLevel(approverRoleWhenFinal ?? "");
+  if (level === 2) return "APROVADO_COORDENADOR";
+  if (level === 3) return "APROVADO_GERENTE";
+  if (level === 4) return "APROVADO_DIRETORIA";
+  if (level >= 5) return "APROVADO_RH";
+  return "APROVADO";
+}
+
 // ============================================================
 // LÓGICA DE APROVAÇÃO MULTI-NÍVEL
 // ============================================================
