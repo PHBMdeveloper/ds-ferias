@@ -4,6 +4,9 @@ import {
   getDepartmentOptions,
   filterRequests,
   buildExportQuery,
+  sliceHistoricoPage,
+  buildHistoricoDashboardHref,
+  HISTORICO_PAGE_SIZE,
 } from "@/lib/dashboardFilters";
 
 describe("getManagerOptions", () => {
@@ -289,6 +292,67 @@ describe("filterRequests", () => {
     ]);
 
     vi.useRealTimers();
+  });
+});
+
+describe("sliceHistoricoPage", () => {
+  it("returns first page and correct totals", () => {
+    const items = Array.from({ length: 25 }, (_, i) => i);
+    const a = sliceHistoricoPage(items, 1);
+    expect(a.items).toHaveLength(HISTORICO_PAGE_SIZE);
+    expect(a.page).toBe(1);
+    expect(a.totalPages).toBe(3);
+    expect(a.totalItems).toBe(25);
+  });
+
+  it("clamps page to totalPages when too high", () => {
+    const items = [1, 2, 3];
+    const a = sliceHistoricoPage(items, 99);
+    expect(a.page).toBe(1);
+    expect(a.items).toEqual([1, 2, 3]);
+  });
+
+  it("page 2 slice", () => {
+    const items = Array.from({ length: 25 }, (_, i) => i);
+    const a = sliceHistoricoPage(items, 2);
+    expect(a.items[0]).toBe(10);
+    expect(a.items).toHaveLength(10);
+  });
+});
+
+describe("buildHistoricoDashboardHref", () => {
+  it("includes page when > 1", () => {
+    const href = buildHistoricoDashboardHref(
+      {
+        query: "",
+        status: "TODOS",
+        view: "historico",
+        managerId: "",
+        from: "",
+        to: "",
+        department: "",
+      },
+      2,
+    );
+    expect(href).toContain("view=historico");
+    expect(href).toContain("page=2");
+  });
+
+  it("omits page on first page", () => {
+    const href = buildHistoricoDashboardHref(
+      {
+        query: "ana",
+        status: "TODOS",
+        view: "historico",
+        managerId: "",
+        from: "",
+        to: "",
+        department: "",
+      },
+      1,
+    );
+    expect(href).not.toContain("page=");
+    expect(href).toContain("q=ana");
   });
 });
 

@@ -83,6 +83,11 @@ export function RequestActions({
                 ? "Tem certeza de que deseja cancelar esta solicitação de férias?"
                 : "Tem certeza de que deseja excluir esta solicitação de férias?"
             }
+            secondConfirmMessage={
+              isOwner
+                ? "Confirma o cancelamento? O pedido será removido e não poderá ser recuperado por aqui."
+                : "Confirma a exclusão definitiva? Esta ação não pode ser desfeita."
+            }
             className="ml-auto border-red-200 text-sm font-semibold text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400"
           />
         )}

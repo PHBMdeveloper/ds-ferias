@@ -21,6 +21,8 @@ type Props = {
   successMessage?: string;
   /** Mensagem de confirmação antes de executar a ação (opcional) */
   confirmMessage?: string;
+  /** Segunda confirmação em sequência (ex.: exclusão irreversível) */
+  secondConfirmMessage?: string;
   variant?: React.ComponentProps<typeof Button>["variant"];
   size?: React.ComponentProps<typeof Button>["size"];
   className?: string;
@@ -69,6 +71,7 @@ export function ActionButtonForm({
   loadingLabel,
   successMessage,
   confirmMessage,
+  secondConfirmMessage,
   variant = "outline",
   size = "xs",
   className,
@@ -84,6 +87,10 @@ export function ActionButtonForm({
     if (confirmMessage && typeof window !== "undefined") {
       const ok = window.confirm(confirmMessage);
       if (!ok) return;
+    }
+    if (secondConfirmMessage && typeof window !== "undefined") {
+      const ok2 = window.confirm(secondConfirmMessage);
+      if (!ok2) return;
     }
 
     toggleGlobalLoading(true);

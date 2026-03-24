@@ -1,8 +1,15 @@
 import { getRoleLevel } from "@/lib/vacationRules";
-import { getManagerOptions, getDepartmentOptions, filterRequests, buildExportQuery } from "@/lib/dashboardFilters";
+import {
+  getManagerOptions,
+  getDepartmentOptions,
+  filterRequests,
+  buildExportQuery,
+  sliceHistoricoPage,
+} from "@/lib/dashboardFilters";
 import { EmptyState } from "@/components/layout/empty-state";
 import { ExportButton } from "@/components/layout/export-button";
 import { FilterForm } from "@/components/requests/filter-form";
+import { HistoricoPagination } from "@/components/requests/historico-pagination";
 import { RequestCard } from "@/components/requests/request-card";
 import { RequestsGroupedByManager } from "@/components/requests/requests-grouped-by-manager";
 import type { DashboardFilters } from "@/types/dashboard";
@@ -43,6 +50,12 @@ export function ManagerView({
   const deptOptions = getDepartmentOptions(requests);
   const filteredRequests = filterRequests(userRole, userId, requests, filters);
   const userLevel = getRoleLevel(userRole);
+
+  const historicoSlice =
+    view === "historico"
+      ? sliceHistoricoPage(filteredRequests, filters.page ?? 1)
+      : null;
+  const displayRequests = historicoSlice ? historicoSlice.items : filteredRequests;
 
   const emptyMessage =
     view === "historico"
@@ -91,19 +104,31 @@ export function ManagerView({
       </div>
       {filteredRequests.length === 0 ? (
         <EmptyState message={emptyMessage} />
-      ) : userLevel >= 4 ? (
-        <RequestsGroupedByManager requests={filteredRequests} userId={userId} userRole={userRole} />
       ) : (
-        <div className="space-y-4 lg:space-y-5">
-          <p className="text-sm text-[#64748b] dark:text-slate-400">
-            Esta visão mostra as solicitações da sua equipe, incluindo marcações de{" "}
-            <span className="font-semibold">Abono 1/3</span> e{" "}
-            <span className="font-semibold">Adiantamento 13º</span>, quando houver.
-          </p>
-          {filteredRequests.map((r) => (
-            <RequestCard key={r.id} request={r} userId={userId} userRole={userRole} />
-          ))}
-        </div>
+        <>
+          {userLevel >= 4 ? (
+            <RequestsGroupedByManager requests={displayRequests} userId={userId} userRole={userRole} />
+          ) : (
+            <div className="space-y-4 lg:space-y-5">
+              <p className="text-sm text-[#64748b] dark:text-slate-400">
+                Esta visão mostra as solicitações da sua equipe, incluindo marcações de{" "}
+                <span className="font-semibold">Abono 1/3</span> e{" "}
+                <span className="font-semibold">Adiantamento 13º</span>, quando houver.
+              </p>
+              {displayRequests.map((r) => (
+                <RequestCard key={r.id} request={r} userId={userId} userRole={userRole} />
+              ))}
+            </div>
+          )}
+          {view === "historico" && historicoSlice && historicoSlice.totalItems > 0 && (
+            <HistoricoPagination
+              filters={filters}
+              page={historicoSlice.page}
+              totalPages={historicoSlice.totalPages}
+              totalItems={historicoSlice.totalItems}
+            />
+          )}
+        </>
       )}
     </div>
   );

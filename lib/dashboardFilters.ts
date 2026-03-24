@@ -1,6 +1,24 @@
 import { getRoleLevel, hasTeamVisibility } from "./vacationRules";
 import type { DashboardFilters } from "@/types/dashboard";
 
+/** Itens por página na view Histórico (dashboard). */
+export const HISTORICO_PAGE_SIZE = 10;
+
+export function sliceHistoricoPage<T>(requests: T[], page: number): {
+  items: T[];
+  page: number;
+  totalPages: number;
+  totalItems: number;
+} {
+  const totalItems = requests.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / HISTORICO_PAGE_SIZE));
+  let safe = Number.isFinite(page) && page >= 1 ? Math.floor(page) : 1;
+  if (safe > totalPages) safe = totalPages;
+  const start = (safe - 1) * HISTORICO_PAGE_SIZE;
+  const items = requests.slice(start, start + HISTORICO_PAGE_SIZE);
+  return { items, page: safe, totalPages, totalItems };
+}
+
 export function getManagerOptions(
   userRole: string,
   requests: Array<{ user?: { manager?: { id: string; name: string } | null } }>
@@ -97,6 +115,19 @@ export function filterRequests<T extends RequestForFilter>(
   }
 
   return out;
+}
+
+export function buildHistoricoDashboardHref(filters: DashboardFilters, page: number): string {
+  const p = new URLSearchParams();
+  p.set("view", "historico");
+  if (filters.query.trim()) p.set("q", filters.query.trim());
+  if (filters.status && filters.status !== "TODOS") p.set("status", filters.status);
+  if (filters.managerId && filters.managerId !== "ALL") p.set("managerId", filters.managerId);
+  if (filters.from) p.set("from", filters.from);
+  if (filters.to) p.set("to", filters.to);
+  if (filters.department) p.set("department", filters.department);
+  if (page > 1) p.set("page", String(page));
+  return `/dashboard?${p.toString()}`;
 }
 
 export function buildExportQuery(filters: DashboardFilters): string {

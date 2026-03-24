@@ -47,6 +47,8 @@ export default async function DashboardPage({
   const fromFilter = normalizeParam(params.from);
   const toFilter = normalizeParam(params.to);
   const deptFilter = normalizeParam(params.department);
+  const rawPage = normalizeParam(params.page, "1");
+  const historicoPage = Math.max(1, Number.parseInt(rawPage, 10) || 1);
 
   const isMyView = !isApprover || view === "minhas";
   const isTimesView = isApprover && view === "times";
@@ -87,6 +89,7 @@ export default async function DashboardPage({
     from: fromFilter,
     to: toFilter,
     department: deptFilter,
+    page: view === "historico" ? historicoPage : 1,
   };
 
   return (

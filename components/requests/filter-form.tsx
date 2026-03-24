@@ -26,6 +26,7 @@ export function FilterForm({
       aria-label="Filtros da listagem de solicitações"
     >
       <input type="hidden" name="view" value={view} />
+      {view === "historico" && <input type="hidden" name="page" value="1" />}
       <div className="space-y-3">
         <div className="grid gap-2 sm:flex sm:flex-wrap">
           <input
