@@ -122,6 +122,22 @@ export function MyRequestsList({
           Cada card mostra um ciclo de aquisição (12 meses). Quando os dias do ciclo acabarem (usados + pendentes), novas férias passam a consumir o próximo ciclo.
         </p>
 
+        {(() => {
+          const expiredPeriods = periods.filter((p) => p.end.getTime() < endOfTodayLocal.getTime());
+          const expiredWithRemaining = expiredPeriods.filter((p) => p.usedDays < p.accruedDays);
+          if (!expiredWithRemaining.length) return null;
+
+          return (
+            <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-800/40 dark:bg-amber-950/30 dark:text-amber-200">
+              <p className="font-semibold">Atenção</p>
+              <p className="mt-0.5">
+                Você tem {expiredWithRemaining.length} período(s) aquisitivo(s) vencido(s) com saldo. Para evitar
+                perda de direito/prescrição, solicite férias o quanto antes.
+              </p>
+            </div>
+          );
+        })()}
+
         {periods.length > 0 ? (
           <div className="mt-3 space-y-2">
             {derivedCurrent && (
