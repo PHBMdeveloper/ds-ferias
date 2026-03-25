@@ -77,7 +77,6 @@ const APPROVED_VACATION_LIST = [
   "APROVADO_GESTOR",
   "APROVADO_GERENTE",
   "APROVADO_DIRETOR",
-  "APROVADO_RH",
 ] as const satisfies readonly VacationStatus[];
 
 export const APPROVED_VACATION_STATUSES = APPROVED_VACATION_LIST;
@@ -88,6 +87,10 @@ export const PENDING_OR_APPROVED_VACATION_STATUSES: VacationStatus[] = ["PENDENT
 const APPROVED_VACATION_STATUS_SET = new Set<string>(APPROVED_VACATION_LIST);
 
 export function isVacationApprovedStatus(status: string): boolean {
+  // Legado: se por algum motivo existir histórico com APROVADO_RH (antes da remoção do enum),
+  // tratamos como aprovado para exibição/UX, mas NÃO incluímos esse valor nas listas usadas
+  // por queries Prisma (evita erro quando o enum já não contém APROVADO_RH).
+  if (status === "APROVADO_RH") return true;
   return APPROVED_VACATION_STATUS_SET.has(status);
 }
 
@@ -99,7 +102,9 @@ export function getVacationStatusDisplayLabel(status: string): string {
     APROVADO_GESTOR: "Aprovado (coordenador)",
     APROVADO_GERENTE: "Aprovado (gerente)",
     APROVADO_DIRETOR: "Aprovado (diretoria)",
-    APROVADO_RH: "Aprovado (RH)",
+    // RH deixou de aprovar novas solicitações.
+    // Para manter histórico legível sem “voltar” RH para o fluxo, tratamos como diretoria na UI.
+    APROVADO_RH: "Aprovado (diretoria)",
     REPROVADO: "Reprovado",
     CANCELADO: "Cancelado",
   };
@@ -118,7 +123,8 @@ export function getNextApprovalStatus(approverRole: string): string {
   if (level === 2) return "APROVADO_COORDENADOR";
   if (level === 3) return "APROVADO_GERENTE";
   if (level === 4) return "APROVADO_DIRETOR";
-  if (level >= 5) return "APROVADO_RH";
+  // RH não aprova mais solicitações. Mantemos um fallback para evitar usos acidentais.
+  if (level >= 5) return "APROVADO_DIRETOR";
   return "PENDENTE";
 }
 
@@ -137,6 +143,9 @@ export function canApproveRequest(
     user: { role: string };
   },
 ): boolean {
+  // RH não aprova mais solicitações (apenas consulta/backoffice).
+  if (approverRole === "RH") return false;
+
   // Não pode aprovar a própria solicitação
   if (request.userId === approverUserId) return false;
 
@@ -185,7 +194,6 @@ export function getNextApprover(status: string, requesterRole: string): string |
     2: "Líder direto",
     3: "Gerente",
     4: "Diretor(a)",
-    5: "RH",
   };
 
   return levelToLabel[requiredLevel] ?? null;
@@ -236,7 +244,7 @@ export function getApproverRelationshipStepLabel(
   const level = getRoleLevel(approverRole);
   const directLeaderId = employee.managerId ?? employee.manager?.id ?? null;
 
-  if (level >= 5) return "Aprovação pelo RH";
+  if (level >= 5) return undefined;
 
   if (level === 4) {
     if (directLeaderId && directLeaderId === approverId) return "Você é o líder direto";

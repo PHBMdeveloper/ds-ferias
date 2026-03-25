@@ -108,6 +108,8 @@ async function main() {
       role: "COORDENADOR",
       managerId: mendonca.id,
       registration: "REG-GES-RAPHA",
+      // Necessário para gerar os períodos aquisitivos na tela "Minhas Férias".
+      hireDate: new Date("2024-01-01T00:00:00Z"),
     },
   });
 

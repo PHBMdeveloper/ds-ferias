@@ -333,8 +333,8 @@ describe("getNextApprovalStatus", () => {
   it("returns APROVADO_DIRETOR for diretor", () => {
     expect(getNextApprovalStatus("DIRETOR")).toBe("APROVADO_DIRETOR");
   });
-  it("returns APROVADO_RH for RH", () => {
-    expect(getNextApprovalStatus("RH")).toBe("APROVADO_RH");
+  it("returns APROVADO_DIRETOR for RH (RH não aprova mais)", () => {
+    expect(getNextApprovalStatus("RH")).toBe("APROVADO_DIRETOR");
   });
 });
 
@@ -407,8 +407,8 @@ describe("getApproverRelationshipStepLabel", () => {
     manager: undefined as { id?: string | null } | undefined,
   };
 
-  it("returns RH label for role RH", () => {
-    expect(getApproverRelationshipStepLabel("rh-1", "RH", baseEmployee)).toBe("Aprovação pelo RH");
+  it("returns undefined for role RH (RH não aprova mais)", () => {
+    expect(getApproverRelationshipStepLabel("rh-1", "RH", baseEmployee)).toBeUndefined();
   });
 
   it("returns direct-leader label for gerente when managerId matches", () => {

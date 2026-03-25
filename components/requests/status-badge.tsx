@@ -28,7 +28,7 @@ function approvedChipColor(status: string): ChipColor {
   if (status === "APROVADO_COORDENADOR" || status === "APROVADO_GESTOR") return "indigo";
   if (status === "APROVADO_GERENTE") return "purple";
   if (status === "APROVADO_DIRETOR") return "blue";
-  if (status === "APROVADO_RH") return "green";
+  if (status === "APROVADO_RH") return "blue";
   return "green";
 }
 

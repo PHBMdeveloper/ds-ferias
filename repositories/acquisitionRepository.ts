@@ -21,6 +21,10 @@ function daysBetweenInclusiveClamped(start: Date, end: Date): number {
   return Math.min(Math.max(1, raw), 30);
 }
 
+function utcMidnight(d: Date): Date {
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+}
+
 /**
  * Gera os períodos aquisitivos para o usuário e faz resync FIFO completo:
  * recalcula o usedDays de cada período a partir de TODAS as solicitações com status aprovado,
@@ -79,15 +83,15 @@ export async function syncAcquisitionPeriodsForUser(
 
   if (periods.length === 0) {
     const newPeriods: Array<{ userId: string; startDate: Date; endDate: Date; accruedDays: number; usedDays: number }> = [];
-    const today = new Date();
+    const todayUtc = utcMidnight(new Date());
     let start = new Date(hireDate);
 
     while (true) {
       const endExclusive = addMonths(start, 12);
       // Só cria o ciclo se ele já foi COMPLETO (12 meses cumpridos).
       // Ciclo ainda em andamento = colaborador ainda não tem direito.
-      if (endExclusive > today) break;
-      const end = new Date(endExclusive.getTime() - 1);
+      if (utcMidnight(endExclusive) > todayUtc) break;
+      const end = new Date(utcMidnight(endExclusive).getTime() - 1);
       newPeriods.push({ userId, startDate: start, endDate: end, accruedDays: 30, usedDays: 0 });
       start = endExclusive;
     }
@@ -104,9 +108,10 @@ export async function syncAcquisitionPeriodsForUser(
 
   // Remove períodos ainda não ganhos (ciclo em andamento) que possam ter sido
   // criados por versões anteriores do código.
-  const today = new Date();
+  const todayUtc = utcMidnight(new Date());
   const unearnedIds = periods
-    .filter((p) => new Date(p.endDate) >= today)
+    // Período com endDate no "dia de hoje" já deve aparecer na UI.
+    .filter((p) => utcMidnight(new Date(p.endDate)) > todayUtc)
     .map((p) => p.id);
 
   if (unearnedIds.length > 0) {

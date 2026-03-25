@@ -64,6 +64,47 @@ export function MyRequestsList({
     end: new Date(p.endDate),
   }));
 
+  const endOfTodayLocal = new Date(today);
+  endOfTodayLocal.setHours(23, 59, 59, 999);
+
+  function utcMidnight(d: Date): Date {
+    return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+  }
+
+  function addMonthsPreservingDayUtc(date: Date, months: number): Date {
+    const d = new Date(date);
+    const day = d.getUTCDate();
+    d.setUTCMonth(d.getUTCMonth() + months);
+    if (d.getUTCDate() < day) d.setUTCDate(0);
+    return d;
+  }
+
+  // Ciclo atual (UI):
+  // 1) Se existe um período armazenado que contém "hoje", mostramos ele.
+  // 2) Se não existe (ex.: só há ciclos encerrados), calculamos o próximo ciclo em andamento
+  //    para não deixar o usuário sem referência de "ciclo atual".
+  const endOfTodayMs = endOfTodayLocal.getTime();
+  const currentIndex = periods.findIndex((p) => p.start.getTime() <= endOfTodayMs && p.end.getTime() >= endOfTodayMs);
+
+  const derivedCurrent =
+    currentIndex !== -1
+      ? {
+          start: periods[currentIndex].start,
+          end: periods[currentIndex].end,
+          index: currentIndex,
+        }
+      : periods.length > 0
+        ? (() => {
+            const last = periods[periods.length - 1];
+            // Próximo ciclo inicia no dia seguinte ao fim do último período.
+            const nextStart = new Date(utcMidnight(last.end));
+            nextStart.setUTCDate(nextStart.getUTCDate() + 1);
+            const endExclusive = addMonthsPreservingDayUtc(nextStart, 12);
+            const nextEnd = new Date(endExclusive.getTime() - 1);
+            return { start: nextStart, end: nextEnd, index: periods.length };
+          })()
+        : null;
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -82,8 +123,26 @@ export function MyRequestsList({
         </p>
 
         {periods.length > 0 ? (
-          <div className="mt-3 grid gap-2 sm:grid-cols-2">
+          <div className="mt-3 space-y-2">
+            {derivedCurrent && (
+              <div className="flex items-start justify-between rounded-md bg-[#f1f5f9] px-3 py-2 text-xs dark:bg-[#020617]">
+                <div className="min-w-0">
+                  <p className="font-medium text-[#0f172a] dark:text-slate-100">Ciclo atual</p>
+                  <p className="mt-0.5 text-[11px] text-[#64748b] dark:text-slate-400">
+                    Início: {derivedCurrent.start.toLocaleDateString("pt-BR")}
+                  </p>
+                  {derivedCurrent.index >= Math.min(Math.floor(balance.monthsWorked / 12), 2) && (
+                    <p className="mt-0.5 text-[10px] text-[#94a3b8] dark:text-slate-500">
+                      Aguardando completar 12 meses
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            <div className="grid gap-2 sm:grid-cols-2">
             {periods.slice(0, 4).map((p) => {
+              const isExpired = p.end.getTime() < endOfTodayLocal.getTime();
               const label = `${p.start.toLocaleDateString("pt-BR")} – ${p.end.toLocaleDateString("pt-BR")}`;
               const status =
                 p.usedDays >= p.accruedDays
@@ -101,10 +160,16 @@ export function MyRequestsList({
                     <p className="text-[11px] text-[#64748b] dark:text-slate-400">
                       {p.usedDays}/{p.accruedDays} dias usados · {status}
                     </p>
+                    {isExpired && (
+                      <p className="mt-0.5 text-[10px] text-[#94a3b8] dark:text-slate-500">
+                        Ciclo encerrado
+                      </p>
+                    )}
                   </div>
                 </div>
               );
             })}
+            </div>
           </div>
         ) : (
           <div className="mt-3 space-y-2">
