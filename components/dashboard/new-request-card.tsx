@@ -75,7 +75,11 @@ export function NewRequestCardClient({ canRequest = true, balance, userRole, fir
   const hasPeriod14OrMore = stats.periods.some((p) => p.days >= 14);
   const needsPeriod14 = isBusinessDaysRole ? false : existingDaysInCycle < 14 && !hasPeriod14OrMore;
   const totalWithExisting = existingDaysInCycle + selectedDays;
-  const cycleTotalOk = totalWithExisting <= MAX_DAYS_PER_REQUEST;
+  /** Teto do “ciclo” na janela de saldo: até 60 dias (2 períodos aquisitivos), não só 30 — senão o botão fica bloqueado com saldo disponível. */
+  const cycleCapForTotal = isPreEntitlement
+    ? MAX_DAYS_PER_REQUEST
+    : (balance?.entitledDays ?? MAX_DAYS_PER_REQUEST);
+  const cycleTotalOk = totalWithExisting <= cycleCapForTotal;
 
   function resetForm() {
     setPeriods([
@@ -213,8 +217,8 @@ export function NewRequestCardClient({ canRequest = true, balance, userRole, fir
             isBusinessDaysRole
               ? "Dias úteis consideram apenas segunda a sexta (sem sábado/domingo)"
               : existingDaysInCycle > 0
-                ? `Máximo de 3 períodos; total do ciclo 30 dias (você já tem ${existingDaysInCycle} no ciclo)`
-                : "Máximo de 3 períodos, totalizando 30 dias",
+                ? `Máximo de 3 períodos; total na janela de saldo até ${balance?.entitledDays ?? 30} dias (você já tem ${existingDaysInCycle} utilizados ou pendentes)`
+                : `Máximo de 3 períodos, até ${balance?.entitledDays ?? 30} dias na janela de saldo`,
             isPreEntitlement
               ? "Pré-agendamento: permitido se o início das férias for após completar 12 meses de empresa"
               : null,
