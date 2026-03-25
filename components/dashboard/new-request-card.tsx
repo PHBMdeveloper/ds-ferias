@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useMemo } from "react";
+import { useState, useTransition, useMemo, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import type { VacationBalance } from "@/lib/vacationRules";
@@ -9,7 +9,6 @@ import type { ConcessiveClientContext } from "@/services/dashboardDataService";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { useEffect } from "react";
 
 type Props = {
   canRequest?: boolean;
@@ -68,6 +67,8 @@ export function NewRequestCardClient({
   const [showOver30Dialog, setShowOver30Dialog] = useState(false);
   const [over30Days, setOver30Days] = useState(0);
   const [wasOver30, setWasOver30] = useState(false);
+  const [showConcessiveDialog, setShowConcessiveDialog] = useState(false);
+  const prevHadConcessiveError = useRef(false);
   const MAX_DAYS_PER_REQUEST = isBusinessDaysRole ? 22 : 30;
   const existingDaysInCycle = balance ? balance.pendingDays + balance.usedDays : 0;
   const isPreEntitlement = !isBusinessDaysRole && (balance?.hasEntitlement === false);
@@ -119,6 +120,13 @@ export function NewRequestCardClient({
     });
   }, [concessiveContext, periods]);
 
+  useEffect(() => {
+    if (concessiveError && !prevHadConcessiveError.current) {
+      setShowConcessiveDialog(true);
+    }
+    prevHadConcessiveError.current = Boolean(concessiveError);
+  }, [concessiveError]);
+
   function resetForm() {
     setPeriods([
       { start: "", end: "" },
@@ -131,6 +139,8 @@ export function NewRequestCardClient({
     setShowOver30Dialog(false);
     setWasOver30(false);
     setOver30Days(0);
+    setShowConcessiveDialog(false);
+    prevHadConcessiveError.current = false;
   }
 
   // Popup quando excede o limite do perfil na soma dos períodos desta solicitação.
@@ -238,6 +248,38 @@ export function NewRequestCardClient({
         </div>
       )}
 
+      {showConcessiveDialog && concessiveError && (
+        <div
+          className="fixed inset-0 z-[10001] flex items-center justify-center bg-black/45 backdrop-blur-sm"
+          role="presentation"
+          onClick={() => setShowConcessiveDialog(false)}
+        >
+          <div
+            className="mx-4 w-full max-w-lg rounded-xl bg-white p-5 shadow-2xl dark:bg-[#020617]"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="concessive-dialog-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Alert className="border-red-200 bg-red-50/95 text-red-950 dark:border-red-800/50 dark:bg-red-950/50 dark:text-red-50">
+              <AlertTitle id="concessive-dialog-title">Período concessivo</AlertTitle>
+              <AlertDescription className="mt-2 text-[15px] leading-relaxed text-red-900 dark:text-red-100">
+                {concessiveError}
+              </AlertDescription>
+            </Alert>
+            <p className="mt-4 text-sm text-[#64748b] dark:text-slate-400">
+              Escolha datas de gozo dentro da janela indicada (12 meses após o fim do período aquisitivo correspondente ao
+              saldo utilizado).
+            </p>
+            <div className="mt-5 flex justify-end">
+              <Button type="button" size="sm" onClick={() => setShowConcessiveDialog(false)}>
+                Entendi
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* REGRAS */}
       <section className="rounded-lg border border-[#e2e8f0] bg-[#f5f6f8] p-6 dark:border-[#252a35] dark:bg-[#0f1117]">
         <h2 className="mb-4 text-xl font-bold text-[#1a1d23] dark:text-white">
@@ -271,12 +313,6 @@ export function NewRequestCardClient({
           <p className="mt-3 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-medium text-blue-900 dark:border-blue-800/40 dark:bg-blue-950/30 dark:text-blue-200">
             Seu 1º período aquisitivo completa em {entitlementLabel}. Você pode solicitar agora, mas o início das férias deve ser a partir dessa data.
           </p>
-        )}
-        {concessiveError && (
-          <Alert className="mt-4 border-red-200 bg-red-50/90 text-red-900 dark:border-red-800/50 dark:bg-red-950/30 dark:text-red-100">
-            <AlertTitle>Período concessivo</AlertTitle>
-            <AlertDescription>{concessiveError}</AlertDescription>
-          </Alert>
         )}
       </section>
 
@@ -490,6 +526,18 @@ export function NewRequestCardClient({
           {isPending || submitting ? "Enviando..." : "Enviar solicitação"}
         </button>
       </div>
+
+      {concessiveError && !showConcessiveDialog && (
+        <div className="flex justify-center">
+          <button
+            type="button"
+            className="text-sm font-medium text-red-600 underline underline-offset-2 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+            onClick={() => setShowConcessiveDialog(true)}
+          >
+            Ver aviso do período concessivo
+          </button>
+        </div>
+      )}
     </form>
   );
 
