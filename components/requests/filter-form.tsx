@@ -1,3 +1,7 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { getRoleLevel } from "@/lib/vacationRules";
 import { Button } from "@/components/ui/button";
 import type { DashboardFilters } from "@/types/dashboard";
@@ -19,6 +23,128 @@ export function FilterForm({
 }: Props) {
   const userLevel = getRoleLevel(userRole);
 
+  // ---- Caixa de Aprovação (inbox): tudo é `PENDENTE`, então remove status + botão Filtrar
+  // e aplica filtros automaticamente quando o usuário digita/seleciona.
+  const router = useRouter();
+
+  const initialManagerId =
+    userLevel >= 4 && filters.managerId && filters.managerId !== "ALL" ? filters.managerId : "ALL";
+
+  const [q, setQ] = useState(filters.query ?? "");
+  const [managerId, setManagerId] = useState(initialManagerId);
+  const [department, setDepartment] = useState(filters.department ?? "");
+  const qDebounceRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    // Sincroniza quando o server re-renderizar por mudança de query.
+    setQ(filters.query ?? "");
+    setManagerId(
+      userLevel >= 4 && filters.managerId && filters.managerId !== "ALL" ? filters.managerId : "ALL",
+    );
+    setDepartment(filters.department ?? "");
+  }, [filters.query, filters.managerId, filters.department, userLevel]);
+
+  const pushInbox = (next: { q?: string; managerId?: string; department?: string } = {}) => {
+    const nextQ = typeof next.q === "string" ? next.q : q;
+    const nextManagerId = typeof next.managerId === "string" ? next.managerId : managerId;
+    const nextDepartment = typeof next.department === "string" ? next.department : department;
+
+    const params = new URLSearchParams();
+    params.set("view", "inbox");
+    const trimmed = nextQ.trim();
+    if (trimmed.length >= 2) params.set("q", trimmed);
+    if (userLevel >= 4 && nextManagerId && nextManagerId !== "ALL") params.set("managerId", nextManagerId);
+    if (nextDepartment) params.set("department", nextDepartment);
+
+    router.push(`/dashboard?${params.toString()}`);
+  };
+
+  const handleQChange = (next: string) => {
+    setQ(next);
+
+    const trimmed = next.trim();
+
+    // Regra: só busca a partir da 2ª letra (ou limpa quando vazio).
+    if (trimmed.length === 0) {
+      if (qDebounceRef.current) window.clearTimeout(qDebounceRef.current);
+      pushInbox({ q: "" });
+      return;
+    }
+
+    if (trimmed.length === 1) return;
+
+    if (qDebounceRef.current) window.clearTimeout(qDebounceRef.current);
+    qDebounceRef.current = window.setTimeout(() => {
+      pushInbox({ q: next });
+    }, 300);
+  };
+
+  if (view === "inbox") {
+    return (
+      <div
+        className="rounded-lg border border-[#e2e8f0] bg-white p-4 dark:border-[#252a35] dark:bg-[#1a1d23]"
+        aria-label="Filtros da Caixa de Aprovação"
+      >
+        <div className="space-y-3">
+          <div className="grid gap-2 sm:flex sm:flex-wrap">
+            <input
+              type="search"
+              name="q"
+              placeholder="Buscar colaborador..."
+              value={q}
+              onChange={(e) => handleQChange(e.target.value)}
+              aria-label="Buscar por nome do colaborador"
+              className="min-h-[44px] w-full rounded-md border border-[#e2e8f0] bg-[#f5f6f8] px-3 text-base text-[#1a1d23] placeholder:text-[#94a3b8] focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-[#252a35] dark:bg-[#0f1117] dark:text-white sm:w-auto sm:min-w-[180px]"
+            />
+
+            {userLevel >= 4 && managerOptions.length > 0 && (
+              <select
+                name="managerId"
+                value={managerId}
+                onChange={(e) => {
+                  const next = e.target.value;
+                  setManagerId(next);
+                  pushInbox({ managerId: next });
+                }}
+                aria-label="Filtrar por coordenador"
+                className="min-h-[44px] w-full rounded-md border border-[#e2e8f0] bg-[#f5f6f8] px-3 text-base text-[#1a1d23] focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-[#252a35] dark:bg-[#0f1117] dark:text-white sm:w-auto"
+              >
+                <option value="ALL">Todos os coordenadores</option>
+                {managerOptions.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name}
+                  </option>
+                ))}
+              </select>
+            )}
+
+            {deptOptions.length > 0 && (
+              <select
+                name="department"
+                value={department}
+                onChange={(e) => {
+                  const next = e.target.value;
+                  setDepartment(next);
+                  pushInbox({ department: next });
+                }}
+                aria-label="Filtrar por departamento"
+                className="min-h-[44px] w-full rounded-md border border-[#e2e8f0] bg-[#f5f6f8] px-3 text-base text-[#1a1d23] focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-[#252a35] dark:bg-[#0f1117] dark:text-white sm:w-auto"
+              >
+                <option value="">Todos os departamentos</option>
+                {deptOptions.map((d) => (
+                  <option key={d} value={d}>
+                    {d}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ---- Histórico: mantém formulário tradicional com botão Filtrar
   return (
     <form
       method="get"
@@ -61,7 +187,9 @@ export function FilterForm({
             >
               <option value="ALL">Todos os coordenadores</option>
               {managerOptions.map((m) => (
-                <option key={m.id} value={m.id}>{m.name}</option>
+                <option key={m.id} value={m.id}>
+                  {m.name}
+                </option>
               ))}
             </select>
           )}
@@ -75,7 +203,9 @@ export function FilterForm({
             >
               <option value="">Todos os departamentos</option>
               {deptOptions.map((d) => (
-                <option key={d} value={d}>{d}</option>
+                <option key={d} value={d}>
+                  {d}
+                </option>
               ))}
             </select>
           )}
@@ -84,7 +214,12 @@ export function FilterForm({
         {userLevel >= 4 && (
           <div className="flex flex-wrap gap-2">
             <div className="min-w-0 flex-1 sm:min-w-[140px]">
-              <label htmlFor="filter-from" className="mb-1 block text-sm text-[#64748b] dark:text-slate-400">Início a partir de</label>
+              <label
+                htmlFor="filter-from"
+                className="mb-1 block text-sm text-[#64748b] dark:text-slate-400"
+              >
+                Início a partir de
+              </label>
               <input
                 id="filter-from"
                 type="date"
@@ -94,7 +229,12 @@ export function FilterForm({
               />
             </div>
             <div className="min-w-0 flex-1 sm:min-w-[140px]">
-              <label htmlFor="filter-to" className="mb-1 block text-sm text-[#64748b] dark:text-slate-400">Fim até</label>
+              <label
+                htmlFor="filter-to"
+                className="mb-1 block text-sm text-[#64748b] dark:text-slate-400"
+              >
+                Fim até
+              </label>
               <input
                 id="filter-to"
                 type="date"
@@ -107,7 +247,12 @@ export function FilterForm({
         )}
 
         <div className="flex justify-end">
-          <Button type="submit" size="sm" className="min-h-[44px] bg-blue-600 px-4 text-base font-medium text-white hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2" aria-label="Aplicar filtros">
+          <Button
+            type="submit"
+            size="sm"
+            className="min-h-[44px] bg-blue-600 px-4 text-base font-medium text-white hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+            aria-label="Aplicar filtros"
+          >
             Filtrar
           </Button>
         </div>
