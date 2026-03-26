@@ -13,3 +13,7 @@ export function isCuid(id: unknown): id is string {
 export function requireCuid(id: unknown): string | null {
   return isCuid(id) ? id : null;
 }
+
+export function buildInclusiveOverlapConditions(startDate: Date, endDate: Date) {
+  return [{ startDate: { lte: endDate } }, { endDate: { gte: startDate } }] as const;
+}

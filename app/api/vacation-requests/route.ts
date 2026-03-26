@@ -16,6 +16,7 @@ import {
   findAcquisitionPeriodsForUser,
 } from "@/repositories/acquisitionRepository";
 import { validateVacationConcessiveFifo } from "@/lib/concessivePeriod";
+import { buildInclusiveOverlapConditions } from "@/lib/validation";
 
 const POST_REQUESTS_MAX_PER_MINUTE = 20;
 
@@ -77,7 +78,7 @@ function getCurrentCycleRange(today: Date, hireDate: Date | null | undefined) {
   }
 
   const hire = toUtcMidnight(hireDate);
-  let start = new Date(Date.UTC(now.getUTCFullYear(), hire.getUTCMonth(), hire.getUTCDate()));
+  const start = new Date(Date.UTC(now.getUTCFullYear(), hire.getUTCMonth(), hire.getUTCDate()));
   if (start > now) start.setUTCFullYear(start.getUTCFullYear() - 1);
   const end = new Date(start);
   end.setUTCFullYear(end.getUTCFullYear() + 1);
@@ -86,17 +87,19 @@ function getCurrentCycleRange(today: Date, hireDate: Date | null | undefined) {
 }
 
 async function hasOverlappingRequest(userId: string, startDate: Date, endDate: Date) {
+  const overlapConditions = buildInclusiveOverlapConditions(startDate, endDate);
   const overlapping = await prisma.vacationRequest.findFirst({
     where: {
       userId,
       status: {
         in: [...PENDING_OR_APPROVED_VACATION_STATUSES],
       },
-      AND: [{ startDate: { lt: endDate } }, { endDate: { gt: startDate } }],
+      AND: overlapConditions,
     },
   });
   return Boolean(overlapping);
 }
+
 
 export async function GET(request: Request) {
   const user = await getSessionUser();
