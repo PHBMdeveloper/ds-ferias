@@ -21,6 +21,19 @@ type UserRow = {
 };
 
 type Manager = { id: string; name: string };
+type SortKey =
+  | "name"
+  | "email"
+  | "registration"
+  | "role"
+  | "department"
+  | "team"
+  | "hireDate"
+  | "tookVacationInCurrentCycle"
+  | "manager";
+type SortDir = "asc" | "desc";
+const FIXED_DEPARTMENT = "Estratégia Digital";
+const TEAM_OPTIONS = ["Design System", "Plataformas", "APPs", "Inovação IA"] as const;
 
 export function BackofficeClient({
   users,
@@ -33,6 +46,7 @@ export function BackofficeClient({
   const [form, setForm] = useState<Partial<UserRow>>({});
   const [saving, setSaving] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [createForm, setCreateForm] = useState<{
     name: string;
     email: string;
@@ -47,13 +61,15 @@ export function BackofficeClient({
     email: "",
     registration: "",
     role: "",
-    department: "",
+    department: FIXED_DEPARTMENT,
     hireDate: "",
     team: "",
     managerId: "",
   });
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<"" | "FUNCIONARIO" | "COORDENADOR" | "GERENTE" | "DIRETOR" | "RH">("");
+  const [sortKey, setSortKey] = useState<SortKey>("name");
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
 
   async function handleSave(id: string) {
     setSaving(true);
@@ -85,6 +101,23 @@ export function BackofficeClient({
     }
   }
 
+  async function handleDelete(u: UserRow) {
+    if (!window.confirm(`Tem certeza que deseja excluir o usuário "${u.name}"?`)) return;
+    setDeletingId(u.id);
+    try {
+      const res = await fetch(`/api/users/${u.id}`, { method: "DELETE" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(typeof data?.error === "string" ? data.error : "Erro ao excluir usuário.");
+        return;
+      }
+      toast.success("Usuário excluído com sucesso.");
+      window.location.reload();
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
   function startEdit(u: UserRow) {
     setEditingId(u.id);
     setForm({
@@ -107,6 +140,54 @@ export function BackofficeClient({
     if (roleFilter && u.role !== roleFilter) return false;
     return true;
   });
+  const sortedUsers = [...filteredUsers].sort((a, b) => {
+    const normalize = (v: unknown): string | number => {
+      if (v instanceof Date) return v.getTime();
+      if (typeof v === "boolean") return v ? 1 : 0;
+      if (v === null || v === undefined) return "";
+      return String(v).toLowerCase();
+    };
+    const pick = (u: UserRow): unknown => {
+      switch (sortKey) {
+        case "manager":
+          return u.manager?.name ?? "";
+        default:
+          return (u as any)[sortKey];
+      }
+    };
+    const av = normalize(pick(a));
+    const bv = normalize(pick(b));
+    let cmp = 0;
+    if (typeof av === "number" && typeof bv === "number") cmp = av - bv;
+    else cmp = String(av).localeCompare(String(bv), "pt-BR");
+    return sortDir === "asc" ? cmp : -cmp;
+  });
+
+  function toggleSort(key: SortKey) {
+    if (sortKey === key) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+      return;
+    }
+    setSortKey(key);
+    setSortDir("asc");
+  }
+
+  function SortHeader({ label, col }: { label: string; col: SortKey }) {
+    const active = sortKey === col;
+    return (
+      <button
+        type="button"
+        onClick={() => toggleSort(col)}
+        className="inline-flex items-center gap-1 font-semibold text-[#1a1d23] hover:text-blue-700 dark:text-white dark:hover:text-blue-300"
+        aria-label={`Ordenar por ${label}`}
+      >
+        {label}
+        <span className="text-[10px] text-[#64748b] dark:text-slate-400">
+          {active ? (sortDir === "asc" ? "▲" : "▼") : "↕"}
+        </span>
+      </button>
+    );
+  }
 
   return (
     <div className="overflow-hidden rounded-lg border border-[#e2e8f0] bg-white dark:border-[#252a35] dark:bg-[#1a1d23]">
@@ -188,13 +269,13 @@ export function BackofficeClient({
                 <option value="DIRETOR">Diretor(a)</option>
                 <option value="RH">RH</option>
               </select>
-              <input
-                type="text"
-                placeholder="Departamento (opcional)"
+              <select
                 value={createForm.department}
                 onChange={(e) => setCreateForm((f) => ({ ...f, department: e.target.value }))}
-                className="w-40 rounded-md border border-[#e2e8f0] bg-white px-2 py-1.5 text-sm text-[#1a1d23] outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-[#252a35] dark:bg-[#0f1117] dark:text-white"
-              />
+                className="w-44 rounded-md border border-[#e2e8f0] bg-white px-2 py-1.5 text-sm text-[#1a1d23] outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-[#252a35] dark:bg-[#0f1117] dark:text-white"
+              >
+                <option value={FIXED_DEPARTMENT}>{FIXED_DEPARTMENT}</option>
+              </select>
               <input
                 type="date"
                 aria-label="Data de admissão"
@@ -202,13 +283,16 @@ export function BackofficeClient({
                 onChange={(e) => setCreateForm((f) => ({ ...f, hireDate: e.target.value }))}
                 className="w-40 rounded-md border border-[#e2e8f0] bg-white px-2 py-1.5 text-sm text-[#1a1d23] outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-[#252a35] dark:bg-[#0f1117] dark:text-white"
               />
-              <input
-                type="text"
-                placeholder="Time (opcional)"
+              <select
                 value={createForm.team}
                 onChange={(e) => setCreateForm((f) => ({ ...f, team: e.target.value }))}
-                className="w-40 rounded-md border border-[#e2e8f0] bg-white px-2 py-1.5 text-sm text-[#1a1d23] outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-[#252a35] dark:bg-[#0f1117] dark:text-white"
-              />
+                className="w-44 rounded-md border border-[#e2e8f0] bg-white px-2 py-1.5 text-sm text-[#1a1d23] outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-[#252a35] dark:bg-[#0f1117] dark:text-white"
+              >
+                <option value="">Time (opcional)</option>
+                {TEAM_OPTIONS.map((t) => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+              </select>
               <select
                 value={createForm.managerId}
                 onChange={(e) => setCreateForm((f) => ({ ...f, managerId: e.target.value }))}
@@ -244,7 +328,7 @@ export function BackofficeClient({
                   email: "",
                   registration: "",
                   role: "",
-                  department: "",
+                  department: FIXED_DEPARTMENT,
                   hireDate: "",
                   team: "",
                   managerId: "",
@@ -259,26 +343,31 @@ export function BackofficeClient({
           </Button>
         </div>
       </div>
-      <div className="overflow-x-auto">
+      <div className="max-h-[65vh] overflow-auto">
         <table className="w-full min-w-[640px] text-left text-sm">
           <thead>
             <tr className="border-b border-[#e2e8f0] bg-[#f8fafc] dark:border-[#252a35] dark:bg-[#141720]">
-              <th scope="col" className="px-4 py-3 font-semibold text-[#1a1d23] dark:text-white">Nome</th>
-              <th scope="col" className="px-4 py-3 font-semibold text-[#1a1d23] dark:text-white">E-mail</th>
-              <th scope="col" className="px-4 py-3 font-semibold text-[#1a1d23] dark:text-white">Matrícula</th>
-              <th scope="col" className="px-4 py-3 font-semibold text-[#1a1d23] dark:text-white">Papel</th>
-              <th scope="col" className="px-4 py-3 font-semibold text-[#1a1d23] dark:text-white">Departamento</th>
-              <th scope="col" className="px-4 py-3 font-semibold text-[#1a1d23] dark:text-white">Time</th>
-              <th scope="col" className="px-4 py-3 font-semibold text-[#1a1d23] dark:text-white">Admissão</th>
-              <th scope="col" className="px-4 py-3 font-semibold text-[#1a1d23] dark:text-white">Férias no ciclo</th>
-              <th scope="col" className="px-4 py-3 font-semibold text-[#1a1d23] dark:text-white">Coordenador/Gerente</th>
-              <th scope="col" className="px-4 py-3 font-semibold text-[#1a1d23] dark:text-white">Ações</th>
+              <th
+                scope="col"
+                className="sticky left-0 top-0 z-50 w-[220px] min-w-[220px] border-r border-[#e2e8f0] bg-[#f8fafc] px-4 py-3 dark:border-[#252a35] dark:bg-[#141720]"
+              >
+                <SortHeader label="Nome" col="name" />
+              </th>
+              <th scope="col" className="sticky top-0 z-40 bg-[#f8fafc] px-4 py-3 dark:bg-[#141720]"><SortHeader label="E-mail" col="email" /></th>
+              <th scope="col" className="sticky top-0 z-40 bg-[#f8fafc] px-4 py-3 dark:bg-[#141720]"><SortHeader label="Matrícula" col="registration" /></th>
+              <th scope="col" className="sticky top-0 z-40 bg-[#f8fafc] px-4 py-3 dark:bg-[#141720]"><SortHeader label="Papel" col="role" /></th>
+              <th scope="col" className="sticky top-0 z-40 bg-[#f8fafc] px-4 py-3 dark:bg-[#141720]"><SortHeader label="Departamento" col="department" /></th>
+              <th scope="col" className="sticky top-0 z-40 bg-[#f8fafc] px-4 py-3 dark:bg-[#141720]"><SortHeader label="Time" col="team" /></th>
+              <th scope="col" className="sticky top-0 z-40 bg-[#f8fafc] px-4 py-3 dark:bg-[#141720]"><SortHeader label="Admissão" col="hireDate" /></th>
+              <th scope="col" className="sticky top-0 z-40 bg-[#f8fafc] px-4 py-3 dark:bg-[#141720]"><SortHeader label="Férias no ciclo" col="tookVacationInCurrentCycle" /></th>
+              <th scope="col" className="sticky top-0 z-40 bg-[#f8fafc] px-4 py-3 dark:bg-[#141720]"><SortHeader label="Coordenador/Gerente" col="manager" /></th>
+              <th scope="col" className="sticky top-0 z-40 bg-[#f8fafc] px-4 py-3 font-semibold text-[#1a1d23] dark:bg-[#141720] dark:text-white">Ações</th>
             </tr>
           </thead>
           <tbody>
-            {filteredUsers.map((u) => (
+            {sortedUsers.map((u) => (
               <tr key={u.id} className="border-b border-[#e2e8f0] dark:border-[#252a35]">
-                <td className="px-4 py-3">
+                <td className="sticky left-0 z-20 w-[220px] min-w-[220px] border-r border-[#e2e8f0] bg-white px-4 py-3 dark:border-[#252a35] dark:bg-[#1a1d23]">
                   {editingId === u.id ? (
                     <input
                       value={form.name ?? ""}
@@ -287,7 +376,7 @@ export function BackofficeClient({
                       className="w-full rounded border border-[#e2e8f0] bg-white px-2 py-1.5 dark:border-[#252a35] dark:bg-[#0f1117] dark:text-white"
                     />
                   ) : (
-                    <span className="font-medium text-[#1a1d23] dark:text-white">{u.name}</span>
+                    <span className="block break-words font-medium text-[#1a1d23] dark:text-white">{u.name}</span>
                   )}
                 </td>
                 <td className="px-4 py-3 text-[#64748b] dark:text-slate-400">
@@ -326,26 +415,31 @@ export function BackofficeClient({
                 </td>
                 <td className="px-4 py-3">
                   {editingId === u.id ? (
-                    <input
-                      value={form.department ?? ""}
-                      onChange={(e) => setForm((f) => ({ ...f, department: e.target.value || null }))}
-                      placeholder="Ex: Engenharia"
+                    <select
+                      value={form.department ?? FIXED_DEPARTMENT}
+                      onChange={(e) => setForm((f) => ({ ...f, department: e.target.value }))}
                       aria-label="Departamento"
-                      className="w-32 rounded border border-[#e2e8f0] bg-white px-2 py-1.5 dark:border-[#252a35] dark:bg-[#0f1117] dark:text-white"
-                    />
+                      className="w-44 rounded border border-[#e2e8f0] bg-white px-2 py-1.5 dark:border-[#252a35] dark:bg-[#0f1117] dark:text-white"
+                    >
+                      <option value={FIXED_DEPARTMENT}>{FIXED_DEPARTMENT}</option>
+                    </select>
                   ) : (
                     u.department ?? "—"
                   )}
                 </td>
                 <td className="px-4 py-3">
                   {editingId === u.id ? (
-                    <input
+                    <select
                       value={form.team ?? ""}
                       onChange={(e) => setForm((f) => ({ ...f, team: e.target.value || null }))}
-                      placeholder="Ex: Squad A"
                       aria-label="Time"
-                      className="w-32 rounded border border-[#e2e8f0] bg-white px-2 py-1.5 dark:border-[#252a35] dark:bg-[#0f1117] dark:text-white"
-                    />
+                      className="w-44 rounded border border-[#e2e8f0] bg-white px-2 py-1.5 dark:border-[#252a35] dark:bg-[#0f1117] dark:text-white"
+                    >
+                      <option value="">— Sem time —</option>
+                      {TEAM_OPTIONS.map((t) => (
+                        <option key={t} value={t}>{t}</option>
+                      ))}
+                    </select>
                   ) : (
                     u.team ?? "—"
                   )}
@@ -400,9 +494,20 @@ export function BackofficeClient({
                       </Button>
                     </div>
                   ) : (
-                    <Button size="sm" variant="outline" onClick={() => startEdit(u)} aria-label={`Editar usuário ${u.name}`}>
-                      Editar
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="outline" onClick={() => startEdit(u)} aria-label={`Editar usuário ${u.name}`}>
+                        Editar
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => handleDelete(u)}
+                        disabled={deletingId === u.id}
+                        aria-label={`Excluir usuário ${u.name}`}
+                      >
+                        {deletingId === u.id ? "Excluindo…" : "Excluir"}
+                      </Button>
+                    </div>
                   )}
                 </td>
               </tr>

@@ -44,3 +44,49 @@ export async function PATCH(
 
   return NextResponse.json(updated);
 }
+
+/** DELETE: remove usuário (apenas RH). */
+export async function DELETE(
+  _request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const user = await getSessionUser();
+  if (!user) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+  if (getRoleLevel(user.role) < 5) {
+    return NextResponse.json({ error: "Acesso restrito ao RH" }, { status: 403 });
+  }
+  if (shouldForcePasswordChange(user)) {
+    return NextResponse.json({ error: "Você precisa trocar a senha antes de continuar." }, { status: 403 });
+  }
+
+  const { id } = await params;
+  if (!id) return NextResponse.json({ error: "ID inválido" }, { status: 400 });
+  if (id === user.id) {
+    return NextResponse.json({ error: "Você não pode excluir seu próprio usuário." }, { status: 400 });
+  }
+
+  const target = await prisma.user.findUnique({
+    where: { id },
+    select: { managerId: true, _count: { select: { reports: true } } },
+  });
+  if (!target) return NextResponse.json({ error: "Usuário não encontrado." }, { status: 404 });
+  const reportsCount = target._count?.reports ?? 0;
+
+  // Se o usuário possuir liderados, realocamos os vínculos para o gestor acima
+  // (ou null quando não existir), para permitir a exclusão sem quebrar FK.
+  if (reportsCount > 0) {
+    await prisma.user.updateMany({
+      where: { managerId: id },
+      data: { managerId: target.managerId ?? null },
+    });
+  }
+
+  // Limpa vínculos antes de excluir para evitar erro de FK.
+  await prisma.vacationRequestHistory.deleteMany({ where: { changedByUserId: id } });
+  await prisma.vacationRequest.deleteMany({ where: { userId: id } });
+  await prisma.acquisitionPeriod.deleteMany({ where: { userId: id } });
+  await prisma.blackoutPeriod.deleteMany({ where: { createdById: id } });
+  await prisma.user.delete({ where: { id } });
+
+  return NextResponse.json({ ok: true });
+}
