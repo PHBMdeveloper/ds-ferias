@@ -15,5 +15,5 @@ export function requireCuid(id: unknown): string | null {
 }
 
 export function buildInclusiveOverlapConditions(startDate: Date, endDate: Date) {
-  return [{ startDate: { lte: endDate } }, { endDate: { gte: startDate } }] as const;
+  return [{ startDate: { lte: endDate } }, { endDate: { gte: startDate } }];
 }
