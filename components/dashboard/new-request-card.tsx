@@ -79,10 +79,13 @@ export function NewRequestCardClient({
   const maxDaysThisRequest = Math.min(Math.max(0, availableDays), MAX_DAYS_PER_REQUEST);
   const effectiveMaxDaysThisRequest = isPreEntitlement ? MAX_DAYS_PER_REQUEST : maxDaysThisRequest;
   const selectedDays = isBusinessDaysRole ? stats.totalBusinessDays : stats.totalDays;
+  const requireExact30Days = !isBusinessDaysRole && abono === true;
   const totalOk =
     effectiveMaxDaysThisRequest === 0
       ? selectedDays === 0
-      : selectedDays > 0 && selectedDays <= effectiveMaxDaysThisRequest;
+      : requireExact30Days
+        ? selectedDays === 30
+        : selectedDays > 0 && selectedDays <= effectiveMaxDaysThisRequest;
   const hasPeriod14OrMore = stats.periods.some((p) => p.days >= 14);
   const needsPeriod14 = isBusinessDaysRole ? false : existingDaysInCycle < 14 && !hasPeriod14OrMore;
   const totalWithExisting = existingDaysInCycle + selectedDays;

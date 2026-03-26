@@ -299,6 +299,16 @@ export async function POST(request: Request) {
       if (cltError) return NextResponse.json({ error: cltError }, { status: 400 });
 
       const totalRequestedDays = periods.reduce((sum, p) => sum + getChargeableDays(p.start, p.end, abono), 0);
+      const isEmployee = user.role === "COLABORADOR" || user.role === "FUNCIONARIO";
+      if (abono === true && isEmployee && totalRequestedDays !== 30) {
+        return NextResponse.json(
+          {
+            error:
+              "Com abono 1/3, a solicitação deve totalizar 30 dias (você pode fracionar em até 3 períodos). O abono antecipa o retorno, mas o total solicitado continua 30.",
+          },
+          { status: 400 },
+        );
+      }
       const totalAvailable = Math.max(0, 30 - existingDaysInCycle);
       if (totalRequestedDays > totalAvailable) {
         return NextResponse.json(
@@ -352,6 +362,16 @@ export async function POST(request: Request) {
 
       // Saldo suficiente?
       const totalRequestedDays = periods.reduce((sum, p) => sum + getChargeableDays(p.start, p.end, abono), 0);
+      const isEmployee = user.role === "COLABORADOR" || user.role === "FUNCIONARIO";
+      if (abono === true && isEmployee && totalRequestedDays !== 30) {
+        return NextResponse.json(
+          {
+            error:
+              "Com abono 1/3, a solicitação deve totalizar 30 dias (você pode fracionar em até 3 períodos). O abono antecipa o retorno, mas o total solicitado continua 30.",
+          },
+          { status: 400 },
+        );
+      }
       if (totalRequestedDays > totalAvailable) {
         return NextResponse.json(
           {
