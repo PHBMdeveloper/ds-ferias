@@ -84,6 +84,19 @@ export function TimesViewClient({ teamData, level }: Props) {
     URL.revokeObjectURL(url);
   }
 
+  const GERENCIA_LABELS = [
+    "Gerência de Plataformas",
+    "Gerência de Produtos Digitais",
+    "Gerência de Operações Digitais",
+    "Gerência de Experiência e Design",
+    "Gerência de Dados e Performance",
+  ];
+
+  function getGerenciaLabel(index: number): string {
+    if (index < GERENCIA_LABELS.length) return GERENCIA_LABELS[index];
+    return `Gerência Estratégica ${index + 1}`;
+  }
+
   if (teamData.kind === "coord") {
     const teamsFiltered = teamData.teams
       .filter((team) => teamFilter === "ALL" || team.teamKey === teamFilter)
@@ -131,12 +144,33 @@ export function TimesViewClient({ teamData, level }: Props) {
     );
   }
 
+  const gerentesComNomesFuncionais = teamData.gerentes.map((g, i) => {
+    const coordenadoresUnicos = Array.from(
+      new Set([
+        ...g.teams.map((t) => t.coordinatorId),
+        ...(g.coordinatorMembers?.map((c) => c.user.id) ?? []),
+      ]),
+    );
+    const coordLabelById = new Map<string, string>();
+    coordenadoresUnicos.forEach((id, idx) => {
+      coordLabelById.set(id, `Coordenação ${idx + 1}`);
+    });
+    return {
+      ...g,
+      gerenteName: getGerenciaLabel(i),
+      teams: g.teams.map((t) => ({
+        ...t,
+        coordinatorName: coordLabelById.get(t.coordinatorId) ?? "Coordenação",
+      })),
+    };
+  });
+
   const managerOptions = [
     { value: "ALL", label: "Todas as gerências" },
-    ...teamData.gerentes.map((g) => ({ value: g.gerenteId, label: g.gerenteName })),
+    ...gerentesComNomesFuncionais.map((g) => ({ value: g.gerenteId, label: g.gerenteName })),
   ];
   const coordinatorMap = new Map<string, string>();
-  teamData.gerentes.forEach((g) => {
+  gerentesComNomesFuncionais.forEach((g) => {
     if (managerFilter !== "ALL" && g.gerenteId !== managerFilter) return;
     g.teams.forEach((t) => coordinatorMap.set(t.coordinatorId, t.coordinatorName));
   });
@@ -145,7 +179,7 @@ export function TimesViewClient({ teamData, level }: Props) {
     ...Array.from(coordinatorMap.entries()).map(([value, label]) => ({ value, label })),
   ];
   const teamMap = new Map<string, string>();
-  teamData.gerentes.forEach((g) => {
+  gerentesComNomesFuncionais.forEach((g) => {
     if (managerFilter !== "ALL" && g.gerenteId !== managerFilter) return;
     g.teams.forEach((t) => {
       if (coordinatorFilter !== "ALL" && t.coordinatorId !== coordinatorFilter) return;
@@ -157,7 +191,7 @@ export function TimesViewClient({ teamData, level }: Props) {
     ...Array.from(teamMap.entries()).map(([value, label]) => ({ value, label })),
   ];
 
-  const gerentesFiltered = teamData.gerentes
+  const gerentesFiltered = gerentesComNomesFuncionais
     .filter((g) => managerFilter === "ALL" || g.gerenteId === managerFilter)
     .map((g) => ({
       ...g,
@@ -178,6 +212,9 @@ export function TimesViewClient({ teamData, level }: Props) {
 
   return (
     <div className="space-y-6">
+      <div className="rounded-lg border border-[#dbeafe] bg-[#eff6ff] px-4 py-3 text-sm font-semibold text-[#1e3a8a] dark:border-blue-900/40 dark:bg-blue-950/20 dark:text-blue-200">
+        Diretoria: Estratégia Digital
+      </div>
       <TimesViewFilterBar
         query={query}
         setQuery={setQuery}
