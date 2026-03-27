@@ -205,7 +205,7 @@ function renderApprovedEmailHtml(event: Extract<NotifyEvent, { type: "APPROVED" 
         <div style="padding:18px 20px;">
           <p style="margin:0 0 12px 0;">A solicitacao abaixo foi aprovada no fluxo de ferias.</p>
           <table style="border-collapse:collapse;width:100%;max-width:760px;">${rows}</table>
-          <p style="margin:14px 0 2px 0;font-size:13px;color:#4b5563;">Em caso de duvidas, responder este e-mail ou acionar o time de RH.</p>
+          <p style="margin:14px 0 2px 0;font-size:13px;color:#4b5563;">Em caso de dúvidas, contatar o lider direto.</p>
           <p style="margin:0;font-size:13px;color:#4b5563;">${safeHrSignature}</p>
         </div>
       </div>
