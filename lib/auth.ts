@@ -120,12 +120,28 @@ export async function getSessionUser(): Promise<SessionUser | null> {
       payload = raw;
     }
     const data = JSON.parse(payload) as SessionUser;
-    if (typeof data?.id !== "string" || typeof data?.email !== "string" || typeof data?.role !== "string") {
+    if (typeof data?.id !== "string") {
       return null;
     }
+    // Nunca confiar no role do cookie: sempre reidrata do banco.
+    const dbUser = await prisma.user.findUnique({
+      where: { id: data.id },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        mustChangePassword: true,
+      },
+    });
+    if (!dbUser) return null;
+
     return {
-      ...data,
-      mustChangePassword: typeof data.mustChangePassword === "boolean" ? data.mustChangePassword : false,
+      id: dbUser.id,
+      name: dbUser.name,
+      email: dbUser.email,
+      role: dbUser.role,
+      mustChangePassword: !!dbUser.mustChangePassword,
     };
   } catch {
     return null;

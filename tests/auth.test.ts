@@ -141,6 +141,7 @@ describe("verifyCredentials", () => {
 
 describe("getSessionUser", () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     mockGet.mockReset();
     mockSet.mockReset();
     delete process.env.SESSION_SECRET;
@@ -160,15 +161,35 @@ describe("getSessionUser", () => {
 
   it("returns null when payload missing required fields", async () => {
     mockGet.mockReturnValue({ value: JSON.stringify({ id: "u1" }) });
+    const { prisma } = await import("@/lib/prisma");
+    vi.mocked(prisma.user.findUnique).mockResolvedValue(null);
     const user = await getSessionUser();
     expect(user).toBeNull();
   });
 
-  it("returns user when cookie has valid legacy JSON (no dot)", async () => {
-    const data: SessionUser = { id: "u1", name: "U", email: "u@e.com", role: "FUNCIONARIO", mustChangePassword: false };
+  it("returns user from database when cookie has valid legacy JSON (no dot)", async () => {
+    const data: SessionUser = { id: "u1", name: "Cookie", email: "cookie@e.com", role: "RH", mustChangePassword: false };
     mockGet.mockReturnValue({ value: JSON.stringify(data) });
+    const { prisma } = await import("@/lib/prisma");
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({
+      id: "u1",
+      name: "DB User",
+      email: "db@e.com",
+      role: "FUNCIONARIO",
+      mustChangePassword: true,
+      passwordHash: "unused",
+      registration: "REG1",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as never);
     const user = await getSessionUser();
-    expect(user).toEqual(data);
+    expect(user).toEqual({
+      id: "u1",
+      name: "DB User",
+      email: "db@e.com",
+      role: "FUNCIONARIO",
+      mustChangePassword: true,
+    });
   });
 
   it("returns user when SESSION_SECRET set and cookie is signed (createSession + getSessionUser)", async () => {
@@ -178,6 +199,18 @@ describe("getSessionUser", () => {
     const signedValue = mockSet.mock.calls[0][1];
     expect(signedValue).toContain(".");
     mockGet.mockReturnValue({ value: signedValue });
+    const { prisma } = await import("@/lib/prisma");
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({
+      id: "u1",
+      name: "U",
+      email: "u@e.com",
+      role: "RH",
+      mustChangePassword: false,
+      passwordHash: "unused",
+      registration: "REG1",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as never);
     const user = await getSessionUser();
     expect(user).toEqual(data);
   });
@@ -186,6 +219,16 @@ describe("getSessionUser", () => {
     process.env.SESSION_SECRET = "a".repeat(16);
     const payload = JSON.stringify({ id: "u1", name: "U", email: "u@e.com", role: "FUNCIONARIO" });
     mockGet.mockReturnValue({ value: payload + ".invalidsignature" });
+    const user = await getSessionUser();
+    expect(user).toBeNull();
+  });
+
+  it("returns null when cookie has valid format but user no longer exists", async () => {
+    mockGet.mockReturnValue({
+      value: JSON.stringify({ id: "u-missing", name: "U", email: "u@e.com", role: "FUNCIONARIO" }),
+    });
+    const { prisma } = await import("@/lib/prisma");
+    vi.mocked(prisma.user.findUnique).mockResolvedValue(null);
     const user = await getSessionUser();
     expect(user).toBeNull();
   });
