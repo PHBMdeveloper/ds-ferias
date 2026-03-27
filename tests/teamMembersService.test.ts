@@ -5,7 +5,8 @@ const mockFindTeamMembersByGerente = vi.fn().mockResolvedValue([]);
 const mockFindCoordinatorsByGerente = vi.fn().mockResolvedValue([]);
 const mockFindAllEmployees = vi.fn().mockResolvedValue([]);
 const mockFindAllCoordinatorsForRh = vi.fn().mockResolvedValue([]);
-const mockFindAllGerentes = vi.fn().mockResolvedValue([]);
+const mockFindAllGerentesForTimes = vi.fn().mockResolvedValue([]);
+const mockFindUserWithTimesVacations = vi.fn().mockResolvedValue(null);
 const mockPrismaFindMany = vi.fn().mockResolvedValue([]);
 
 vi.mock("@/lib/prisma", () => ({
@@ -22,7 +23,8 @@ vi.mock("@/repositories/userRepository", () => ({
   findCoordinatorsByGerente: (...args: unknown[]) => mockFindCoordinatorsByGerente(...args),
   findAllEmployees: (...args: unknown[]) => mockFindAllEmployees(...args),
   findAllCoordinatorsForRh: (...args: unknown[]) => mockFindAllCoordinatorsForRh(...args),
-  findAllGerentes: (...args: unknown[]) => mockFindAllGerentes(...args),
+  findAllGerentesForTimes: (...args: unknown[]) => mockFindAllGerentesForTimes(...args),
+  findUserWithTimesVacations: (...args: unknown[]) => mockFindUserWithTimesVacations(...args),
 }));
 if (!process.env.DATABASE_URL) process.env.DATABASE_URL = "postgresql://localhost:5432/test";
 
@@ -35,12 +37,22 @@ describe("getTeamMembersForTimes", () => {
     mockFindCoordinatorsByGerente.mockClear();
     mockFindAllEmployees.mockClear();
     mockFindAllCoordinatorsForRh.mockClear();
-    mockFindAllGerentes.mockClear();
+    mockFindAllGerentesForTimes.mockClear();
+    mockFindUserWithTimesVacations.mockClear();
     mockPrismaFindMany.mockClear();
     mockPrismaFindMany.mockResolvedValue([]);
   });
 
   it("level 2 (coordenador): returns coord structure with one team e calcula isOnVacationNow com/sem abono", async () => {
+    mockFindUserWithTimesVacations.mockResolvedValueOnce({
+      id: "coord-1",
+      name: "Coord",
+      role: "COORDENADOR",
+      department: null,
+      hireDate: null,
+      vacationRequests: [],
+      manager: null,
+    });
     mockFindTeamMembersByManager.mockResolvedValueOnce([
       {
         id: "u1",
@@ -49,7 +61,7 @@ describe("getTeamMembersForTimes", () => {
         hireDate: new Date("2024-01-01"),
         role: "FUNCIONARIO",
         managerId: "coord-1",
-        manager: { id: "coord-1", name: "Coord", managerId: null, manager: null },
+        manager: { id: "coord-1", name: "Coord", role: "COORDENADOR", managerId: null, manager: null },
         vacationRequests: [
           // Férias aprovadas sem abono, cobrindo o dia de hoje
           {
@@ -75,6 +87,9 @@ describe("getTeamMembersForTimes", () => {
     ]);
     const result = await getTeamMembersForTimes("coord-1", "COORDENADOR");
     expect(result.kind).toBe("coord");
+    if (result.kind === "coord") {
+      expect(result.coordinatorSelf?.user.id).toBe("coord-1");
+    }
     expect(result.teams).toHaveLength(1);
     expect(result.teams[0].members).toHaveLength(1);
     const member = result.teams[0].members[0];
@@ -84,6 +99,15 @@ describe("getTeamMembersForTimes", () => {
   });
 
   it("level 3 (gerente): returns tree structure with gerente > coordenador > colaboradores", async () => {
+    mockFindUserWithTimesVacations.mockResolvedValueOnce({
+      id: "ger-1",
+      name: "Ger",
+      role: "GERENTE",
+      department: "TI",
+      hireDate: null,
+      vacationRequests: [],
+      manager: null,
+    });
     mockFindTeamMembersByGerente.mockResolvedValueOnce([
       {
         id: "u1",
@@ -126,7 +150,7 @@ describe("getTeamMembersForTimes", () => {
         hireDate: new Date("2023-01-01"),
         role: "COORDENADOR",
         managerId: "ger-1",
-        manager: { id: "ger-1", name: "Ger", managerId: null, manager: null },
+        manager: { id: "ger-1", name: "Ger", role: "GERENTE", managerId: null, manager: null },
         vacationRequests: [],
       },
     ]);
@@ -134,6 +158,7 @@ describe("getTeamMembersForTimes", () => {
     expect(result.kind).toBe("rh");
     expect(result.gerentes.length).toBe(1);
     expect(result.gerentes[0].gerenteId).toBe("ger-1");
+    expect(result.gerentes[0].gerenteSelf?.user.id).toBe("ger-1");
     expect(result.gerentes[0].teams.length).toBeGreaterThanOrEqual(1);
     expect(result.gerentes[0].coordinatorMembers?.map((m) => m.user.id)).toEqual(["c1"]);
     // garante que o comparator do sort foi exercitado
@@ -143,7 +168,17 @@ describe("getTeamMembersForTimes", () => {
   });
 
   it("level 4 (RH): returns rh structure with gerentes", async () => {
-    mockFindAllGerentes.mockResolvedValueOnce([{ id: "ger-1", name: "Gerente" }]);
+    mockFindAllGerentesForTimes.mockResolvedValueOnce([
+      {
+        id: "ger-1",
+        name: "Gerente",
+        role: "GERENTE",
+        department: "TI",
+        hireDate: null,
+        vacationRequests: [],
+        manager: { id: "d1", name: "Dir", role: "DIRETOR", managerId: null, manager: null },
+      },
+    ]);
     mockFindAllCoordinatorsForRh.mockResolvedValueOnce([
       {
         id: "c1",
@@ -196,8 +231,9 @@ describe("getTeamMembersForTimes", () => {
     // garante que o comparator do sort foi exercitado
     const firstTeamMembers = result.gerentes[0]?.teams[0]?.members?.map((m) => m.user.name) ?? [];
     expect(firstTeamMembers).toEqual(["Ana", "Zeca"]);
+    expect(result.gerentes[0]?.gerenteSelf?.user.name).toBe("Gerente");
     expect(mockFindAllEmployees).toHaveBeenCalled();
     expect(mockFindAllCoordinatorsForRh).toHaveBeenCalled();
-    expect(mockFindAllGerentes).toHaveBeenCalled();
+    expect(mockFindAllGerentesForTimes).toHaveBeenCalled();
   });
 });

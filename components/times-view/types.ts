@@ -31,6 +31,7 @@ export type TeamMemberInfoSerialized = {
 
 export type TeamDataCoord = {
   kind: "coord";
+  coordinatorSelf?: TeamMemberInfoSerialized;
   teams: {
     coordinatorId: string;
     coordinatorName: string;
@@ -47,6 +48,7 @@ export type TeamDataRH = {
     gerenteName: string;
     diretorId?: string | null;
     diretorName?: string | null;
+    gerenteSelf?: TeamMemberInfoSerialized;
     coordinatorMembers?: TeamMemberInfoSerialized[];
     teams: {
       coordinatorId: string;

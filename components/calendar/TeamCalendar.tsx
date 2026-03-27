@@ -148,7 +148,7 @@ export function TeamCalendar({
   const [currentMonth, setCurrentMonth] = useState(
     () => new Date(today.getFullYear(), today.getMonth(), 1),
   );
-  const [viewMode, setViewMode] = useState<"month" | "year">("month");
+  const [viewMode, setViewMode] = useState<"month" | "year">("year");
 
   const daysInMonth = new Date(
     currentMonth.getFullYear(),
@@ -187,8 +187,7 @@ export function TeamCalendar({
     segments: getVacationSegments(member, monthStart, monthEnd),
   }));
 
-  /** Só listamos quem tem férias aprovadas ou pendentes no período visível. */
-  const visibleMemberSegments = memberSegments.filter(({ segments }) => segments.length > 0);
+  const pessoasComFeriasNoMes = memberSegments.filter(({ segments }) => segments.length > 0).length;
 
   function countGroupOnMonthDay(member: TeamMemberInfoSerialized, dayIdx: number): number {
     const day = dayIdx + 1;
@@ -211,12 +210,11 @@ export function TeamCalendar({
   const yearDayWidth = 3;
   const yearTimelineWidth = totalDaysInYear * yearDayWidth;
 
-  const yearMemberSegments = sortedMembers
-    .map((member) => ({
-      member,
-      segments: getVacationSegments(member, yearStart, yearEnd),
-    }))
-    .filter(({ segments }) => segments.length > 0);
+  const yearMemberSegments = sortedMembers.map((member) => ({
+    member,
+    segments: getVacationSegments(member, yearStart, yearEnd),
+  }));
+  const pessoasComFeriasNoAno = yearMemberSegments.filter(({ segments }) => segments.length > 0).length;
 
   function countGroupOnYearDay(member: TeamMemberInfoSerialized, dayIdx: number): number {
     const dms = atMidnight(new Date(atMidnight(yearStart).getTime() + dayIdx * ONE_DAY_MS)).getTime();
@@ -251,12 +249,12 @@ export function TeamCalendar({
           </h4>
           <p className="mt-1 text-xs text-[#64748b] dark:text-slate-400">
             {viewMode === "month"
-              ? visibleMemberSegments.length === 0
-                ? "Nenhuma linha: só aparecem colaboradores com férias pendentes ou aprovadas neste mês."
-                : `Uma linha por colaborador — ${visibleMemberSegments.length} com férias neste mês.`
-              : yearMemberSegments.length === 0
-                ? "Nenhuma linha: só aparecem colaboradores com férias pendentes ou aprovadas neste ano."
-                : `Uma linha por colaborador — ${yearMemberSegments.length} com férias em ${year}.`}
+              ? sortedMembers.length === 0
+                ? "Nenhuma pessoa neste recorte."
+                : `Mostrando ${sortedMembers.length} pessoa(s) do time. ${pessoasComFeriasNoMes} com férias aprovadas ou pendentes neste mês.`
+              : sortedMembers.length === 0
+                ? "Nenhuma pessoa neste recorte."
+                : `Mostrando ${sortedMembers.length} pessoa(s). ${pessoasComFeriasNoAno} com férias aprovadas ou pendentes em ${year}.`}
           </p>
         </div>
         <div className="flex flex-wrap items-center justify-end gap-2">
@@ -330,9 +328,9 @@ export function TeamCalendar({
       </div>
 
       {viewMode === "year" ? (
-        yearMemberSegments.length === 0 ? (
+        sortedMembers.length === 0 ? (
           <p className="rounded-md border border-dashed border-[#e2e8f0] bg-[#f8fafc] px-4 py-6 text-center text-sm text-[#64748b] dark:border-[#252a35] dark:bg-[#141720] dark:text-slate-400">
-            Nenhum colaborador com férias pendentes ou aprovadas em {year}.
+            Nenhuma pessoa neste recorte.
           </p>
         ) : (
           <div className="max-h-[min(72vh,56rem)] overflow-x-auto overflow-y-auto rounded-md border border-[#e2e8f0] dark:border-[#252a35]">
@@ -342,7 +340,7 @@ export function TeamCalendar({
                   className="sticky left-0 top-0 z-[50] shrink-0 border-b border-[#e2e8f0] bg-white px-2 pt-2 pb-1 text-xs font-semibold uppercase tracking-wide text-[#64748b] dark:border-[#252a35] dark:bg-[#1a1d23] dark:text-slate-400"
                   style={{ width: nameColWidth }}
                 >
-                  Colaborador
+                  Pessoa
                 </div>
                 <div
                   className="flex border-b border-[#e2e8f0] bg-[#f8fafc] pt-1 dark:border-[#252a35] dark:bg-[#1a1d23]"
@@ -506,7 +504,7 @@ export function TeamCalendar({
               className="sticky left-0 top-0 z-[50] shrink-0 border-b border-[#e2e8f0] bg-white px-2 pt-2 pb-1 text-xs font-semibold uppercase tracking-wide text-[#64748b] dark:border-[#252a35] dark:bg-[#1a1d23] dark:text-slate-400"
               style={{ width: nameColWidth }}
             >
-              Colaborador
+              Pessoa
             </div>
             <div
               className="grid gap-0.5 border-b border-[#e2e8f0] bg-white pt-1 dark:border-[#252a35] dark:bg-[#1a1d23]"
@@ -533,14 +531,14 @@ export function TeamCalendar({
           </div>
 
           <div className="space-y-1.5">
-            {visibleMemberSegments.length === 0 ? (
+            {sortedMembers.length === 0 ? (
               <p className="rounded-md border border-dashed border-[#e2e8f0] bg-[#f8fafc] px-4 py-6 text-center text-sm text-[#64748b] dark:border-[#252a35] dark:bg-[#141720] dark:text-slate-400">
-                Nenhum colaborador com férias pendentes ou aprovadas neste mês.
+                Nenhuma pessoa neste recorte.
               </p>
             ) : (
-            visibleMemberSegments.map(({ member, segments }, rowIdx) => {
+            memberSegments.map(({ member, segments }, rowIdx) => {
               const prevMember =
-                rowIdx > 0 ? visibleMemberSegments[rowIdx - 1]?.member : undefined;
+                rowIdx > 0 ? memberSegments[rowIdx - 1]?.member : undefined;
               const showSectionHeader =
                 Boolean(member.calendarSectionTitle) &&
                 (!prevMember || prevMember.calendarSectionTitle !== member.calendarSectionTitle);

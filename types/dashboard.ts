@@ -46,6 +46,8 @@ export type TeamMemberInfo = {
  */
 export type TeamDataCoord = {
   kind: "coord";
+  /** Próprio coordenador (também solicita férias). */
+  coordinatorSelf?: TeamMemberInfo;
   teams: Array<{
     coordinatorId: string;
     coordinatorName: string;
@@ -66,6 +68,8 @@ export type TeamDataRH = {
     /** Gestor da diretoria (quando o gerente reporta a um diretor). */
     diretorId?: string | null;
     diretorName?: string | null;
+    /** O próprio gerente (solicita férias como demais líderes). */
+    gerenteSelf?: TeamMemberInfo;
     /** Reportes diretos do gerente (coordenadores) — inclusos na visão consolidada de férias */
     coordinatorMembers?: TeamMemberInfo[];
     teams: Array<{

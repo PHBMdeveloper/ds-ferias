@@ -112,6 +112,23 @@ export async function findAllGerentes() {
   });
 }
 
+/** Gerentes com cadeia de gestores e férias — para calendário / Times. */
+export async function findAllGerentesForTimes() {
+  return prisma.user.findMany({
+    where: { role: "GERENTE" },
+    orderBy: { name: "asc" },
+    include: baseInclude,
+  });
+}
+
+/** Um usuário (gerente, coordenador, etc.) com férias para a aba Times. */
+export async function findUserWithTimesVacations(userId: string) {
+  return prisma.user.findUnique({
+    where: { id: userId },
+    include: baseInclude,
+  });
+}
+
 export async function findAllUsersForAdmin() {
   const now = new Date();
   const todayUtc = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));

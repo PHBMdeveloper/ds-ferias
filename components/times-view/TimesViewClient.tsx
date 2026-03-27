@@ -112,27 +112,51 @@ export function TimesViewClient({ teamData }: Props) {
           setTeamFilter={setTeamFilter}
           teamOptions={teamOptions}
           onExportCsv={() => {
-            const rows = teamsFiltered.flatMap((team) =>
-              team.members.map((m) => ({
-                gerente: "-",
-                coordenador: team.coordinatorName,
-                time: team.teamName,
-                colaborador: m.user.name,
-                papel: m.user.role,
-                departamento: m.user.department ?? "",
-                status: m.isOnVacationNow
-                  ? "EM_FERIAS"
-                  : hasFutureVacation(m)
-                    ? "FERIAS_MARCADAS"
-                    : "FERIAS_A_TIRAR",
-                saldoDisponivel: m.balance.availableDays,
-                pendente: m.balance.pendingDays,
-              })),
-            );
+            const coordSelf = teamData.kind === "coord" ? teamData.coordinatorSelf : undefined;
+            const rows = teamsFiltered.flatMap((team, idx) => {
+              const coordRow =
+                idx === 0 && coordSelf
+                  ? [
+                      {
+                        gerente: "-",
+                        coordenador: team.coordinatorName,
+                        time: "Coordenação",
+                        colaborador: coordSelf.user.name,
+                        papel: coordSelf.user.role,
+                        departamento: coordSelf.user.department ?? "",
+                        status: coordSelf.isOnVacationNow
+                          ? "EM_FERIAS"
+                          : hasFutureVacation(coordSelf)
+                            ? "FERIAS_MARCADAS"
+                            : "FERIAS_A_TIRAR",
+                        saldoDisponivel: coordSelf.balance.availableDays,
+                        pendente: coordSelf.balance.pendingDays,
+                      },
+                    ]
+                  : [];
+              return [
+                ...coordRow,
+                ...team.members.map((m) => ({
+                  gerente: "-",
+                  coordenador: team.coordinatorName,
+                  time: team.teamName,
+                  colaborador: m.user.name,
+                  papel: m.user.role,
+                  departamento: m.user.department ?? "",
+                  status: m.isOnVacationNow
+                    ? "EM_FERIAS"
+                    : hasFutureVacation(m)
+                      ? "FERIAS_MARCADAS"
+                      : "FERIAS_A_TIRAR",
+                  saldoDisponivel: m.balance.availableDays,
+                  pendente: m.balance.pendingDays,
+                })),
+              ];
+            });
             exportRowsToCsv(rows);
           }}
         />
-        <TimesViewCoordTeamsList teams={teamsFiltered} />
+        <TimesViewCoordTeamsList teams={teamsFiltered} coordinatorSelf={teamData.coordinatorSelf} />
       </div>
     );
   }
@@ -244,6 +268,25 @@ export function TimesViewClient({ teamData }: Props) {
         teamOptions={teamOptions}
         onExportCsv={() => {
           const rows = gerentesFiltered.flatMap((g) => {
+            const fromGerente = g.gerenteSelf
+              ? [
+                  {
+                    gerente: g.gerenteName,
+                    coordenador: "—",
+                    time: "Gerência",
+                    colaborador: g.gerenteSelf.user.name,
+                    papel: g.gerenteSelf.user.role,
+                    departamento: g.gerenteSelf.user.department ?? "",
+                    status: g.gerenteSelf.isOnVacationNow
+                      ? "EM_FERIAS"
+                      : hasFutureVacation(g.gerenteSelf)
+                        ? "FERIAS_MARCADAS"
+                        : "FERIAS_A_TIRAR",
+                    saldoDisponivel: g.gerenteSelf.balance.availableDays,
+                    pendente: g.gerenteSelf.balance.pendingDays,
+                  },
+                ]
+              : [];
             const fromCoords = (g.coordinatorMembers ?? []).map((m) => ({
               gerente: g.gerenteName,
               coordenador: "—",
@@ -276,7 +319,7 @@ export function TimesViewClient({ teamData }: Props) {
                 pendente: m.balance.pendingDays,
               })),
             );
-            return [...fromCoords, ...fromTeams];
+            return [...fromGerente, ...fromCoords, ...fromTeams];
           });
           exportRowsToCsv(rows);
         }}

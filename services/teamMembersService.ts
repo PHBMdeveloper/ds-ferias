@@ -6,7 +6,8 @@ import {
   findCoordinatorsByGerente,
   findAllEmployees,
   findAllCoordinatorsForRh,
-  findAllGerentes,
+  findAllGerentesForTimes,
+  findUserWithTimesVacations,
 } from "@/repositories/userRepository";
 import type { TeamMemberInfo, TeamDataCoord, TeamDataRH } from "@/types/dashboard";
 
@@ -100,9 +101,14 @@ export async function getTeamMembersForTimes(
   const level = getRoleLevel(role);
 
   if (level === 2) {
-    const users = await findTeamMembersByManager(userId);
+    const [users, coordRaw] = await Promise.all([
+      findTeamMembersByManager(userId),
+      findUserWithTimesVacations(userId),
+    ]);
+    const coordinatorSelf = coordRaw ? mapUsersToMembers([coordRaw as any])[0] : undefined;
     return {
       kind: "coord",
+      coordinatorSelf,
       teams: Array.from(
         users.reduce((acc: Map<string, typeof users>, u) => {
           const teamName = (u as any).team ?? "Sem time";
@@ -121,10 +127,12 @@ export async function getTeamMembersForTimes(
   }
 
   if (level === 3) {
-    const [users, coordinatorUsers] = await Promise.all([
+    const [users, coordinatorUsers, gerenteRaw] = await Promise.all([
       findTeamMembersByGerente(userId),
       findCoordinatorsByGerente(userId),
+      findUserWithTimesVacations(userId),
     ]);
+    const gerenteSelf = gerenteRaw ? mapUsersToMembers([gerenteRaw as any])[0] : undefined;
     const members = mapUsersToMembers(users);
     const coordinatorMembers = mapUsersToMembers(coordinatorUsers).sort((a, b) =>
       a.user.name.localeCompare(b.user.name, "pt-BR"),
@@ -160,6 +168,7 @@ export async function getTeamMembersForTimes(
         {
           gerenteId: userId,
           gerenteName: "Minha gestão",
+          gerenteSelf,
           coordinatorMembers,
           teams: sortTeamsByCoordinatorAndName(teams),
         },
@@ -167,11 +176,16 @@ export async function getTeamMembersForTimes(
     };
   }
 
-  const [users, coordinators, gerentesBase] = await Promise.all([
+  const [users, coordinators, gerentesFull] = await Promise.all([
     findAllEmployees(),
     findAllCoordinatorsForRh(),
-    findAllGerentes(),
+    findAllGerentesForTimes(),
   ]);
+
+  const gerenteMemberById = new Map<string, TeamMemberInfo>();
+  for (const u of gerentesFull) {
+    gerenteMemberById.set(u.id, mapUsersToMembers([u as any])[0]);
+  }
   const members = mapUsersToMembers(users);
   const coordinatorMembers = mapUsersToMembers(coordinators).sort((a, b) =>
     a.user.name.localeCompare(b.user.name, "pt-BR"),
@@ -185,7 +199,7 @@ export async function getTeamMembersForTimes(
     }
   >();
 
-  gerentesBase.forEach((g) => {
+  gerentesFull.forEach((g) => {
     byGerente.set(g.id, {
       gerenteName: g.name,
       byCoord: new Map<string, TeamMemberInfo[]>(),
@@ -237,6 +251,7 @@ export async function getTeamMembersForTimes(
     gerentes.push({
       gerenteId,
       gerenteName: bucket.gerenteName,
+      gerenteSelf: gerenteMemberById.get(gerenteId),
       coordinatorMembers: bucket.coordinatorMembers,
       teams: sortTeamsByCoordinatorAndName(teams),
     });

@@ -13,6 +13,7 @@ type GerenteTeam = {
 export type GerenteBlockForCalendar = {
   gerenteId: string;
   gerenteName: string;
+  gerenteSelf?: TeamMemberInfoSerialized;
   coordinatorMembers?: TeamMemberInfoSerialized[];
   teams: GerenteTeam[];
 };
@@ -38,6 +39,15 @@ export function buildRhDirectorateCalendarMembers(
 
   for (const g of sortedGerentes) {
     const coordKey = `lideranca-gerente-${g.gerenteId}`;
+    if (g.gerenteSelf) {
+      push({
+        ...g.gerenteSelf,
+        calendarCapacityGroupKey: `gerente-self-${g.gerenteId}`,
+        calendarSectionOrder: 0,
+        calendarSectionTitle: `${g.gerenteName} — Gerente`,
+        calendarDisplayName: `${g.gerenteSelf.user.name} · ${getRoleLabel("GERENTE")}`,
+      });
+    }
     const coordinations = [...(g.coordinatorMembers ?? [])].sort((a, b) =>
       (a.user.name ?? "").localeCompare(b.user.name ?? "", "pt-BR", { sensitivity: "base" }),
     );
@@ -45,7 +55,7 @@ export function buildRhDirectorateCalendarMembers(
       push({
         ...c,
         calendarCapacityGroupKey: coordKey,
-        calendarSectionOrder: 0,
+        calendarSectionOrder: 1,
         calendarSectionTitle: `${g.gerenteName} — Liderança direta (coordenações)`,
         calendarDisplayName: `${c.user.name} · ${getRoleLabel(c.user.role)}`,
       });
@@ -66,7 +76,7 @@ export function buildRhDirectorateCalendarMembers(
         push({
           ...m,
           calendarCapacityGroupKey: team.teamKey,
-          calendarSectionOrder: 1,
+          calendarSectionOrder: 2,
           calendarSectionTitle: `${g.gerenteName} — Colaboradores (por time)`,
           calendarSubsectionTitle: `${labelCoord} · ${team.teamName}`,
           calendarDisplayName: `${m.user.name} · ${getRoleLabel(m.user.role)}`,

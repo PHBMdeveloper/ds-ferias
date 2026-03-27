@@ -3,11 +3,14 @@
 import { TeamCalendar } from "@/components/calendar/TeamCalendar";
 import type { TeamDataCoord, TeamMemberInfoSerialized, VacationRequestSummary } from "./types";
 import { TeamMemberRow } from "./TeamMemberRow";
+import { buildCoordTeamCalendarMembers } from "./buildCoordCalendarMembers";
 
 export function TimesViewCoordTeamsList({
   teams,
+  coordinatorSelf,
 }: {
   teams: TeamDataCoord["teams"];
+  coordinatorSelf?: TeamMemberInfoSerialized;
 }) {
   if (teams.length === 0) {
     return (
@@ -19,7 +22,13 @@ export function TimesViewCoordTeamsList({
 
   return (
     <div className="space-y-6">
-      {teams.map((team) => (
+      {teams.map((team, teamIndex) => {
+          const calendarMembers = buildCoordTeamCalendarMembers(
+            team,
+            coordinatorSelf,
+            teamIndex === 0,
+          );
+          return (
           <section key={team.teamKey} className="space-y-0">
             <div className="flex w-full items-center gap-2 rounded-lg border border-[#e2e8f0] bg-[#f8fafc] px-4 py-3 dark:border-[#252a35] dark:bg-[#141720]">
               <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-sm font-bold text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300">
@@ -34,7 +43,7 @@ export function TimesViewCoordTeamsList({
             </div>
 
             <div className="space-y-3 border-l-2 border-[#e2e8f0] pl-4 pt-3 dark:border-[#252a35]">
-              <TeamCalendar members={team.members as TeamMemberInfoSerialized[]} showExportCsv />
+              <TeamCalendar members={calendarMembers} capacityScopedByGroup showExportCsv />
               {team.members.map((member) => (
                 <TeamMemberRow
                   key={member.user.id}
@@ -49,7 +58,8 @@ export function TimesViewCoordTeamsList({
               ))}
             </div>
           </section>
-        ))}
+        );
+        })}
     </div>
   );
 }
