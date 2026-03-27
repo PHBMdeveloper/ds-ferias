@@ -2,10 +2,10 @@ import type { VacationBalance } from "@/lib/vacationRules";
 import { getRoleLevel, getRoleLabel } from "@/lib/vacationRules";
 import { DashboardSidebarItem } from "@/components/dashboard-sidebar-item";
 import { SidebarBalance } from "@/components/dashboard/sidebar-balance";
-import { IconCalendar, IconInbox, IconHistory, IconTeams, IconSettings } from "@/components/layout/icons";
+import { IconCalendar, IconInbox, IconHistory, IconTeams, IconSettings, IconUser } from "@/components/layout/icons";
 import { SidebarLogoutButton } from "@/components/dashboard/sidebar-logout-button";
 
-type UserLike = { id: string; name: string; role: string };
+type UserLike = { id: string; name: string; role: string; avatarUrl?: string | null };
 
 export function AppSidebar({
   user,
@@ -43,9 +43,18 @@ export function AppSidebar({
         {/* Linha 2: usuário + sair */}
         <div className="mt-4 flex items-center justify-between gap-3">
           <div className="flex min-w-0 flex-1 items-center gap-2">
-            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
-              {user.name.charAt(0).toUpperCase()}
-            </div>
+            {user.avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={user.avatarUrl}
+                alt={`Foto de ${user.name}`}
+                className="h-7 w-7 shrink-0 rounded-full object-cover ring-1 ring-[#dbeafe] dark:ring-blue-900/40"
+              />
+            ) : (
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
+                {user.name.charAt(0).toUpperCase()}
+              </div>
+            )}
             <div className="min-w-0">
               <p className="truncate text-xs font-semibold text-[#1a1d23] dark:text-white sm:text-sm">
                 {user.name}
@@ -61,6 +70,7 @@ export function AppSidebar({
 
       <nav className="flex flex-wrap items-center gap-1.5 px-3 py-2 lg:hidden" aria-label="Menu principal">
         <DashboardSidebarItem href="/dashboard?view=minhas" icon={<IconCalendar />} label="Minhas Férias" active={activeView === "minhas"} />
+        <DashboardSidebarItem href="/profile" icon={<IconUser />} label="Perfil" active={activeView === "perfil"} />
         {level >= 2 && (
           <>
             <DashboardSidebarItem href="/dashboard?view=inbox" icon={<IconInbox />} label="Caixa de Aprovação" active={activeView === "inbox"} badge={pendingCount > 0 ? pendingCount : undefined} badgeAlert />
@@ -85,6 +95,7 @@ export function AppSidebar({
       <nav className="hidden flex-1 flex-col gap-1 px-3 py-4 lg:flex">
         <p className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-wider text-[#94a3b8]">Menu</p>
         <DashboardSidebarItem href="/dashboard?view=minhas" icon={<IconCalendar />} label="Minhas Férias" active={activeView === "minhas"} />
+        <DashboardSidebarItem href="/profile" icon={<IconUser />} label="Perfil" active={activeView === "perfil"} />
         {level >= 2 && (
           <>
             <DashboardSidebarItem href="/dashboard?view=inbox" icon={<IconInbox />} label="Caixa de Aprovação" active={activeView === "inbox"} badge={pendingCount > 0 ? pendingCount : undefined} badgeAlert />

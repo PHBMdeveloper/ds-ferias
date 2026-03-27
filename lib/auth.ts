@@ -11,6 +11,7 @@ export type SessionUser = {
   name: string;
   email: string;
   role: Role;
+  avatarUrl?: string | null;
   /**
    * Quando true e a feature estiver ativa, o usuário deve trocar a senha
    * antes de acessar o restante do sistema.
@@ -98,6 +99,7 @@ export async function verifyCredentials(email: string, password: string) {
     name: user.name,
     email: user.email,
     role: user.role,
+    avatarUrl: (user as any).avatarUrl ?? null,
     mustChangePassword: !!(user as any).mustChangePassword,
   } as SessionUser;
 }
@@ -131,6 +133,7 @@ export async function getSessionUser(): Promise<SessionUser | null> {
         name: true,
         email: true,
         role: true,
+        avatarUrl: true,
         mustChangePassword: true,
       },
     });
@@ -141,6 +144,7 @@ export async function getSessionUser(): Promise<SessionUser | null> {
       name: dbUser.name,
       email: dbUser.email,
       role: dbUser.role,
+      avatarUrl: dbUser.avatarUrl,
       mustChangePassword: !!dbUser.mustChangePassword,
     };
   } catch {

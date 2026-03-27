@@ -111,6 +111,7 @@ describe("verifyCredentials", () => {
       name: "User",
       email: "u@e.com",
       role: "FUNCIONARIO",
+      avatarUrl: null,
       mustChangePassword: false,
     });
   });
@@ -134,6 +135,7 @@ describe("verifyCredentials", () => {
       name: "Legacy",
       email: "legacy@e.com",
       role: "FUNCIONARIO",
+      avatarUrl: null,
       mustChangePassword: false,
     });
   });

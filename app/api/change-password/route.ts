@@ -11,8 +11,8 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
   const password = typeof body?.password === "string" ? body.password : "";
 
-  if (password.length < 8) {
-    return NextResponse.json({ error: "A senha deve ter pelo menos 8 caracteres." }, { status: 400 });
+  if (password.length < 4) {
+    return NextResponse.json({ error: "A senha deve ter pelo menos 4 dígitos." }, { status: 400 });
   }
 
   const passwordHash = hashNewUserPassword(password);

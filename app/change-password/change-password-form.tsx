@@ -5,6 +5,18 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 export function ChangePasswordForm() {
+  return <ChangePasswordFormCard />;
+}
+
+type ChangePasswordFormProps = {
+  redirectTo?: string;
+  submitLabel?: string;
+};
+
+export function ChangePasswordFormCard({
+  redirectTo = "/dashboard",
+  submitLabel = "Salvar senha",
+}: ChangePasswordFormProps = {}) {
   const router = useRouter();
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -12,8 +24,8 @@ export function ChangePasswordForm() {
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (password.length < 8) {
-      toast.error("A senha deve ter pelo menos 8 caracteres.");
+    if (password.length < 4) {
+      toast.error("A senha deve ter pelo menos 4 dígitos.");
       return;
     }
     if (password !== confirm) {
@@ -35,7 +47,7 @@ export function ChangePasswordForm() {
         return;
       }
       toast.success("Senha alterada com sucesso.");
-      router.replace("/dashboard");
+      router.replace(redirectTo);
       router.refresh();
     } catch {
       toast.error("Erro de conexão. Tente novamente.");
@@ -83,7 +95,7 @@ export function ChangePasswordForm() {
         aria-label="Salvar nova senha"
         className="flex min-h-[44px] w-full items-center justify-center rounded-md bg-blue-600 px-4 text-base font-semibold text-white transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
       >
-        {loading ? "Salvando..." : "Salvar senha"}
+        {loading ? "Salvando..." : submitLabel}
       </button>
     </form>
   );
