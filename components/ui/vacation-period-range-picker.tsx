@@ -3,7 +3,6 @@
 import * as React from "react";
 import type { DateRange } from "react-day-picker";
 import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 
 function formatYmdLocal(date: Date): string {
@@ -46,8 +45,9 @@ type Props = {
 };
 
 /**
- * Um único calendário em modo intervalo: ao escolher só o início, passar o mouse
- * sobre outras datas preenche o intervalo em pré-visualização antes do clique.
+ * Painel do calendário **inline** (sem Radix Popover/Portal). O Popover usa
+ * DismissableLayer e, com o calendário dentro de `<form>`, o primeiro clique no
+ * dia podia ser tratado como dismiss e fechar o painel antes do segundo clique.
  */
 export function VacationPeriodRangePicker({
   start,
@@ -59,13 +59,11 @@ export function VacationPeriodRangePicker({
   const startD = start ? parseYmdLocal(start) : undefined;
   const endD = end ? parseYmdLocal(end) : undefined;
 
+  const [open, setOpen] = React.useState(false);
+  const wrapRef = React.useRef<HTMLDivElement>(null);
+
   const [displayMonth, setDisplayMonth] = React.useState<Date>(() => startD ?? endD ?? new Date());
   const [hoverDate, setHoverDate] = React.useState<Date | undefined>();
-  const [open, setOpen] = React.useState(false);
-  /** true = falta só o fim do intervalo; não fechar o popover até o usuário escolher fora/ESC */
-  const rangeIncompleteRef = React.useRef(false);
-  /** true = clique fora ou ESC (fechamento intencional) */
-  const allowCloseRef = React.useRef(false);
 
   React.useEffect(() => {
     if (startD) setDisplayMonth(startD);
@@ -73,10 +71,25 @@ export function VacationPeriodRangePicker({
   }, [start, end]);
 
   React.useEffect(() => {
-    if (!startD && !endD) {
-      rangeIncompleteRef.current = false;
+    if (!open) return;
+    function onPointerDown(e: PointerEvent) {
+      const el = wrapRef.current;
+      if (!el?.contains(e.target as Node)) {
+        setOpen(false);
+      }
     }
-  }, [startD, endD]);
+    document.addEventListener("pointerdown", onPointerDown, true);
+    return () => document.removeEventListener("pointerdown", onPointerDown, true);
+  }, [open]);
+
+  React.useEffect(() => {
+    if (!open) return;
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [open]);
 
   const selected: DateRange | undefined =
     startD || endD ? { from: startD, to: endD } : undefined;
@@ -93,91 +106,67 @@ export function VacationPeriodRangePicker({
   return (
     <div className="flex flex-col gap-2">
       <div className="flex gap-1">
-        <Popover
-          modal={false}
-          open={open}
-          onOpenChange={(next) => {
-            if (next) {
-              allowCloseRef.current = false;
-              setOpen(true);
-              return;
-            }
-            if (rangeIncompleteRef.current && !allowCloseRef.current) {
-              setOpen(true);
-              return;
-            }
-            allowCloseRef.current = false;
-            setOpen(false);
-          }}
-        >
-          <PopoverTrigger asChild>
-            <Button
-              type="button"
-              variant="outline"
-              disabled={disabled}
-              className="flex-1 justify-between text-left font-normal min-h-[44px]"
-              onClick={() => {
-                if (open) {
-                  allowCloseRef.current = true;
-                }
-              }}
-            >
-              <span className={startD && endD ? "" : "text-[#94a3b8]"}>{label}</span>
-              <span className="ml-2 text-xs text-[#64748b] dark:text-slate-400">Abrir</span>
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent
-            className="w-auto p-0"
-            align="start"
-            onOpenAutoFocus={(e) => e.preventDefault()}
-            onInteractOutside={() => {
-              allowCloseRef.current = true;
-            }}
-            onEscapeKeyDown={() => {
-              allowCloseRef.current = true;
+        <div className="relative min-w-0 flex-1" ref={wrapRef}>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={disabled}
+            aria-expanded={open}
+            aria-haspopup="dialog"
+            className="flex w-full justify-between text-left font-normal min-h-[44px]"
+            onClick={() => {
+              if (!disabled) setOpen((o) => !o);
             }}
           >
-            <Calendar
-              mode="range"
-              month={displayMonth}
-              onMonthChange={setDisplayMonth}
-              selected={selected}
-              onSelect={(range) => {
-                if (!range) {
-                  rangeIncompleteRef.current = false;
-                  onRangeChange("", "");
-                  return;
-                }
-                const from = range.from ? formatYmdLocal(range.from) : "";
-                const to = range.to ? formatYmdLocal(range.to) : "";
-                rangeIncompleteRef.current = Boolean(from && !to);
-                onRangeChange(from, to);
-                setOpen(true);
-              }}
-              onDayMouseEnter={(date) => setHoverDate(date)}
-              onDayMouseLeave={() => setHoverDate(undefined)}
-              modifiers={{
-                hoverFill: (date) => {
-                  if (!hoverDate) return false;
-                  if (startD && endD) return false;
-                  if (!startD) {
-                    return atMidnight(date) === atMidnight(hoverDate);
+            <span className={startD && endD ? "" : "text-[#94a3b8]"}>{label}</span>
+            <span className="ml-2 text-xs text-[#64748b] dark:text-slate-400">{open ? "Fechar" : "Abrir"}</span>
+          </Button>
+          {open && (
+            <div
+              className="absolute left-0 top-full z-[300] mt-1 w-max min-w-[min(100%,280px)] rounded-lg border border-border bg-popover p-0 text-popover-foreground shadow-md ring-1 ring-foreground/10"
+              role="dialog"
+              aria-modal={true}
+              data-vacation-range-calendar=""
+            >
+              <Calendar
+                mode="range"
+                month={displayMonth}
+                onMonthChange={setDisplayMonth}
+                selected={selected}
+                onSelect={(range) => {
+                  if (!range) {
+                    onRangeChange("", "");
+                    return;
                   }
-                  if (hasOnlyStart) {
-                    return isBetweenInclusive(date, startD, hoverDate);
-                  }
-                  return false;
-                },
-              }}
-              modifiersClassNames={{
-                hoverFill:
-                  "bg-blue-100/90 text-[#0f172a] dark:bg-blue-900/50 dark:text-blue-50 [&]:z-[5] data-[selected=true]:bg-primary data-[selected=true]:text-primary-foreground",
-              }}
-              numberOfMonths={1}
-              initialFocus
-            />
-          </PopoverContent>
-        </Popover>
+                  const from = range.from ? formatYmdLocal(range.from) : "";
+                  const to = range.to ? formatYmdLocal(range.to) : "";
+                  onRangeChange(from, to);
+                }}
+                onDayMouseEnter={(date) => setHoverDate(date)}
+                onDayMouseLeave={() => setHoverDate(undefined)}
+                modifiers={{
+                  hoverFill: (date) => {
+                    if (!hoverDate) return false;
+                    if (startD && endD) return false;
+                    if (!startD) {
+                      return atMidnight(date) === atMidnight(hoverDate);
+                    }
+                    if (hasOnlyStart) {
+                      return isBetweenInclusive(date, startD, hoverDate);
+                    }
+                    return false;
+                  },
+                }}
+                modifiersClassNames={{
+                  hoverFill:
+                    "bg-blue-100/90 text-[#0f172a] dark:bg-blue-900/50 dark:text-blue-50 [&]:z-[5] data-[selected=true]:bg-primary data-[selected=true]:text-primary-foreground",
+                }}
+                numberOfMonths={1}
+                initialFocus
+              />
+            </div>
+          )}
+        </div>
         {(startD || endD) && (
           <button
             type="button"
@@ -191,7 +180,7 @@ export function VacationPeriodRangePicker({
         )}
       </div>
       <p className="text-xs text-[#64748b] dark:text-slate-500">
-        Escolha o dia inicial e, com o calendário ainda aberto, o dia final. Pode passar o mouse para pré-visualizar o intervalo. Clique fora ou pressione Esc para fechar.
+        Escolha o dia inicial e, no mesmo calendário, o dia final. Passe o mouse para pré-visualizar o intervalo. Clique fora ou Esc para fechar.
       </p>
     </div>
   );

@@ -42,6 +42,60 @@ function parseYmdLocal(value: string): Date | undefined {
   return new Date(year, month - 1, day);
 }
 
+// ============================================================================
+// BLOCO DE PERÍODO
+// ============================================================================
+
+function PeriodBlock({
+  label,
+  required = false,
+  period,
+  stat,
+  onRangeChange,
+  isBusinessDaysRole,
+}: {
+  label?: string;
+  required?: boolean;
+  period: Period;
+  stat: { days: number; businessDays: number; isValid: boolean; range: { start: string; end: string } | null };
+  onRangeChange: (start: string, end: string) => void;
+  isBusinessDaysRole: boolean;
+}) {
+  return (
+    <div className="space-y-2">
+      {label && (
+        <p className="text-base font-semibold text-[#1a1d23] dark:text-white">
+          {label} {required && <span className="text-red-500">*</span>}
+        </p>
+      )}
+      <div className="space-y-1">
+        <label className="block text-base font-medium text-[#475569] dark:text-slate-300">
+          Início e término
+        </label>
+        <VacationPeriodRangePicker
+          start={period.start}
+          end={period.end}
+          onRangeChange={onRangeChange}
+          placeholder="Selecione o intervalo de férias"
+        />
+      </div>
+      {stat.days > 0 && (
+        <div className="flex items-center justify-between rounded-md bg-[#f5f6f8] px-3 py-2 dark:bg-[#0f1117]">
+          <span className="text-base font-medium text-[#64748b] dark:text-slate-400">Duração</span>
+          <span
+            className={`text-base font-bold ${stat.isValid ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"
+              }`}
+          >
+            {isBusinessDaysRole
+              ? `${stat.businessDays} ${stat.businessDays === 1 ? "dia útil" : "dias úteis"}`
+              : `${stat.days} ${stat.days === 1 ? "dia" : "dias"}`}
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function NewRequestCardClient({
   canRequest = true,
   balance,
