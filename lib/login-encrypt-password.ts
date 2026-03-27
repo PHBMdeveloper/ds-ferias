@@ -26,7 +26,7 @@ export async function encryptPasswordForLogin(spkiDerBase64Url: string, password
   const spki = base64UrlToUint8Array(spkiDerBase64Url);
   const key = await crypto.subtle.importKey(
     "spki",
-    spki,
+    spki.buffer as ArrayBuffer,
     { name: "RSA-OAEP", hash: "SHA-256" },
     false,
     ["encrypt"],
