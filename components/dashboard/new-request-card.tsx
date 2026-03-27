@@ -597,6 +597,7 @@ export function NewRequestCardClient({
               value={period.end ? parseYmdLocal(period.end) : undefined}
               onChange={(d) => onChange("end", d ? formatYmdLocal(d) : "")}
               placeholder="Selecionar término"
+              focusMonth={parseYmdLocal(period.start)}
             />
           </div>
         </div>

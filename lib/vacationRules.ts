@@ -279,7 +279,7 @@ export function hasTeamVisibility(
     userId: string;
     user: {
       managerId: string | null;
-      manager?: { managerId: string | null } | null;
+      manager?: { managerId: string | null; manager?: { managerId: string | null } | null } | null;
     };
   },
 ): boolean {
@@ -303,10 +303,12 @@ export function hasTeamVisibility(
     );
   }
 
-  // Diretor: vê reportes diretos (gerentes) e próprias solicitações.
+  // Diretor: vê reportes diretos (gerentes), indiretos (coordenadores/funcionários) e próprias solicitações.
   if (ROLE_LEVEL[approverRole] === 4) {
     return (
-      request.user.managerId === approverUserId ||
+      request.user.managerId === approverUserId || // gerente direto
+      request.user.manager?.managerId === approverUserId || // coordenador indireto
+      request.user.manager?.manager?.managerId === approverUserId || // funcionário indireto (via coordenador)
       request.userId === approverUserId
     );
   }

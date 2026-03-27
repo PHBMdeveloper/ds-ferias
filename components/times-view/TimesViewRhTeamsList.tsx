@@ -113,7 +113,9 @@ export function TimesViewRhTeamsList({
         const gerenteKey = `gerente-${g.gerenteId}`;
         const gerenteOpen = expanded[gerenteKey] !== false;
         const totalMembers = g.teams.reduce((s, t) => s + t.members.length, 0);
-        const coordinatorCount = new Set(g.teams.map((t) => t.coordinatorId)).size;
+        const coordinatorCount =
+          g.coordinatorMembers?.length ??
+          new Set(g.teams.map((t) => t.coordinatorId)).size;
         const totalPeople = totalMembers + coordinatorCount;
         const consolidatedMembers = showConsolidatedOverview
           ? buildGerenteConsolidatedCalendarMembers(g.teams, g.coordinatorMembers)

@@ -10,9 +10,10 @@ type Props = {
   onChange: (value: Date | undefined) => void;
   placeholder?: string;
   disabled?: boolean;
+  focusMonth?: Date;
 };
 
-export function DatePicker({ value, onChange, placeholder, disabled }: Props) {
+export function DatePicker({ value, onChange, placeholder, disabled, focusMonth }: Props) {
   const label = value
     ? value.toLocaleDateString("pt-BR")
     : placeholder ?? "Selecionar data";
@@ -23,6 +24,11 @@ export function DatePicker({ value, onChange, placeholder, disabled }: Props) {
   React.useEffect(() => {
     if (value) setDisplayMonth(value);
   }, [value]);
+
+  // Quando não há data selecionada, permite abrir o calendário focado em um mês de referência.
+  React.useEffect(() => {
+    if (!value && focusMonth) setDisplayMonth(focusMonth);
+  }, [focusMonth, value]);
 
   return (
     <div className="flex gap-1">

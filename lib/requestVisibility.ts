@@ -62,6 +62,20 @@ export function buildManagedRequestsWhere(
       ...(Object.keys(base).length > 0 ? [base] : []),
     ];
     delete where.user;
+  } else if (level === 4) {
+    const orClause = [
+      { user: { managerId: userId } },
+      { user: { manager: { managerId: userId } } },
+      { user: { manager: { manager: { managerId: userId } } } },
+    ];
+    const base = where.user && typeof where.user === "object" && !Array.isArray(where.user)
+      ? { user: where.user }
+      : {};
+    where.AND = [
+      { OR: orClause },
+      ...(Object.keys(base).length > 0 ? [base] : []),
+    ];
+    delete where.user;
   }
   return where;
 }
@@ -82,7 +96,11 @@ export function filterRequestsByVisibilityAndView(
       name?: string | null;
       managerId?: string | null;
       department?: string | null;
-      manager?: { id?: string; managerId?: string | null } | null;
+      manager?: {
+        id?: string;
+        managerId?: string | null;
+        manager?: { managerId?: string | null } | null;
+      } | null;
     } | null;
   }>,
   filters: DashboardFilters,
@@ -92,7 +110,14 @@ export function filterRequestsByVisibilityAndView(
 
   return requests.filter((r) => {
     const managerId = r.user?.managerId ?? null;
-    const manager = r.user?.manager != null ? { managerId: r.user.manager.managerId ?? null } : null;
+    const manager = r.user?.manager != null
+      ? {
+          managerId: r.user.manager.managerId ?? null,
+          manager: r.user.manager.manager != null
+            ? { managerId: r.user.manager.manager.managerId ?? null }
+            : null,
+        }
+      : null;
     if (!hasTeamVisibility(userRole, userId, { userId: r.userId, user: { managerId, manager } })) {
       return false;
     }

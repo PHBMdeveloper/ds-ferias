@@ -77,6 +77,24 @@ export async function findAllEmployees() {
   });
 }
 
+export async function findAllCoordinatorsForRh() {
+  return prisma.user.findMany({
+    where: {
+      role: { in: ["COORDENADOR", "GESTOR"] },
+      manager: { role: "GERENTE" },
+    },
+    include: baseInclude,
+  });
+}
+
+export async function findAllGerentes() {
+  return prisma.user.findMany({
+    where: { role: "GERENTE" },
+    select: { id: true, name: true },
+    orderBy: { name: "asc" },
+  });
+}
+
 export async function findAllUsersForAdmin() {
   const now = new Date();
   const todayUtc = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));

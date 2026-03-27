@@ -38,12 +38,14 @@ export default async function DashboardPage({
   const params = await searchParams;
   const userRoleLevel = getRoleLevel(user.role);
   const isApprover = userRoleLevel >= 2;
+  const isRH = user.role === "RH";
   const defaultView = isApprover ? "inbox" : "minhas";
+  const allowedViews = isRH ? ["inbox", "historico", "times"] : ["inbox", "historico", "minhas", "times"];
 
   const q = normalizeParam(params.q);
   const statusFilter = normalizeParam(params.status, "TODOS");
   const rawView = normalizeParam(params.view, defaultView);
-  const view = ["inbox", "historico", "minhas", "times"].includes(rawView) ? rawView : defaultView;
+  const view = allowedViews.includes(rawView) ? rawView : defaultView;
   const managerFilter = normalizeParam(params.managerId);
   const fromFilter = normalizeParam(params.from);
   const toFilter = normalizeParam(params.to);
@@ -52,7 +54,7 @@ export default async function DashboardPage({
   const rawPage = normalizeParam(params.page, "1");
   const historicoPage = Math.max(1, Number.parseInt(rawPage, 10) || 1);
 
-  const isMyView = !isApprover || view === "minhas";
+  const isMyView = !isApprover || (!isRH && view === "minhas");
   const isTimesView = isApprover && view === "times";
 
   /** Inbox/histórico precisam de cards com histórico; minhas/times só de metadados para badge ou não usam. */

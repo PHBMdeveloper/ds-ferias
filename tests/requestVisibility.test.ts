@@ -67,6 +67,19 @@ describe("buildManagedRequestsWhere", () => {
       ],
     });
   });
+
+  it("level 4 (diretor): uses OR for direct and indirect reports", () => {
+    const where = buildManagedRequestsWhere("dir-1", "DIRETOR", {});
+    expect(where.AND).toBeDefined();
+    expect(where.AND).toHaveLength(1);
+    expect((where.AND as unknown[])[0]).toMatchObject({
+      OR: [
+        { user: { managerId: "dir-1" } },
+        { user: { manager: { managerId: "dir-1" } } },
+        { user: { manager: { manager: { managerId: "dir-1" } } } },
+      ],
+    });
+  });
 });
 
 describe("filterRequestsByVisibilityAndView", () => {

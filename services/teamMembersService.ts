@@ -4,6 +4,8 @@ import {
   findTeamMembersByGerente,
   findCoordinatorsByGerente,
   findAllEmployees,
+  findAllCoordinatorsForRh,
+  findAllGerentes,
 } from "@/repositories/userRepository";
 import type { TeamMemberInfo, TeamDataCoord, TeamDataRH } from "@/types/dashboard";
 
@@ -123,27 +125,60 @@ export async function getTeamMembersForTimes(
     };
   }
 
-  const users = await findAllEmployees();
+  const [users, coordinators, gerentesBase] = await Promise.all([
+    findAllEmployees(),
+    findAllCoordinatorsForRh(),
+    findAllGerentes(),
+  ]);
   const members = mapUsersToMembers(users);
-  const byGerente = new Map<string, Map<string, TeamMemberInfo[]>>();
+  const coordinatorMembers = mapUsersToMembers(coordinators).sort((a, b) =>
+    a.user.name.localeCompare(b.user.name, "pt-BR"),
+  );
+  const byGerente = new Map<
+    string,
+    {
+      gerenteName: string;
+      byCoord: Map<string, TeamMemberInfo[]>;
+      coordinatorMembers: TeamMemberInfo[];
+    }
+  >();
+
+  gerentesBase.forEach((g) => {
+    byGerente.set(g.id, {
+      gerenteName: g.name,
+      byCoord: new Map<string, TeamMemberInfo[]>(),
+      coordinatorMembers: [],
+    });
+  });
+
+  coordinators.forEach((c, i) => {
+    const gerenteId = c.managerId ?? "sem-gerente";
+    const bucket = byGerente.get(gerenteId);
+    if (!bucket) return;
+    bucket.coordinatorMembers.push(coordinatorMembers[i]);
+  });
+
   users.forEach((u, i) => {
     const m = members[i];
     const gerenteId = (u as { manager?: { manager?: { id: string; name: string } } }).manager?.manager?.id ?? "sem-gerente";
     const coordId = (u as { manager?: { id: string; name: string } }).manager?.id ?? "sem-coord";
     const teamName = (u as any).team ?? "Sem time";
     const teamKey = `${coordId}__${teamName}`;
-    if (!byGerente.has(gerenteId)) byGerente.set(gerenteId, new Map());
-    const byCoord = byGerente.get(gerenteId)!;
-    if (!byCoord.has(teamKey)) byCoord.set(teamKey, []);
-    byCoord.get(teamKey)!.push(m);
+    if (!byGerente.has(gerenteId)) {
+      byGerente.set(gerenteId, {
+        gerenteName: (u as { manager?: { manager?: { name?: string } } }).manager?.manager?.name ?? "Sem gerente",
+        byCoord: new Map<string, TeamMemberInfo[]>(),
+        coordinatorMembers: [],
+      });
+    }
+    const bucket = byGerente.get(gerenteId)!;
+    if (!bucket.byCoord.has(teamKey)) bucket.byCoord.set(teamKey, []);
+    bucket.byCoord.get(teamKey)!.push(m);
   });
+
   const gerentes: TeamDataRH["gerentes"] = [];
-  byGerente.forEach((byCoord, gerenteId) => {
-    const firstUser = users.find(
-      (u) => ((u as { manager?: { manager?: { id: string } } }).manager?.manager?.id ?? "sem-gerente") === gerenteId
-    ) as { manager?: { manager?: { name: string }; name: string } } | undefined;
-    const gerenteName = firstUser?.manager?.manager?.name ?? "Sem gerente";
-    const teams = Array.from(byCoord.entries()).map(([teamKey, mems]) => {
+  byGerente.forEach((bucket, gerenteId) => {
+    const teams = Array.from(bucket.byCoord.entries()).map(([teamKey, mems]) => {
       const [coordId, teamName] = teamKey.split("__");
       const firstInCoord = mems[0];
       const u = users.find((x) => x.id === firstInCoord.user.id) as { manager?: { name: string } } | undefined;
@@ -157,7 +192,8 @@ export async function getTeamMembersForTimes(
     });
     gerentes.push({
       gerenteId,
-      gerenteName,
+      gerenteName: bucket.gerenteName,
+      coordinatorMembers: bucket.coordinatorMembers,
       teams: sortTeamsByCoordinatorAndName(teams),
     });
   });

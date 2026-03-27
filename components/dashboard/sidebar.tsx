@@ -25,6 +25,7 @@ export function AppSidebar({
   department?: string | null;
 }) {
   const level = getRoleLevel(user.role);
+  const isRH = user.role === "RH";
 
   return (
     <aside className="flex w-full flex-col border-b border-[#e2e8f0] bg-white lg:w-72 xl:w-80 lg:border-b-0 lg:border-r dark:border-[#252a35] dark:bg-[#141720]">
@@ -69,7 +70,9 @@ export function AppSidebar({
       </div>
 
       <nav className="flex flex-wrap items-center gap-1.5 px-3 py-2 lg:hidden" aria-label="Menu principal">
-        <DashboardSidebarItem href="/dashboard?view=minhas" icon={<IconCalendar />} label="Minhas Férias" active={activeView === "minhas"} />
+        {!isRH && (
+          <DashboardSidebarItem href="/dashboard?view=minhas" icon={<IconCalendar />} label="Minhas Férias" active={activeView === "minhas"} />
+        )}
         <DashboardSidebarItem href="/profile" icon={<IconUser />} label="Perfil" active={activeView === "perfil"} />
         {level >= 2 && (
           <>
@@ -94,7 +97,9 @@ export function AppSidebar({
 
       <nav className="hidden flex-1 flex-col gap-1 px-3 py-4 lg:flex">
         <p className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-wider text-[#94a3b8]">Menu</p>
-        <DashboardSidebarItem href="/dashboard?view=minhas" icon={<IconCalendar />} label="Minhas Férias" active={activeView === "minhas"} />
+        {!isRH && (
+          <DashboardSidebarItem href="/dashboard?view=minhas" icon={<IconCalendar />} label="Minhas Férias" active={activeView === "minhas"} />
+        )}
         <DashboardSidebarItem href="/profile" icon={<IconUser />} label="Perfil" active={activeView === "perfil"} />
         {level >= 2 && (
           <>
