@@ -17,6 +17,7 @@ import {
 } from "@/repositories/acquisitionRepository";
 import { validateVacationConcessiveFifo } from "@/lib/concessivePeriod";
 import { buildInclusiveOverlapConditions, hasInternalOverlapInDateRanges } from "@/lib/validation";
+import { logger } from "@/lib/logger";
 
 const POST_REQUESTS_MAX_PER_MINUTE = 20;
 
@@ -492,14 +493,16 @@ export async function POST(request: Request) {
       where: { id: user.id },
       select: { manager: { select: { email: true } } },
     }).catch(() => null);
-    notifyNewRequest({
+    await notifyNewRequest({
       requestId: first.id,
       userName: user.name,
       userEmail: user.email,
       managerEmail: withManager?.manager?.email ?? null,
       startDate: first.startDate,
       endDate: first.endDate,
-    }).catch(() => {});
+    }).catch((err) => {
+      logger.error("Falha ao enviar notificação de nova solicitação", { error: String(err), requestId: first.id });
+    });
   }
 
   return NextResponse.json({ requests: created }, { status: 201 });

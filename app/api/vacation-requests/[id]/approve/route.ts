@@ -317,6 +317,15 @@ export async function POST(request: Request, { params }: Params) {
     didCommit = true;
   });
 
+  logger.info("Resultado da transação de aprovação", {
+    requestId: id,
+    didCommit,
+    hasUpdatedUser: !!updated?.user,
+    updatedUserName: updated?.user?.name,
+    updatedUserEmail: updated?.user?.email,
+    approverName: user.name,
+  });
+
   if (didCommit && updated?.user?.name && updated?.user?.email && user.name) {
     const recipientSet = new Set<string>([updated.user.email, user.email]);
 
@@ -328,7 +337,12 @@ export async function POST(request: Request, { params }: Params) {
       if (directLeader?.email) recipientSet.add(directLeader.email);
     }
 
-    notifyApproved({
+    logger.info("Disparando notificação de aprovação", {
+      requestId: id,
+      recipients: Array.from(recipientSet),
+    });
+
+    await notifyApproved({
       requestId: id,
       userName: updated.user.name,
       userEmail: updated.user.email,
@@ -343,7 +357,16 @@ export async function POST(request: Request, { params }: Params) {
       notes: updated.notes,
       managerNote: updated.managerNote,
       hrNote: updated.hrNote,
-    }).catch(() => {});
+    }).catch((err) => {
+      logger.error("Falha ao enviar notificação de aprovação", { error: String(err), requestId: id });
+    });
+  } else {
+    logger.warn("Notificação de aprovação pulada - critérios não atendidos", {
+      didCommit,
+      hasUserName: !!updated?.user?.name,
+      hasUserEmail: !!updated?.user?.email,
+      hasApproverName: !!user.name,
+    });
   }
 
   logger.info("Solicitação aprovada", {

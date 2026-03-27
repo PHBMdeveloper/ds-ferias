@@ -75,13 +75,15 @@ export async function POST(request: Request, { params }: Params) {
   });
 
   if (existing.user?.name && existing.user?.email && user.name) {
-    notifyRejected({
+    await notifyRejected({
       requestId: id,
       userName: existing.user.name,
       userEmail: existing.user.email,
       approverName: user.name,
       note: body?.note ?? null,
-    }).catch(() => {});
+    }).catch((err) => {
+      logger.error("Falha ao enviar notificação de reprovação", { error: String(err), requestId: id });
+    });
   }
 
   logger.info("Solicitação reprovada", {

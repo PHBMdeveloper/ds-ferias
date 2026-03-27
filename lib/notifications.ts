@@ -409,6 +409,8 @@ export async function notify(event: NotifyEvent): Promise<void> {
   const shouldSendEmail = provider === "resend" || provider === "both";
   const shouldSendWebhook = provider === "webhook" || provider === "both";
 
+  logger.info("[notify] status", { type: event.type, provider, shouldSendEmail, shouldSendWebhook });
+
   if (shouldSendEmail) {
     if (event.type === "APPROVED") {
       await sendApprovedEmail(event).catch((err) =>
@@ -513,6 +515,7 @@ export function notifyApproved(payload: {
   managerNote?: string | null;
   hrNote?: string | null;
 }) {
+  logger.info("[notifyApproved] called", { requestId: payload.requestId });
   return notify({
     type: "APPROVED",
     requestId: payload.requestId,
