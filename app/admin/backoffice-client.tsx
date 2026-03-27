@@ -303,11 +303,6 @@ export function BackofficeClient({
                 ))}
               </select>
             </div>
-            <datalist id={TEAM_DATALIST_ID}>
-              {TEAM_OPTIONS.map((t) => (
-                <option key={t} value={t} />
-              ))}
-            </datalist>
           </div>
           <Button
             size="sm"
@@ -517,6 +512,11 @@ export function BackofficeClient({
           </tbody>
         </table>
       </div>
+      <datalist id={TEAM_DATALIST_ID}>
+        {TEAM_OPTIONS.map((t) => (
+          <option key={t} value={t} />
+        ))}
+      </datalist>
     </div>
   );
 }
