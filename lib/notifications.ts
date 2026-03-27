@@ -78,8 +78,8 @@ function renderNewRequestEmailHtml(event: Extract<NotifyEvent, { type: "NEW_REQU
 
   return `
     <div style="font-family:Arial,sans-serif;color:#1f2937;padding:20px;border:1px solid #ddd;border-radius:8px;">
-      <h2 style="color:#0a3d91;">Nova solicitacao de ferias</h2>
-      <p>O colaborador <strong>${escapeHtml(event.userName)}</strong> enviou uma nova solicitacao de ferias.</p>
+      <h2 style="color:#0a3d91;">Nova solicitação de férias</h2>
+      <p>O colaborador <strong>${escapeHtml(event.userName)}</strong> enviou uma nova solicitação de férias.</p>
       <table style="border-collapse:collapse;width:100%;margin:16px 0;">
         <tr><td style="padding:8px;border:1px solid #ddd;background:#f9f9f9;font-weight:600;">Inicio</td><td style="padding:8px;border:1px solid #ddd;">${escapeHtml(event.startDate)}</td></tr>
         <tr><td style="padding:8px;border:1px solid #ddd;background:#f9f9f9;font-weight:600;">Fim</td><td style="padding:8px;border:1px solid #ddd;">${escapeHtml(event.endDate)}</td></tr>
@@ -122,9 +122,9 @@ function renderRejectedEmailHtml(event: Extract<NotifyEvent, { type: "REJECTED" 
 
   return `
     <div style="font-family:Arial,sans-serif;color:#1f2937;padding:20px;border:1px solid #ddd;border-radius:8px;">
-      <h2 style="color:#dc2626;">Solicitacao de ferias reprovada</h2>
+      <h2 style="color:#dc2626;">Solicitação de férias reprovada</h2>
       <p>Ola <strong>${escapeHtml(event.userName)}</strong>,</p>
-      <p>Sua solicitacao de ferias foi reprovada por <strong>${escapeHtml(event.approverName)}</strong>.</p>
+      <p>Sua solicitação de férias foi reprovada por <strong>${escapeHtml(event.approverName)}</strong>.</p>
       ${event.note ? `<p><strong>Motivo/Observacao:</strong> ${escapeHtml(event.note)}</p>` : ""}
       <p>Caso tenha duvidas, entre em contato com seu gestor.</p>
       <hr style="border:0;border-top:1px solid #eee;margin:20px 0;" />
@@ -198,12 +198,12 @@ function renderApprovedEmailHtml(event: Extract<NotifyEvent, { type: "APPROVED" 
         <div style="background:#0a3d91;padding:18px 20px;color:#ffffff;">
           <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
             <div style="filter:brightness(0) invert(1);">${logoHtml}</div>
-            <div style="font-size:12px;opacity:0.9;">Comunicado oficial de ferias</div>
+            <div style="font-size:12px;opacity:0.9;">Comunicado oficial de férias</div>
           </div>
-          <h2 style="margin:12px 0 0 0;font-size:22px;">Solicitacao de ferias aprovada</h2>
+          <h2 style="margin:12px 0 0 0;font-size:22px;">Solicitação de férias aprovada</h2>
         </div>
         <div style="padding:18px 20px;">
-          <p style="margin:0 0 12px 0;">A solicitacao abaixo foi aprovada no fluxo de ferias.</p>
+          <p style="margin:0 0 12px 0;">A solicitação abaixo foi aprovada no fluxo de férias.</p>
           <table style="border-collapse:collapse;width:100%;max-width:760px;">${rows}</table>
           <p style="margin:14px 0 2px 0;font-size:13px;color:#4b5563;">Em caso de dúvidas, contatar o lider direto.</p>
           <p style="margin:0;font-size:13px;color:#4b5563;">${safeHrSignature}</p>
@@ -276,8 +276,8 @@ function renderReminderEmailHtml(event: Extract<NotifyEvent, { type: "UPCOMING_V
 
   return `
     <div style="font-family:Arial,sans-serif;color:#1f2937;">
-      <h2 style="margin-bottom:8px;">Lembrete: ferias em ${event.daysUntilStart} dias</h2>
-      <p style="margin:0 0 12px 0;">O colaborador abaixo entrara de ferias em breve.</p>
+      <h2 style="margin-bottom:8px;">Lembrete: férias em ${event.daysUntilStart} dias</h2>
+      <p style="margin:0 0 12px 0;">O colaborador abaixo entrará de férias em breve.</p>
       <table style="border-collapse:collapse;width:100%;max-width:760px;">
         <tr><td style="padding:8px;border:1px solid #ddd;background:#f9f9f9;font-weight:600;">Colaborador</td><td style="padding:8px;border:1px solid #ddd;">${escapeHtml(event.userName)}</td></tr>
         <tr><td style="padding:8px;border:1px solid #ddd;background:#f9f9f9;font-weight:600;">Inicio</td><td style="padding:8px;border:1px solid #ddd;">${escapeHtml(event.startDate)}</td></tr>
@@ -304,7 +304,7 @@ async function sendReminderEmail(event: Extract<NotifyEvent, { type: "UPCOMING_V
   await resend.emails.send({
     from,
     to: recipients,
-    subject: `Lembrete: ${event.userName} entra de ferias em ${event.daysUntilStart} dias`,
+    subject: `Lembrete: ${event.userName} entra de férias em ${event.daysUntilStart} dias`,
     html: renderReminderEmailHtml(event),
   });
 }
@@ -319,7 +319,7 @@ function renderReturnReminderEmailHtml(event: Extract<NotifyEvent, { type: "RETU
   return `
     <div style="font-family:Arial,sans-serif;color:#1f2937;">
       <h2 style="margin-bottom:8px;">Lembrete: retorno ao trabalho amanha</h2>
-      <p style="margin:0 0 12px 0;">As ferias abaixo se encerram hoje e o retorno ocorre amanha.</p>
+      <p style="margin:0 0 12px 0;">As férias abaixo se encerram hoje e o retorno ocorre amanha.</p>
       <table style="border-collapse:collapse;width:100%;max-width:760px;">
         <tr><td style="padding:8px;border:1px solid #ddd;background:#f9f9f9;font-weight:600;">Colaborador</td><td style="padding:8px;border:1px solid #ddd;">${escapeHtml(event.userName)}</td></tr>
         <tr><td style="padding:8px;border:1px solid #ddd;background:#f9f9f9;font-weight:600;">Inicio</td><td style="padding:8px;border:1px solid #ddd;">${escapeHtml(event.startDate)}</td></tr>
@@ -376,7 +376,7 @@ async function sendReminderSlack(event: Extract<NotifyEvent, { type: "UPCOMING_V
   if (!webhook) return;
 
   const text =
-    `:calendar: *Lembrete de ferias* - ${event.userName} entra de ferias em ${event.daysUntilStart} dias.\n` +
+    `:calendar: *Lembrete de férias* - ${event.userName} entra de férias em ${event.daysUntilStart} dias.\n` +
     `*Inicio:* ${event.startDate}\n*Fim:* ${event.endDate}\n*Abono:* ${event.abono ? "Sim" : "Nao"}\n*13o:* ${event.thirteenth ? "Sim" : "Nao"}\n` +
     `*Lider:* ${event.managerName} (${event.managerEmail})`;
 
