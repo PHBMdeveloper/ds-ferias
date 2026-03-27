@@ -8,7 +8,7 @@ import { getRoleLabel } from "@/lib/vacationRules";
 
 type GerenteTeamRow = TeamDataRH["gerentes"][0]["teams"][number];
 
-/** Vários `teamKey` podem compartilhar o mesmo coordenador — um bloco na UI do gerente. */
+/** Vários `teamKey` podem compartilhar a mesma coordenação — um bloco na UI da gerência. */
 function groupTeamsByCoordinator(teams: GerenteTeamRow[]) {
   const map = new Map<string, { coordinatorName: string; teams: GerenteTeamRow[] }>();
   for (const t of teams) {
@@ -32,7 +32,7 @@ function groupTeamsByCoordinator(teams: GerenteTeamRow[]) {
 const LIDERANCA_DIRETA_CAPACITY_KEY = "__lideranca_direta_gerente__";
 
 /**
- * Lista ordenada para o calendário consolidado do gerente: seções (direta / indireta),
+ * Lista ordenada para o calendário consolidado da gerência: seções (direta / indireta),
  * cargo no rótulo e capacidade por time (não cruza squads diferentes).
  */
 function buildGerenteConsolidatedCalendarMembers(
@@ -41,7 +41,7 @@ function buildGerenteConsolidatedCalendarMembers(
 ): TeamMemberInfoSerialized[] {
   const out: TeamMemberInfoSerialized[] = [];
   // Segurança: não pode existir a mesma pessoa em duas linhas do calendário consolidado.
-  // Se por algum motivo aparecer duplicada (coordenador + time), deduplicamos por `user.id`.
+  // Se por algum motivo aparecer duplicada (coordenação + time), deduplicamos por `user.id`.
   const seenUserIds = new Set<string>();
   const push = (m: TeamMemberInfoSerialized) => {
     if (seenUserIds.has(m.user.id)) return;
@@ -49,15 +49,15 @@ function buildGerenteConsolidatedCalendarMembers(
     out.push(m);
   };
 
-  const coordinators = [...(coordinatorMembers ?? [])].sort((a, b) =>
+  const coordinations = [...(coordinatorMembers ?? [])].sort((a, b) =>
     (a.user.name ?? "").localeCompare(b.user.name ?? "", "pt-BR", { sensitivity: "base" }),
   );
-  coordinators.forEach((c) => {
+  coordinations.forEach((c) => {
     push({
       ...c,
       calendarCapacityGroupKey: LIDERANCA_DIRETA_CAPACITY_KEY,
       calendarSectionOrder: 0,
-      calendarSectionTitle: "Liderança direta — coordenadores (reportam a você)",
+      calendarSectionTitle: "Liderança direta — coordenações (reportam à gerência)",
       calendarDisplayName: `${c.user.name} · ${getRoleLabel(c.user.role)}`,
     });
   });
@@ -91,7 +91,7 @@ export function TimesViewRhTeamsList({
   gerentes,
   expanded,
   toggle,
-  /** Gerente: exibe calendário consolidado + bloco separado por coordenador. RH: só árvore por gerente/time. */
+  /** Gerência: exibe calendário consolidado + bloco separado por coordenação. RH: árvore por gerência/time. */
   showConsolidatedOverview = false,
 }: {
   gerentes: TeamDataRH["gerentes"];
@@ -138,7 +138,7 @@ export function TimesViewRhTeamsList({
                 <h2 className="text-lg font-semibold text-[#1a1d23] dark:text-white">{g.gerenteName}</h2>
                 <p className="text-sm text-[#64748b] dark:text-slate-400">
                   {g.teams.length} time(s) · {totalMembers} colaborador(es) + {coordinatorCount}{" "}
-                  coordenador(es) distinto{coordinatorCount === 1 ? "" : "s"} ({totalPeople} pessoas)
+                  coordenação(ões) distinta{coordinatorCount === 1 ? "" : "s"} ({totalPeople} pessoas)
                 </p>
               </div>
             </button>
@@ -152,10 +152,10 @@ export function TimesViewRhTeamsList({
                     </h3>
                     <p className="mt-1 text-sm text-[#64748b] dark:text-slate-400">
                       Agrupado por <span className="font-medium text-[#475569] dark:text-slate-300">liderança direta</span>{" "}
-                      (coordenadores) e <span className="font-medium text-[#475569] dark:text-slate-300">times</span>{" "}
+                      (coordenações) e <span className="font-medium text-[#475569] dark:text-slate-300">times</span>{" "}
                       (colaboradores). O alerta vermelho de capacidade vale só{" "}
                       <span className="font-medium text-[#475569] dark:text-slate-300">dentro do mesmo time</span> ou entre
-                      coordenadores entre si, sem misturar squads.
+                      coordenações entre si, sem misturar squads.
                     </p>
                     {consolidatedMembers.length > 0 ? (
                       <div className="mt-4">
@@ -169,10 +169,10 @@ export function TimesViewRhTeamsList({
 
                 {showConsolidatedOverview && g.teams.length > 0 && (
                   <div className="border-t border-[#e2e8f0] pt-6 dark:border-[#252a35]">
-                    <h3 className="text-base font-semibold text-[#1a1d23] dark:text-white">Por coordenador</h3>
+                    <h3 className="text-base font-semibold text-[#1a1d23] dark:text-white">Por coordenação</h3>
                     <p className="mt-1 text-sm text-[#64748b] dark:text-slate-400">
-                      Quem coordena mais de um time entra num único bloco (vários calendários, uma ficha de férias). Só o(a)
-                      coordenador(a) tem card com pendentes/saldo; colaboradores ficam no calendário.
+                      Quando a mesma coordenação possui mais de um time, tudo entra em um único bloco (vários calendários,
+                      uma ficha de férias). Só a liderança da coordenação tem card com pendentes/saldo; colaboradores ficam no calendário.
                     </p>
                   </div>
                 )}
@@ -256,7 +256,7 @@ export function TimesViewRhTeamsList({
                                             Time: {team.teamName}
                                           </span>
                                           <span className="ml-2 text-xs text-[#64748b] dark:text-slate-400">
-                                            {team.members.length} colaborador(es) + coordenador no calendário
+                                {team.members.length} colaborador(es) + coordenação no calendário
                                           </span>
                                         </div>
                                       </button>
@@ -311,14 +311,14 @@ export function TimesViewRhTeamsList({
                               </span>
                               <div className="min-w-0">
                                 <h3 className="truncate text-sm font-semibold text-[#1a1d23] dark:text-white">
-                                  Coordenador: {team.coordinatorName}
+                                  Coordenação: {team.coordinatorName}
                                 </h3>
                                 <p className="truncate text-xs text-[#64748b] dark:text-slate-400">
                                   Time: {team.teamName}
                                 </p>
                               </div>
                               <span className="ml-auto text-xs text-[#64748b] dark:text-slate-400">
-                                {team.members.length} colaborador(es) + 1 coordenador
+                                {team.members.length} colaborador(es) + 1 coordenação
                               </span>
                             </button>
 
