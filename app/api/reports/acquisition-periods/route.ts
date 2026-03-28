@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser, shouldForcePasswordChange } from "@/lib/auth";
 import { getRoleLevel } from "@/lib/vacationRules";
+import { escapeCsvFormulas } from "@/lib/csv";
 import { findUsersWithVacationForBalance } from "@/repositories/userRepository";
 import { syncAcquisitionPeriodsForUser } from "@/repositories/acquisitionRepository";
 
@@ -70,9 +71,9 @@ export async function GET(request: Request) {
           : "NAO_UTILIZADO";
     lines.push(
       [
-        p.user.name.replace(/;/g, ","),
-        p.user.email.replace(/;/g, ","),
-        (p.user.department ?? "").replace(/;/g, ","),
+        escapeCsvFormulas(p.user.name),
+        escapeCsvFormulas(p.user.email),
+        escapeCsvFormulas(p.user.department ?? ""),
         p.startDate.toISOString().slice(0, 10),
         p.endDate.toISOString().slice(0, 10),
         String(p.accruedDays),
