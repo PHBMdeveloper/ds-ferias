@@ -28,6 +28,7 @@ export async function GET(request: Request) {
   const year = yearParam ? Number.parseInt(yearParam, 10) || new Date().getFullYear() : new Date().getFullYear();
 
   const periods = await prisma.acquisitionPeriod.findMany({
+    take: 1000, // Limite de segurança para exportação
     where: {
       OR: [
         { startDate: { gte: new Date(year, 0, 1), lt: new Date(year + 1, 0, 1) } },

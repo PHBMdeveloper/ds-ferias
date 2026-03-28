@@ -137,6 +137,7 @@ export async function GET(request: Request) {
 
   const requests = await prisma.vacationRequest.findMany({
     where: where as Record<string, unknown>,
+    take: 100, // Limite de segurança para performance
     include: {
       user: {
         select: {

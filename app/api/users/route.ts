@@ -84,6 +84,7 @@ export async function GET() {
   }
 
   const users = await prisma.user.findMany({
+    take: 100, // Limite de segurança para performance
     orderBy: [{ role: "asc" }, { name: "asc" }],
     select: {
       id: true,

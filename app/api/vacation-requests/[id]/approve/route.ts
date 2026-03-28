@@ -272,21 +272,12 @@ export async function POST(request: Request, { params }: Params) {
     }
 
     if (isVacationApprovedStatus(nextStatus) && periodId) {
-      // Incremento atomicamente dentro da mesma transação.
-      const period = await tx.acquisitionPeriod.findUnique({
+      // Incremento atômico para evitar race conditions em ambientes concorrentes.
+      const days = getChargeableDays(current.startDate, current.endDate, !!current.abono);
+      await tx.acquisitionPeriod.update({
         where: { id: periodId },
-        select: { usedDays: true },
+        data: { usedDays: { increment: days } },
       });
-
-      if (period) {
-        const days = getChargeableDays(current.startDate, current.endDate, !!current.abono);
-        await tx.acquisitionPeriod.update({
-          where: { id: periodId },
-          data: { usedDays: period.usedDays + days },
-        });
-      } else {
-        logger.warn("AcquisitionPeriod não encontrado para incrementar usedDays", { requestId: id, periodId });
-      }
     }
 
     await tx.vacationRequestHistory.create({

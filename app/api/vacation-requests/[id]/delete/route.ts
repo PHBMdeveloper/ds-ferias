@@ -134,22 +134,14 @@ export async function POST(request: Request, { params }: Params) {
 
   await prisma.$transaction(async (tx) => {
     // Se o pedido foi aprovado final, precisamos reverter o consumo no período aquisitivo
-    // para manter consistência entre relatórios e saldo.
-    if (isVacationApprovedStatus(existing.status)) {
-      const ap = await tx.acquisitionPeriod.findUnique({
-        where: { id: acquisitionPeriodId! },
-        select: { usedDays: true },
+    // de forma atômica para manter consistência entre relatórios e saldo.
+    if (isVacationApprovedStatus(existing.status) && acquisitionPeriodId) {
+      const rawDays = daysBetweenInclusive(existing.startDate, existing.endDate);
+      const days = Math.min(Math.max(1, rawDays), 30); // compat com regra CLT de bloco
+      await tx.acquisitionPeriod.update({
+        where: { id: acquisitionPeriodId },
+        data: { usedDays: { decrement: days } },
       });
-
-      if (ap) {
-        const rawDays = daysBetweenInclusive(existing.startDate, existing.endDate);
-        const days = Math.min(Math.max(1, rawDays), 30); // compat com regra CLT de bloco
-        const nextUsed = Math.max(0, ap.usedDays - days);
-        await tx.acquisitionPeriod.update({
-          where: { id: acquisitionPeriodId! },
-          data: { usedDays: nextUsed },
-        });
-      }
     }
 
     await tx.vacationRequestHistory.deleteMany({
