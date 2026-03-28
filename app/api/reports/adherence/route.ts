@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSessionUser, shouldForcePasswordChange } from "@/lib/auth";
 import { getRoleLevel, isVacationApprovedStatus } from "@/lib/vacationRules";
+import { escapeCsvFormulas } from "@/lib/csv";
 import { findUsersWithVacationForBalance } from "@/repositories/userRepository";
 
 /** GET: relatório de adesão — colaboradores com direito a férias que não tiraram férias no ano informado. */
@@ -56,9 +57,9 @@ export async function GET(request: Request) {
     if (hasTakenVacationInYear) continue;
 
     lines.push([
-      u.name.replace(/;/g, ","),
-      u.email.replace(/;/g, ","),
-      (u.department ?? "").replace(/;/g, ","),
+      escapeCsvFormulas(u.name),
+      escapeCsvFormulas(u.email),
+      escapeCsvFormulas(u.department ?? ""),
       String(year),
       hasEntitlement ? "SIM" : "NAO",
       String(monthsWorked),

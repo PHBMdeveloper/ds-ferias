@@ -3,6 +3,7 @@
 import { Fragment, useState } from "react";
 import type { TeamMemberInfoSerialized } from "@/components/times-view-client";
 import { isVacationApprovedStatus } from "@/lib/vacationRules";
+import { escapeCsvFormulas } from "@/lib/csv";
 
 const GLOBAL_CAPACITY_KEY = "__global_capacity__";
 
@@ -98,9 +99,9 @@ function exportVacationsForVisiblePeriod(opts: {
   ];
 
   for (const member of members) {
-    const displayName = (member.calendarDisplayName ?? member.user.name).split("·")[0]?.trim() ?? member.user.name;
-    const section = member.calendarSectionTitle ?? "";
-    const sub = member.calendarSubsectionTitle ?? "";
+    const displayName = escapeCsvFormulas((member.calendarDisplayName ?? member.user.name).split("·")[0]?.trim() ?? member.user.name);
+    const section = escapeCsvFormulas(member.calendarSectionTitle ?? "");
+    const sub = escapeCsvFormulas(member.calendarSubsectionTitle ?? "");
     for (const r of member.requests) {
       if (r.status !== "PENDENTE" && !isVacationApprovedStatus(r.status)) continue;
       const start = atMidnight(new Date(r.startDate));
@@ -112,7 +113,7 @@ function exportVacationsForVisiblePeriod(opts: {
       if (end.getTime() < rangeStart.getTime() || start.getTime() > rangeEnd.getTime()) continue;
       rows.push([
         displayName,
-        member.user.role,
+        escapeCsvFormulas(member.user.role),
         section,
         sub,
         start.toLocaleDateString("pt-BR"),
