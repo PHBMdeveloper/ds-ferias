@@ -7,3 +7,8 @@
 **Vulnerabilidade:** O uso de SHA-256 sem salt tornava as senhas vulneráveis a ataques de dicionário e rainbow tables.
 **Learning:** O README já recomendava a migração para algo mais seguro. Implementar `scrypt` com salt aleatório e manter fallback para SHA-256 garante segurança para novos usuários sem quebrar o acesso dos antigos.
 **Prevention:** Usar algoritmos de hashing com fator de trabalho (scrypt, bcrypt, argon2) e salts únicos por usuário.
+
+## 2026-03-29 - [CSV Formula Injection (CSV Injection)]
+**Vulnerabilidade:** Entradas de texto controladas pelo usuário (nome, departamento, e-mail) estavam sendo inseridas diretamente em arquivos CSV exportados, permitindo que fórmulas maliciosas (iniciadas com `=, +, -, @, \t, \r`) pudessem ser executadas no software de planilhas do usuário ao abrir o arquivo.
+**Learning:** A sanitização inicial do sistema apenas substituía `;` por `,` para não quebrar a estrutura, mas esquecia completamente da execução de comandos nos editores de CSV, transformando um relatório do RH em um vetor de ataque RCE no cliente.
+**Prevention:** Sempre usar a função utilitária de sanitização (`escapeCsvFormulas`) em todas as variáveis injetadas nos arquivos CSV do sistema, que também limpam os caracteres de quebra de linha.
