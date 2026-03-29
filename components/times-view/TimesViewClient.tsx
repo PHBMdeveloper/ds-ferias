@@ -7,6 +7,7 @@ import { TimesViewFilterBar } from "./TimesViewFilterBar";
 import { TimesViewCoordTeamsList } from "./TimesViewCoordTeamsList";
 import { TeamCalendar } from "@/components/calendar/TeamCalendar";
 import { buildRhDirectorateCalendarMembers } from "./buildRhCalendarMembers";
+import { escapeCsvFormulas } from "@/lib/csv";
 
 type Props = {
   teamData: TeamDataSerialized;
@@ -56,12 +57,12 @@ export function TimesViewClient({ teamData }: Props) {
       ].join(";"),
       ...rows.map((r) =>
         [
-          r.gerente,
-          r.coordenador,
-          r.time,
-          r.colaborador,
-          r.papel,
-          r.departamento,
+          escapeCsvFormulas(r.gerente),
+          escapeCsvFormulas(r.coordenador),
+          escapeCsvFormulas(r.time),
+          escapeCsvFormulas(r.colaborador),
+          escapeCsvFormulas(r.papel),
+          escapeCsvFormulas(r.departamento),
           r.status,
           String(r.saldoDisponivel),
           String(r.pendente),
