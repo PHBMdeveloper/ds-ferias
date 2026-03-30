@@ -98,7 +98,7 @@ export function ProfileClient({ profile }: Props) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-5xl space-y-6">
       <section className="rounded-xl border border-[#e2e8f0] bg-white p-5 shadow-sm dark:border-[#252a35] dark:bg-[#1a1d23]">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -110,19 +110,19 @@ export function ProfileClient({ profile }: Props) {
         </div>
 
         <div className="mt-5 grid gap-6 lg:grid-cols-3">
-          <div className="rounded-lg border border-[#e2e8f0] bg-[#f8fafc] p-4 dark:border-[#252a35] dark:bg-[#0f1117]">
+          <div className="flex flex-col justify-between rounded-lg border border-[#e2e8f0] bg-[#f8fafc] p-4 dark:border-[#252a35] dark:bg-[#0f1117]">
             <div className="flex items-center gap-4">
               {avatarPreview ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={avatarPreview} alt={`Foto de ${profile.name}`} className="h-20 w-20 rounded-full object-cover" />
+                <img src={avatarPreview} alt={`Foto de ${profile.name}`} className="h-16 w-16 rounded-full object-cover shadow-sm" />
               ) : (
-                <div className="flex h-20 w-20 items-center justify-center rounded-full bg-blue-100 text-2xl font-bold text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-100 text-xl font-bold text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
                   {profile.name.charAt(0).toUpperCase()}
                 </div>
               )}
               <div>
-                <p className="text-sm text-[#64748b] dark:text-slate-400">Foto de perfil</p>
-                <p className="text-xs text-[#94a3b8] dark:text-slate-500">Opcional, até 2MB (PNG/JPG/WEBP)</p>
+                <p className="text-sm font-semibold text-[#1a1d23] dark:text-white">Foto de perfil</p>
+                <p className="text-[11px] leading-tight text-[#94a3b8] dark:text-slate-500">PNG, JPG ou WEBP (máx. 2MB)</p>
               </div>
             </div>
             <div className="mt-4 flex flex-wrap gap-2">
@@ -130,15 +130,15 @@ export function ProfileClient({ profile }: Props) {
                 type="button"
                 onClick={triggerFilePicker}
                 disabled={savingAvatar}
-                className="min-h-[40px] rounded-md bg-blue-600 px-4 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+                className="flex-1 min-h-[36px] rounded-md bg-blue-600 px-3 text-xs font-bold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {savingAvatar ? "Salvando..." : "Alterar foto"}
+                {savingAvatar ? "..." : "Alterar foto"}
               </button>
               <button
                 type="button"
                 onClick={() => void saveAvatar(null, true)}
                 disabled={savingAvatar || !avatarPreview}
-                className="min-h-[40px] rounded-md border border-[#e2e8f0] bg-white px-4 text-sm font-semibold text-[#334155] transition hover:bg-[#f8fafc] disabled:cursor-not-allowed disabled:opacity-60 dark:border-[#252a35] dark:bg-[#111827] dark:text-slate-200"
+                className="flex-1 min-h-[36px] rounded-md border border-[#e2e8f0] bg-white px-3 text-xs font-bold text-[#334155] transition hover:bg-[#f8fafc] disabled:cursor-not-allowed disabled:opacity-60 dark:border-[#252a35] dark:bg-[#111827] dark:text-slate-200"
               >
                 Remover
               </button>
@@ -166,9 +166,9 @@ export function ProfileClient({ profile }: Props) {
       </section>
 
       <section className="rounded-xl border border-[#e2e8f0] bg-white p-5 shadow-sm dark:border-[#252a35] dark:bg-[#1a1d23]">
-        <h3 className="text-lg font-bold text-[#1a1d23] dark:text-white">Segurança</h3>
-        <p className="mb-4 text-sm text-[#64748b] dark:text-slate-400">Troque sua senha sempre que precisar.</p>
-        <div className="max-w-xl">
+        <div className="max-w-md">
+          <h3 className="text-lg font-bold text-[#1a1d23] dark:text-white">Segurança</h3>
+          <p className="mb-4 text-sm text-[#64748b] dark:text-slate-400">Troque sua senha sempre que precisar.</p>
           <ChangePasswordFormCard redirectTo="/profile" submitLabel="Atualizar senha" />
         </div>
       </section>
