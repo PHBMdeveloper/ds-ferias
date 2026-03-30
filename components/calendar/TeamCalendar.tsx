@@ -182,8 +182,23 @@ export function TeamCalendar({
   const monthStart = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
   const monthEnd = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), daysInMonth);
   const dayWidth = 28;
-  /** Coluna de nomes: mais estreita para dar espaço ao calendário; sticky cobre a timeline ao rolar. */
-  const nameColWidth = 240;
+  
+  // No mobile (ajustado por hook ou apenas CSS, aqui usamos uma lógica simples de estimativa
+  // ou deixamos o CSS lidar via variáveis). Vamos usar 140 no mobile e 240 no desktop.
+  const [nameColWidth, setNameColWidth] = useState(240);
+
+  // Hook para detectar largura e ajustar a coluna sticky
+  useState(() => {
+    if (typeof window !== "undefined") {
+      const handleResize = () => {
+        setNameColWidth(window.innerWidth < 1024 ? 140 : 240);
+      };
+      handleResize();
+      window.addEventListener("resize", handleResize);
+      return () => window.removeEventListener("resize", handleResize);
+    }
+  });
+
   const timelineWidth = daysInMonth * dayWidth;
   const isCurrentMonth = currentMonth.getFullYear() === today.getFullYear() && currentMonth.getMonth() === today.getMonth();
   const todayDay = isCurrentMonth ? today.getDate() : null;

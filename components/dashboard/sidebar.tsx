@@ -69,17 +69,17 @@ export function AppSidebar({
         </div>
       </div>
 
-      <nav className="flex flex-wrap items-center gap-1.5 px-3 py-2 lg:hidden" aria-label="Menu principal">
+      <nav className="grid grid-cols-2 gap-1.5 px-3 py-2 lg:hidden" aria-label="Menu principal">
         {!isRH && (
-          <DashboardSidebarItem href="/dashboard?view=minhas" icon={<IconCalendar />} label="Minhas Férias" active={activeView === "minhas"} />
+          <DashboardSidebarItem href="/dashboard?view=minhas" icon={<IconCalendar />} label="Minhas" active={activeView === "minhas"} />
         )}
         <DashboardSidebarItem href="/profile" icon={<IconUser />} label="Perfil" active={activeView === "perfil"} />
         {level >= 2 && (
           <>
-            <DashboardSidebarItem href="/dashboard?view=inbox" icon={<IconInbox />} label="Caixa de Aprovação" active={activeView === "inbox"} badge={pendingCount > 0 ? pendingCount : undefined} badgeAlert />
+            <DashboardSidebarItem href="/dashboard?view=inbox" icon={<IconInbox />} label="Caixa" active={activeView === "inbox"} badge={pendingCount > 0 ? pendingCount : undefined} badgeAlert />
             <DashboardSidebarItem href="/dashboard?view=historico" icon={<IconHistory />} label="Histórico" active={activeView === "historico"} />
             <DashboardSidebarItem href="/dashboard?view=times" icon={<IconTeams />} label="Times" active={activeView === "times"} />
-            {level >= 2 && <DashboardSidebarItem href="/admin" icon={<IconSettings />} label="Backoffice" />}
+            <DashboardSidebarItem href="/admin" icon={<IconSettings />} label="Admin" />
           </>
         )}
       </nav>
