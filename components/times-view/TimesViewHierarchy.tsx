@@ -9,9 +9,10 @@ type GerenteData = TeamDataRH["gerentes"][0];
 
 interface Props {
   gerentesFiltered: GerenteData[];
+  isCoordView?: boolean;
 }
 
-export function TimesViewHierarchy({ gerentesFiltered }: Props) {
+export function TimesViewHierarchy({ gerentesFiltered, isCoordView }: Props) {
   // Visão TOTAL Unificada em um único grande calendário mestre
   const calendarMembers = useMemo(
     () => buildRhDirectorateCalendarMembers(gerentesFiltered),
@@ -32,10 +33,12 @@ export function TimesViewHierarchy({ gerentesFiltered }: Props) {
     <div className="space-y-6">
       <div className="flex flex-col gap-2 border-b-2 border-blue-500/20 pb-4">
         <h2 className="text-2xl font-black text-[#1e3a8a] dark:text-blue-200 uppercase tracking-tighter">
-          Calendário Mestre — Visão Geral do Time
+          {isCoordView ? "Meu Calendário de Times" : "Calendário Mestre — Visão Geral do Time"}
         </h2>
         <p className="text-xs font-bold text-[#1e40af]/70 dark:text-blue-300/60 uppercase tracking-widest">
-          Consolidado: Diretoria &gt; Gerência &gt; Coordenação
+          {isCoordView 
+            ? "Consolidado: Minha Coordenação > Meus Squads" 
+            : "Consolidado: Diretoria > Gerência > Coordenação"}
         </p>
       </div>
 

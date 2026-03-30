@@ -48,12 +48,6 @@ export function TimesViewCoordTeamsList({
                 <TeamMemberRow
                   key={member.user.id}
                   member={member}
-                  requestsSummary={(member.requests as VacationRequestSummary[]).map((r) => ({
-                    startDate: r.startDate,
-                    endDate: r.endDate,
-                    status: r.status,
-                    abono: r.abono,
-                  }))}
                 />
               ))}
             </div>
