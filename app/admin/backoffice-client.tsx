@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { getRoleLabel } from "@/lib/vacationRules";
@@ -43,6 +44,8 @@ export function BackofficeClient({
   users: UserRow[];
   managers: Manager[];
 }) {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<Partial<UserRow>>({});
   const [saving, setSaving] = useState(false);
@@ -96,7 +99,9 @@ export function BackofficeClient({
       }
       toast.success("Usuário atualizado com sucesso.");
       setEditingId(null);
-      window.location.reload();
+      startTransition(() => {
+        router.refresh();
+      });
     } finally {
       setSaving(false);
     }
@@ -113,7 +118,9 @@ export function BackofficeClient({
         return;
       }
       toast.success("Usuário excluído com sucesso.");
-      window.location.reload();
+      startTransition(() => {
+        router.refresh();
+      });
     } finally {
       setDeletingId(null);
     }
@@ -306,7 +313,7 @@ export function BackofficeClient({
           </div>
           <Button
             size="sm"
-            disabled={creating}
+            disabled={creating || (isPending && !editingId && !deletingId)}
             onClick={async () => {
               setCreating(true);
               try {
@@ -332,13 +339,23 @@ export function BackofficeClient({
                   team: "",
                   managerId: "",
                 });
-                window.location.reload();
+                startTransition(() => {
+                  router.refresh();
+                });
               } finally {
                 setCreating(false);
               }
             }}
           >
-            {creating ? "Criando…" : "Adicionar usuário"}
+            {creating || (isPending && !editingId && !deletingId) ? (
+              <span className="flex items-center gap-2">
+                <svg className="h-4 w-4 animate-spin text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Criando…
+              </span>
+            ) : "Adicionar usuário"}
           </Button>
         </div>
       </div>
@@ -483,8 +500,16 @@ export function BackofficeClient({
                 <td className="px-4 py-3">
                   {editingId === u.id ? (
                     <div className="flex gap-2">
-                      <Button size="sm" onClick={() => handleSave(u.id)} disabled={saving} aria-label={saving ? "Salvando" : "Salvar alterações"}>
-                        {saving ? "Salvando…" : "Salvar"}
+                      <Button size="sm" onClick={() => handleSave(u.id)} disabled={saving || isPending} aria-label={saving ? "Salvando" : "Salvar alterações"}>
+                        {saving || isPending ? (
+                          <span className="flex items-center gap-2">
+                            <svg className="h-3.5 w-3.5 animate-spin text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Salvando…
+                          </span>
+                        ) : "Salvar"}
                       </Button>
                       <Button size="sm" variant="outline" onClick={() => setEditingId(null)} aria-label="Cancelar edição">
                         Cancelar
@@ -499,10 +524,18 @@ export function BackofficeClient({
                         size="sm"
                         variant="destructive"
                         onClick={() => handleDelete(u)}
-                        disabled={deletingId === u.id}
+                        disabled={deletingId === u.id || isPending}
                         aria-label={`Excluir usuário ${u.name}`}
                       >
-                        {deletingId === u.id ? "Excluindo…" : "Excluir"}
+                        {deletingId === u.id || (isPending && deletingId === u.id) ? (
+                          <span className="flex items-center gap-2">
+                            <svg className="h-3.5 w-3.5 animate-spin text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Excluindo…
+                          </span>
+                        ) : "Excluir"}
                       </Button>
                     </div>
                   )}

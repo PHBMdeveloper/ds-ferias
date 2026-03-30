@@ -11,7 +11,7 @@ export function BackofficeBackButton() {
     e.preventDefault();
     if (isPending) return;
     startTransition(() => {
-      router.push("/dashboard");
+      router.back();
     });
   }
 
