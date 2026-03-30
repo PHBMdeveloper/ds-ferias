@@ -73,71 +73,79 @@ export function ManagerView({
       : "Nenhuma solicitação encontrada com os filtros aplicados.";
 
   return (
-    <div className="space-y-5 lg:space-y-6">
-      <FilterForm
-        userRole={userRole}
-        filters={filters}
-        managerOptions={managerOptions}
-        deptOptions={deptOptions}
-        teamOptions={teamOptions}
-        view={view}
-      />
-      <div className="flex flex-wrap items-center justify-end gap-3">
-        <ExportButton href={`/api/vacation-requests/export?${buildExportQuery(filters)}`} />
-        {userLevel >= 5 && (
-          <>
-            <a
-              href="/api/reports/balance"
-              download
-              aria-label="Baixar relatório de saldo em CSV"
-              className="inline-flex items-center gap-1.5 rounded-md border border-[#e2e8f0] bg-white px-3 py-1.5 text-sm font-semibold text-[#475569] transition hover:bg-[#f5f6f8] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:border-[#252a35] dark:bg-[#1a1d23] dark:text-slate-300 dark:hover:bg-[#252a35]"
-            >
-              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5m0 0l5-5m-5 5V4" />
-              </svg>
-              Relatório de saldo (CSV)
-            </a>
-            <a
-              href="/api/reports/acquisition-periods"
-              download
-              aria-label="Baixar relatório de períodos aquisitivos em CSV"
-              className="inline-flex items-center gap-1.5 rounded-md border border-[#e2e8f0] bg-white px-3 py-1.5 text-sm font-semibold text-[#475569] transition hover:bg-[#f5f6f8] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:border-[#252a35] dark:bg-[#1a1d23] dark:text-slate-300 dark:hover:bg-[#252a35]"
-            >
-              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5m0 0l5-5m-5 5V4" />
-              </svg>
-              Períodos aquisitivos (CSV)
-            </a>
-          </>
-        )}
+    <div className="space-y-6 lg:space-y-8">
+      <div className="space-y-4">
+        <FilterForm
+          userRole={userRole}
+          filters={filters}
+          managerOptions={managerOptions}
+          deptOptions={deptOptions}
+          teamOptions={teamOptions}
+          view={view}
+        />
+        <div className="flex flex-wrap items-center justify-end gap-3">
+          <ExportButton href={`/api/vacation-requests/export?${buildExportQuery(filters)}`} />
+          {userLevel >= 5 && (
+            <>
+              <a
+                href="/api/reports/balance"
+                download
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-4 text-sm font-bold text-blue-900 transition-colors hover:bg-blue-100 dark:border-blue-900/50 dark:bg-blue-950/40 dark:text-blue-200 dark:hover:bg-blue-950/70"
+              >
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2a4 4 0 014-4h1m-4 4l-2-2m2 2l2-2M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                Saldos (CSV)
+              </a>
+              <a
+                href="/api/reports/acquisition-periods"
+                download
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-4 text-sm font-bold text-blue-900 transition-colors hover:bg-blue-100 dark:border-blue-900/50 dark:bg-blue-950/40 dark:text-blue-200 dark:hover:bg-blue-950/70"
+              >
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Ciclos (CSV)
+              </a>
+            </>
+          )}
+        </div>
       </div>
+
       {filteredRequests.length === 0 ? (
         <EmptyState message={emptyMessage} />
       ) : (
-        <>
+        <div className="space-y-6">
           {userLevel >= 4 ? (
             <RequestsGroupedByManager requests={displayRequests} userId={userId} userRole={userRole} />
           ) : (
             <div className="space-y-4 lg:space-y-5">
-              <p className="text-sm text-[#64748b] dark:text-slate-400">
-                Esta visão mostra as solicitações da sua equipe, incluindo marcações de{" "}
-                <span className="font-semibold">Abono 1/3</span> e{" "}
-                <span className="font-semibold">Adiantamento 13º</span>, quando houver.
-              </p>
+              <div className="flex items-center gap-2 rounded-lg border border-blue-100 bg-blue-50/50 p-4 dark:border-blue-900/20 dark:bg-blue-950/10">
+                <svg className="h-5 w-5 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <p className="text-sm font-medium text-blue-800 dark:text-blue-300">
+                  {view === "inbox" 
+                    ? "Visualizando solicitações aguardando sua ação." 
+                    : "Histórico de solicitações processadas pela sua gestão."}
+                </p>
+              </div>
               {displayRequests.map((r) => (
                 <RequestCard key={r.id} request={r} userId={userId} userRole={userRole} />
               ))}
             </div>
           )}
           {view === "historico" && historicoSlice && historicoSlice.totalItems > 0 && (
-            <HistoricoPagination
-              filters={filters}
-              page={historicoSlice.page}
-              totalPages={historicoSlice.totalPages}
-              totalItems={historicoSlice.totalItems}
-            />
+            <div className="pt-4">
+              <HistoricoPagination
+                filters={filters}
+                page={historicoSlice.page}
+                totalPages={historicoSlice.totalPages}
+                totalItems={historicoSlice.totalItems}
+              />
+            </div>
           )}
-        </>
+        </div>
       )}
     </div>
   );

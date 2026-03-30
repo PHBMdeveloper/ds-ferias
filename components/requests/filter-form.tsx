@@ -93,84 +93,83 @@ export function FilterForm({
   if (view === "inbox") {
     return (
       <div
-        className="rounded-lg border border-[#e2e8f0] bg-white p-4 dark:border-[#252a35] dark:bg-[#1a1d23]"
+        className="rounded-xl border border-[#e2e8f0] bg-white p-6 shadow-sm dark:border-[#252a35] dark:bg-[#1a1d23]"
         aria-label="Filtros da Caixa de Aprovação"
       >
-        <div className="space-y-3">
-          <div className="grid gap-2 sm:flex sm:flex-wrap">
+        <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <h3 className="text-base font-bold text-[#1a1d23] dark:text-white">Aguardando Minha Aprovação</h3>
+          <p className="text-xs font-medium text-[#64748b] dark:text-slate-500 uppercase tracking-widest">
+              Busca em tempo real
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
+          <div className="lg:col-span-2">
             <input
               type="search"
-              name="q"
               placeholder="Buscar colaborador..."
               value={q}
               onChange={(e) => handleQChange(e.target.value)}
-              aria-label="Buscar por nome do colaborador"
-              className="min-h-[44px] w-full rounded-md border border-[#e2e8f0] bg-[#f5f6f8] px-3 text-base text-[#1a1d23] placeholder:text-[#94a3b8] focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-[#252a35] dark:bg-[#0f1117] dark:text-white sm:w-auto sm:min-w-[180px]"
+              className="h-11 w-full rounded-lg border border-[#e2e8f0] bg-[#f5f6f8] px-4 text-sm text-[#1a1d23] placeholder:text-[#94a3b8] focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-[#252a35] dark:bg-[#0f1117] dark:text-white"
             />
-
-            {userLevel >= 4 && managerOptions.length > 0 && (
-              <select
-                name="managerId"
-                value={managerId}
-                onChange={(e) => {
-                  const next = e.target.value;
-                  setManagerId(next);
-                  pushInbox({ managerId: next });
-                }}
-                aria-label="Filtrar por coordenador"
-                className="min-h-[44px] w-full rounded-md border border-[#e2e8f0] bg-[#f5f6f8] px-3 text-base text-[#1a1d23] focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-[#252a35] dark:bg-[#0f1117] dark:text-white sm:w-auto"
-              >
-                <option value="ALL">Todos os coordenadores</option>
-                {managerOptions.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.name}
-                  </option>
-                ))}
-              </select>
-            )}
-
-            {deptOptions.length > 0 && (
-              <select
-                name="department"
-                value={department}
-                onChange={(e) => {
-                  const next = e.target.value;
-                  setDepartment(next);
-                  pushInbox({ department: next });
-                }}
-                aria-label="Filtrar por departamento"
-                className="min-h-[44px] w-full rounded-md border border-[#e2e8f0] bg-[#f5f6f8] px-3 text-base text-[#1a1d23] focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-[#252a35] dark:bg-[#0f1117] dark:text-white sm:w-auto"
-              >
-                <option value="">Todos os departamentos</option>
-                {deptOptions.map((d) => (
-                  <option key={d} value={d}>
-                    {d}
-                  </option>
-                ))}
-              </select>
-            )}
-
-            {teamOptions.length > 0 && (
-              <select
-                name="team"
-                value={team}
-                onChange={(e) => {
-                  const next = e.target.value;
-                  setTeam(next);
-                  pushInbox({ team: next });
-                }}
-                aria-label="Filtrar por time"
-                className="min-h-[44px] w-full rounded-md border border-[#e2e8f0] bg-[#f5f6f8] px-3 text-base text-[#1a1d23] focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-[#252a35] dark:bg-[#0f1117] dark:text-white sm:w-auto"
-              >
-                <option value="">Todos os times</option>
-                {teamOptions.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </select>
-            )}
           </div>
+
+          {userLevel >= 4 && managerOptions.length > 0 && (
+            <select
+              value={managerId}
+              onChange={(e) => {
+                const next = e.target.value;
+                setManagerId(next);
+                pushInbox({ managerId: next });
+              }}
+              className="h-11 w-full rounded-lg border border-[#e2e8f0] bg-[#f5f6f8] px-3 text-sm text-[#1a1d23] focus:border-blue-500 focus:outline-none dark:border-[#252a35] dark:bg-[#0f1117] dark:text-white"
+            >
+              <option value="ALL">Coordenadores: Todos</option>
+              {managerOptions.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.name}
+                </option>
+              ))}
+            </select>
+          )}
+
+          {deptOptions.length > 0 && (
+            <select
+              value={department}
+              onChange={(e) => {
+                const next = e.target.value;
+                setDepartment(next);
+                pushInbox({ department: next });
+              }}
+              className="h-11 w-full rounded-lg border border-[#e2e8f0] bg-[#f5f6f8] px-3 text-sm text-[#1a1d23] focus:border-blue-500 focus:outline-none dark:border-[#252a35] dark:bg-[#0f1117] dark:text-white"
+            >
+              <option value="">Departamentos: Todos</option>
+              {deptOptions.map((d) => (
+                <option key={d} value={d}>
+                  {d}
+                </option>
+              ))}
+            </select>
+          )}
+
+          {teamOptions.length > 0 && (
+            <select
+              value={team}
+              onChange={(e) => {
+                const next = e.target.value;
+                setTeam(next);
+                pushInbox({ team: next });
+              }}
+              className="h-11 w-full rounded-lg border border-[#e2e8f0] bg-[#f5f6f8] px-3 text-sm text-[#1a1d23] focus:border-blue-500 focus:outline-none dark:border-[#252a35] dark:bg-[#0f1117] dark:text-white"
+            >
+              <option value="">Times: Todos</option>
+              {teamOptions.map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
+            </select>
+          )}
         </div>
       </div>
     );
@@ -180,28 +179,35 @@ export function FilterForm({
   return (
     <form
       method="get"
-      className="rounded-lg border border-[#e2e8f0] bg-white p-4 dark:border-[#252a35] dark:bg-[#1a1d23]"
-      aria-label="Filtros da listagem de solicitações"
+      className="rounded-xl border border-[#e2e8f0] bg-white p-6 shadow-sm dark:border-[#252a35] dark:bg-[#1a1d23]"
     >
       <input type="hidden" name="view" value={view} />
       {view === "historico" && <input type="hidden" name="page" value="1" />}
-      <div className="space-y-3">
-        <div className="grid gap-2 sm:flex sm:flex-wrap">
-          <input
-            type="search"
-            name="q"
-            placeholder="Buscar colaborador..."
-            defaultValue={filters.query}
-            aria-label="Buscar por nome do colaborador"
-            className="min-h-[44px] w-full rounded-md border border-[#e2e8f0] bg-[#f5f6f8] px-3 text-base text-[#1a1d23] placeholder:text-[#94a3b8] focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-[#252a35] dark:bg-[#0f1117] dark:text-white sm:w-auto sm:min-w-[180px]"
-          />
+      
+      <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <h3 className="text-base font-bold text-[#1a1d23] dark:text-white">Histórico de Solicitações</h3>
+        <p className="text-xs font-medium text-[#64748b] dark:text-slate-500 uppercase tracking-widest">
+            Filtros do histórico
+        </p>
+      </div>
+
+      <div className="space-y-4">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
+          <div className="lg:col-span-2">
+            <input
+              type="search"
+              name="q"
+              placeholder="Buscar colaborador..."
+              defaultValue={filters.query}
+              className="h-11 w-full rounded-lg border border-[#e2e8f0] bg-[#f5f6f8] px-4 text-sm text-[#1a1d23] placeholder:text-[#94a3b8] focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-[#252a35] dark:bg-[#0f1117] dark:text-white"
+            />
+          </div>
           <select
             name="status"
             defaultValue={filters.status}
-            aria-label="Filtrar por status"
-            className="min-h-[44px] w-full rounded-md border border-[#e2e8f0] bg-[#f5f6f8] px-3 text-base text-[#1a1d23] focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-[#252a35] dark:bg-[#0f1117] dark:text-white sm:w-auto"
+            className="h-11 w-full rounded-lg border border-[#e2e8f0] bg-[#f5f6f8] px-3 text-sm text-[#1a1d23] focus:border-blue-500 focus:outline-none dark:border-[#252a35] dark:bg-[#0f1117] dark:text-white"
           >
-            <option value="TODOS">Todos os status</option>
+            <option value="TODOS">Status: Todos</option>
             <option value="PENDENTE">Pendente aprovação</option>
             <option value="APROVADO_COORDENADOR">Aprovado (coordenador)</option>
             <option value="APROVADO_GERENTE">Aprovado (gerente)</option>
@@ -213,10 +219,9 @@ export function FilterForm({
             <select
               name="managerId"
               defaultValue={filters.managerId}
-              aria-label="Filtrar por coordenador"
-              className="min-h-[44px] w-full rounded-md border border-[#e2e8f0] bg-[#f5f6f8] px-3 text-base text-[#1a1d23] focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-[#252a35] dark:bg-[#0f1117] dark:text-white sm:w-auto"
+              className="h-11 w-full rounded-lg border border-[#e2e8f0] bg-[#f5f6f8] px-3 text-sm text-[#1a1d23] focus:border-blue-500 focus:outline-none dark:border-[#252a35] dark:bg-[#0f1117] dark:text-white"
             >
-              <option value="ALL">Todos os coordenadores</option>
+              <option value="ALL">Coordenadores: Todos</option>
               {managerOptions.map((m) => (
                 <option key={m.id} value={m.id}>
                   {m.name}
@@ -224,15 +229,16 @@ export function FilterForm({
               ))}
             </select>
           )}
+        </div>
 
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
           {deptOptions.length > 0 && (
             <select
               name="department"
               defaultValue={filters.department}
-              aria-label="Filtrar por departamento"
-              className="min-h-[44px] w-full rounded-md border border-[#e2e8f0] bg-[#f5f6f8] px-3 text-base text-[#1a1d23] focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-[#252a35] dark:bg-[#0f1117] dark:text-white sm:w-auto"
+              className="h-11 w-full rounded-lg border border-[#e2e8f0] bg-[#f5f6f8] px-3 text-sm text-[#1a1d23] focus:border-blue-500 focus:outline-none dark:border-[#252a35] dark:bg-[#0f1117] dark:text-white"
             >
-              <option value="">Todos os departamentos</option>
+              <option value="">Departamentos: Todos</option>
               {deptOptions.map((d) => (
                 <option key={d} value={d}>
                   {d}
@@ -245,10 +251,9 @@ export function FilterForm({
             <select
               name="team"
               defaultValue={filters.team ?? ""}
-              aria-label="Filtrar por time"
-              className="min-h-[44px] w-full rounded-md border border-[#e2e8f0] bg-[#f5f6f8] px-3 text-base text-[#1a1d23] focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-[#252a35] dark:bg-[#0f1117] dark:text-white sm:w-auto"
+              className="h-11 w-full rounded-lg border border-[#e2e8f0] bg-[#f5f6f8] px-3 text-sm text-[#1a1d23] focus:border-blue-500 focus:outline-none dark:border-[#252a35] dark:bg-[#0f1117] dark:text-white"
             >
-              <option value="">Todos os times</option>
+              <option value="">Times: Todos</option>
               {teamOptions.map((t) => (
                 <option key={t} value={t}>
                   {t}
@@ -256,51 +261,33 @@ export function FilterForm({
               ))}
             </select>
           )}
-        </div>
 
-        {userLevel >= 4 && (
-          <div className="flex flex-wrap gap-2">
-            <div className="min-w-0 flex-1 sm:min-w-[140px]">
-              <label
-                htmlFor="filter-from"
-                className="mb-1 block text-sm text-[#64748b] dark:text-slate-400"
-              >
-                Início a partir de
-              </label>
+          {userLevel >= 4 && (
+            <>
               <input
-                id="filter-from"
                 type="date"
                 name="from"
                 defaultValue={filters.from}
-                className="min-h-[44px] w-full rounded-md border border-[#e2e8f0] bg-[#f5f6f8] px-3 text-base focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-[#252a35] dark:bg-[#0f1117] dark:text-white"
+                title="Início a partir de"
+                className="h-11 w-full rounded-lg border border-[#e2e8f0] bg-[#f5f6f8] px-3 text-sm focus:border-blue-500 focus:outline-none dark:border-[#252a35] dark:bg-[#0f1117] dark:text-white"
               />
-            </div>
-            <div className="min-w-0 flex-1 sm:min-w-[140px]">
-              <label
-                htmlFor="filter-to"
-                className="mb-1 block text-sm text-[#64748b] dark:text-slate-400"
-              >
-                Fim até
-              </label>
               <input
-                id="filter-to"
                 type="date"
                 name="to"
                 defaultValue={filters.to}
-                className="min-h-[44px] w-full rounded-md border border-[#e2e8f0] bg-[#f5f6f8] px-3 text-base focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-[#252a35] dark:bg-[#0f1117] dark:text-white"
+                title="Fim até"
+                className="h-11 w-full rounded-lg border border-[#e2e8f0] bg-[#f5f6f8] px-3 text-sm focus:border-blue-500 focus:outline-none dark:border-[#252a35] dark:bg-[#0f1117] dark:text-white"
               />
-            </div>
-          </div>
-        )}
+            </>
+          )}
+        </div>
 
         <div className="flex justify-end">
           <Button
             type="submit"
-            size="sm"
-            className="min-h-[44px] bg-blue-600 px-4 text-base font-medium text-white hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-            aria-label="Aplicar filtros"
+            className="h-11 bg-blue-600 px-6 text-sm font-bold text-white hover:bg-blue-700 focus:ring-2 focus:ring-blue-500/20"
           >
-            Filtrar
+            Aplicar Filtros
           </Button>
         </div>
       </div>
