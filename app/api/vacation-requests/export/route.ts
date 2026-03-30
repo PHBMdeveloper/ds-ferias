@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSessionUser, shouldForcePasswordChange } from "@/lib/auth";
 import { logger } from "@/lib/logger";
 import { getVacationRequestsForExport } from "@/services/vacationRequestListService";
+import { escapeCsvFormulas } from "@/lib/csv";
 
 export async function GET(request: Request) {
   const user = await getSessionUser();
@@ -51,10 +52,10 @@ export async function GET(request: Request) {
 
     if (!r.history.length) {
       lines.push([
-        colaborador,
-        emailColab,
-        gestor,
-        statusAtual,
+        escapeCsvFormulas(colaborador),
+        escapeCsvFormulas(emailColab),
+        escapeCsvFormulas(gestor),
+        escapeCsvFormulas(statusAtual),
         dataInicio,
         dataFim,
         "",
@@ -66,10 +67,10 @@ export async function GET(request: Request) {
     }
 
     lines.push([
-      colaborador,
-      emailColab,
-      gestor,
-      statusAtual,
+      escapeCsvFormulas(colaborador),
+      escapeCsvFormulas(emailColab),
+      escapeCsvFormulas(gestor),
+      escapeCsvFormulas(statusAtual),
       dataInicio,
       dataFim,
       "",
@@ -89,15 +90,15 @@ export async function GET(request: Request) {
       });
 
       lines.push([
-        colaborador,
-        emailColab,
-        gestor,
-        statusAtual,
+        escapeCsvFormulas(colaborador),
+        escapeCsvFormulas(emailColab),
+        escapeCsvFormulas(gestor),
+        escapeCsvFormulas(statusAtual),
         dataInicio,
         dataFim,
-        h.previousStatus ?? "",
-        h.newStatus ?? "",
-        changedByName,
+        escapeCsvFormulas(h.previousStatus ?? ""),
+        escapeCsvFormulas(h.newStatus ?? ""),
+        escapeCsvFormulas(changedByName),
         changedAt,
       ].join(";"));
     }
