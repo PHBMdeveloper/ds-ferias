@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { getRoleLabel } from "@/lib/vacationRules";
-import type { Role } from "@/generated/prisma/enums";
+import { type Role } from "@/generated/prisma/client";
 import { IconMessage } from "@/components/layout/icons";
 import {
   Popover,
