@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 
@@ -18,15 +18,32 @@ type Feedback = {
   } | null;
 };
 
+const ITEMS_PER_PAGE = 10;
+
 export function FeedbackListClient({ initialFeedbacks }: { initialFeedbacks: Feedback[] }) {
   const [feedbacks, setFeedbacks] = useState<Feedback[]>(initialFeedbacks);
   const [filter, setFilter] = useState<"TODOS" | "PENDENTE" | "RESOLVIDO">("TODOS");
+  const [currentPage, setCurrentPage] = useState(1);
 
-  const filteredFeedbacks = feedbacks.filter((f) => {
-    if (filter === "TODOS") return true;
-    const status = f.status || "PENDENTE";
-    return status === filter;
-  });
+  // Filtragem
+  const filteredFeedbacks = useMemo(() => {
+    return feedbacks.filter((f) => {
+      if (filter === "TODOS") return true;
+      const status = f.status || "PENDENTE";
+      return status === filter;
+    });
+  }, [feedbacks, filter]);
+
+  // Paginação
+  const totalPages = Math.max(1, Math.ceil(filteredFeedbacks.length / ITEMS_PER_PAGE));
+  
+  // Garantir que a página atual não ultrapasse o total após uma filtragem ou exclusão
+  const safePage = Math.min(currentPage, totalPages);
+  
+  const paginatedFeedbacks = useMemo(() => {
+    const startIndex = (safePage - 1) * ITEMS_PER_PAGE;
+    return filteredFeedbacks.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [filteredFeedbacks, safePage]);
 
   async function handleStatusUpdate(id: string, newStatus: "PENDENTE" | "RESOLVIDO") {
     try {
@@ -66,42 +83,53 @@ export function FeedbackListClient({ initialFeedbacks }: { initialFeedbacks: Fee
     }
   }
 
+  function handleFilterChange(newFilter: typeof filter) {
+    setFilter(newFilter);
+    setCurrentPage(1); // Reseta para a primeira página ao filtrar
+  }
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-2 border-b border-[#e2e8f0] pb-4 dark:border-[#252a35]">
-        <button
-          onClick={() => setFilter("TODOS")}
-          className={`px-4 py-2 text-sm font-bold transition-all rounded-md ${
-            filter === "TODOS" ? "bg-slate-600 text-white" : "text-[#64748b] hover:bg-slate-100 dark:hover:bg-[#1a1d23]"
-          }`}
-        >
-          Todos
-        </button>
-        <button
-          onClick={() => setFilter("PENDENTE")}
-          className={`px-4 py-2 text-sm font-bold transition-all rounded-md ${
-            filter === "PENDENTE" ? "bg-blue-600 text-white" : "text-[#64748b] hover:bg-slate-100 dark:hover:bg-[#1a1d23]"
-          }`}
-        >
-          Pendentes
-        </button>
-        <button
-          onClick={() => setFilter("RESOLVIDO")}
-          className={`px-4 py-2 text-sm font-bold transition-all rounded-md ${
-            filter === "RESOLVIDO" ? "bg-emerald-600 text-white" : "text-[#64748b] hover:bg-slate-100 dark:hover:bg-[#1a1d23]"
-          }`}
-        >
-          Resolvidos
-        </button>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#e2e8f0] pb-4 dark:border-[#252a35]">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => handleFilterChange("TODOS")}
+            className={`px-4 py-2 text-sm font-bold transition-all rounded-md ${
+              filter === "TODOS" ? "bg-slate-600 text-white" : "text-[#64748b] hover:bg-slate-100 dark:hover:bg-[#1a1d23]"
+            }`}
+          >
+            Todos
+          </button>
+          <button
+            onClick={() => handleFilterChange("PENDENTE")}
+            className={`px-4 py-2 text-sm font-bold transition-all rounded-md ${
+              filter === "PENDENTE" ? "bg-blue-600 text-white" : "text-[#64748b] hover:bg-slate-100 dark:hover:bg-[#1a1d23]"
+            }`}
+          >
+            Pendentes
+          </button>
+          <button
+            onClick={() => handleFilterChange("RESOLVIDO")}
+            className={`px-4 py-2 text-sm font-bold transition-all rounded-md ${
+              filter === "RESOLVIDO" ? "bg-emerald-600 text-white" : "text-[#64748b] hover:bg-slate-100 dark:hover:bg-[#1a1d23]"
+            }`}
+          >
+            Resolvidos
+          </button>
+        </div>
+        
+        <div className="text-sm text-[#64748b] dark:text-slate-400 font-medium">
+          Mostrando {filteredFeedbacks.length} feedback(s)
+        </div>
       </div>
 
       <div className="space-y-4">
-        {filteredFeedbacks.length === 0 ? (
+        {paginatedFeedbacks.length === 0 ? (
           <div className="rounded-xl border border-dashed border-[#e2e8f0] bg-white py-12 text-center dark:border-[#252a35] dark:bg-[#1a1d23]">
             <p className="text-[#64748b] dark:text-slate-400">Nenhum feedback {filter !== "TODOS" ? filter.toLowerCase() : ""} encontrado.</p>
           </div>
         ) : (
-          filteredFeedbacks.map((f) => {
+          paginatedFeedbacks.map((f) => {
             const date = new Date(f.createdAt).toLocaleDateString("pt-BR", {
               day: "2-digit",
               month: "2-digit",
@@ -111,20 +139,17 @@ export function FeedbackListClient({ initialFeedbacks }: { initialFeedbacks: Fee
             });
             
             const currentStatus = f.status || "PENDENTE";
-            const isBug = f.type === "BUG";
-            const isSuggestion = f.type === "SUGGESTION";
-            const isElogio = f.type === "ELOGIO";
             
             let typeLabel = f.type;
             let typeColor = "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300";
             
-            if (isBug) {
+            if (f.type === "BUG") {
               typeLabel = "Bug / Erro";
               typeColor = "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400";
-            } else if (isSuggestion) {
+            } else if (f.type === "SUGGESTION") {
               typeLabel = "Sugestão";
               typeColor = "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400";
-            } else if (isElogio) {
+            } else if (f.type === "ELOGIO") {
               typeLabel = "Elogio";
               typeColor = "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400";
             }
@@ -193,6 +218,33 @@ export function FeedbackListClient({ initialFeedbacks }: { initialFeedbacks: Fee
           })
         )}
       </div>
+
+      {/* Controles de Paginação */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-4 pt-6">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+            disabled={safePage === 1}
+            className="font-bold"
+          >
+            Anterior
+          </Button>
+          <span className="text-sm font-semibold text-[#475569] dark:text-slate-300">
+            Página {safePage} de {totalPages}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+            disabled={safePage === totalPages}
+            className="font-bold"
+          >
+            Próximo
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

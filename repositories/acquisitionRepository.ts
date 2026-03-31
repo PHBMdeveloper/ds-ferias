@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { APPROVED_VACATION_STATUSES } from "@/lib/vacationRules";
+import { logger } from "@/lib/logger";
 
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -63,6 +64,7 @@ export async function syncAcquisitionPeriodsForUser(
     const expectedStart = new Date(hireDate).toISOString().slice(0, 10);
     
     if (firstPeriodStart !== expectedStart) {
+      logger.info("Full resync of acquisition periods triggered", { userId, reason: "hireDate change", oldStart: firstPeriodStart, newStart: expectedStart });
       // Desvincula e remove tudo para recomeçar do zero com a nova data
       await (prisma as any).vacationRequest.updateMany({
         where: { userId, acquisitionPeriodId: { not: null } },
@@ -150,6 +152,7 @@ export async function syncAcquisitionPeriodsForUser(
 
     if (newPeriodsToCreate.length > 0) {
       await ap.createMany({ data: newPeriodsToCreate });
+      logger.info("New acquisition cycles generated", { userId, count: newPeriodsToCreate.length });
       // Recarrega a lista completa após criar os novos
       periods = await ap.findMany({
         where: { userId },

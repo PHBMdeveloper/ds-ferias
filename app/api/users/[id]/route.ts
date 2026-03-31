@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getRoleLevel } from "@/lib/vacationRules";
 import { syncAcquisitionPeriodsForUser } from "@/repositories/acquisitionRepository";
 import type { UserUncheckedUpdateInput } from "@/generated/prisma/models/User";
+import { logger } from "@/lib/logger";
 
 const ROLES = ["FUNCIONARIO", "COLABORADOR", "COORDENADOR", "GESTOR", "GERENTE", "DIRETOR", "RH"] as const;
 
@@ -34,36 +35,43 @@ export async function PATCH(
   if (body.team !== undefined) data.team = body.team === "" || body.team == null ? null : String(body.team);
   if (body.managerId !== undefined) data.managerId = body.managerId === "" || body.managerId == null ? null : body.managerId;
 
-  // Executa tudo em uma transação atômica
-  const updated = await prisma.$transaction(async (tx) => {
-    // 1. Atualiza períodos aquisitivos (usados para carga inicial/ajuste)
-    if (Array.isArray(body.acquisitionPeriods)) {
-      for (const ap of body.acquisitionPeriods) {
-        if (typeof ap.id === "string" && typeof ap.usedDays === "number") {
-          await tx.acquisitionPeriod.update({
-            where: { id: ap.id, userId: id }, // Garante que pertence ao usuário
-            data: { usedDays: Math.max(0, Math.min(ap.usedDays, ap.accruedDays ?? 30)) }
-          });
+  try {
+    // Executa tudo em uma transação atômica
+    const updated = await prisma.$transaction(async (tx) => {
+      // 1. Atualiza períodos aquisitivos (usados para carga inicial/ajuste)
+      if (Array.isArray(body.acquisitionPeriods)) {
+        for (const ap of body.acquisitionPeriods) {
+          if (typeof ap.id === "string" && typeof ap.usedDays === "number") {
+            await tx.acquisitionPeriod.update({
+              where: { id: ap.id, userId: id }, // Garante que pertence ao usuário
+              data: { usedDays: Math.max(0, Math.min(ap.usedDays, ap.accruedDays ?? 30)) }
+            });
+          }
         }
       }
-    }
 
-    // 2. Atualiza dados do usuário
-    const updatedUser = await tx.user.update({
-      where: { id },
-      data,
-      select: { id: true, name: true, email: true, role: true, department: true, hireDate: true, team: true, managerId: true },
+      // 2. Atualiza dados do usuário
+      const updatedUser = await tx.user.update({
+        where: { id },
+        data,
+        select: { id: true, name: true, email: true, role: true, department: true, hireDate: true, team: true, managerId: true },
+      });
+
+      // 3. Se a data de admissão mudou, sincroniza os ciclos (recalcula do zero)
+      if (data.hireDate) {
+        await syncAcquisitionPeriodsForUser(id, data.hireDate as Date);
+      }
+
+      return updatedUser;
     });
 
-    // 3. Se a data de admissão mudou, sincroniza os ciclos (recalcula do zero)
-    if (data.hireDate) {
-      await syncAcquisitionPeriodsForUser(id, data.hireDate as Date);
-    }
+    logger.info("User updated", { actorId: user.id, targetUserId: id });
 
-    return updatedUser;
-  });
-
-  return NextResponse.json(updated);
+    return NextResponse.json(updated);
+  } catch (err) {
+    logger.error("Error updating user", { actorId: user.id, targetUserId: id, error: err });
+    return NextResponse.json({ error: "Erro ao atualizar usuário." }, { status: 500 });
+  }
 }
 
 /** DELETE: remove usuário (apenas RH). */
@@ -108,7 +116,14 @@ export async function DELETE(
   await prisma.vacationRequest.deleteMany({ where: { userId: id } });
   await prisma.acquisitionPeriod.deleteMany({ where: { userId: id } });
   await prisma.blackoutPeriod.deleteMany({ where: { createdById: id } });
-  await prisma.user.delete({ where: { id } });
+  
+  try {
+    await prisma.user.delete({ where: { id } });
+    logger.info("User deleted", { actorId: user.id, targetUserId: id });
+  } catch (err) {
+    logger.error("Error deleting user", { actorId: user.id, targetUserId: id, error: err });
+    return NextResponse.json({ error: "Erro ao excluir usuário." }, { status: 500 });
+  }
 
   return NextResponse.json({ ok: true });
 }

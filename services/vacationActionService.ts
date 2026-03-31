@@ -8,6 +8,7 @@ import {
   getNextApprovalStatus,
   ROLE_LEVEL,
   detectTeamConflicts,
+  hasTeamVisibility,
 } from "@/lib/vacationRules";
 import { validateVacationConcessiveFifo } from "@/lib/concessivePeriod";
 import { syncAcquisitionPeriodsForUser, findAcquisitionPeriodsForUser } from "@/repositories/acquisitionRepository";
@@ -293,6 +294,13 @@ export const vacationActionService = {
       return await tx.vacationRequest.findUnique({ where: { id }, include: { user: { select: { id: true, name: true, email: true, role: true, managerId: true, manager: { select: { managerId: true } } } } } });
     });
 
+    logger.info("Solicitação de férias aprovada", {
+      actorId: approver.id,
+      requestId: id,
+      action: "APPROVE",
+      nextStatus
+    });
+
     if (finalUpdated && approver.name) {
       notifyApproved({
         requestId: id, userName: finalUpdated.user.name, userEmail: finalUpdated.user.email, approverName: approver.name,
@@ -336,11 +344,124 @@ export const vacationActionService = {
       include: { user: { select: { name: true, email: true } } }
     });
 
+    logger.info("Solicitação de férias reprovada", {
+      actorId: approver.id,
+      requestId: id,
+      action: "REJECT",
+      note
+    });
+
     if (updated.user.name && updated.user.email) {
       notifyRejected({ requestId: id, userName: updated.user.name, userEmail: updated.user.email, approverName: approver.name!, note })
         .catch(err => logger.error("Erro ao notificar reprovação", { error: String(err) }));
     }
 
     return updated;
+  },
+
+  /**
+   * Cancela/Exclui uma solicitação.
+   */
+  async cancelRequest(id: string, actor: SessionUser) {
+    const existing = await prisma.vacationRequest.findUnique({
+      where: { id },
+      include: {
+        user: {
+          select: {
+            id: true,
+            createdAt: true,
+            managerId: true,
+            manager: { select: { managerId: true } },
+          },
+        },
+      },
+    });
+
+    if (!existing) throw new DomainError("Pedido não encontrado", 404);
+
+    const isOwner = existing.userId === actor.id;
+    const isApprover = ROLE_LEVEL[actor.role] >= 2;
+    const roleLevel = ROLE_LEVEL[actor.role];
+
+    // Validações de permissão (copiadas do route para centralizar com log)
+    if (isOwner) {
+      if (existing.status !== "PENDENTE") {
+        throw new DomainError("Você só pode excluir solicitações que ainda estão pendentes de aprovação.");
+      }
+    } else if (!isApprover) {
+      throw new DomainError("Você não tem permissão para excluir este pedido.", 403);
+    }
+
+    // Coordenador e Gerente só podem excluir solicitações da sua equipe; RH pode excluir qualquer
+    if (isApprover && !isOwner && ROLE_LEVEL[actor.role] < 5) {
+      const visible = hasTeamVisibility(actor.role, actor.id, {
+        userId: existing.userId,
+        user: {
+          managerId: existing.user?.managerId ?? null,
+          manager: existing.user?.manager ?? null,
+        },
+      });
+      if (!visible) {
+        throw new DomainError("Você não tem permissão para excluir este pedido.", 403);
+      }
+    }
+
+    if (isApprover && !isOwner && ROLE_LEVEL[actor.role] < 5 && existing.user.managerId !== actor.id) {
+      const canIndirect = await canIndirectLeaderActWhenDirectOnVacation({
+        approverId: actor.id,
+        directLeaderId: existing.user.managerId,
+        directLeaderManagerId: existing.user.manager?.managerId ?? null,
+        requestCreatedAt: existing.createdAt,
+      });
+      if (!canIndirect) {
+        throw new DomainError("Somente o líder direto pode excluir. Líder indireto só pode excluir quando o líder direto estava de férias no momento da solicitação.", 403);
+      }
+    }
+
+    // Regras de aprovadores (Gerente/RH vs Coordenador)
+    if (!isOwner && isVacationApprovedStatus(existing.status) && roleLevel < 3) {
+      const directLeaderApprovedStatuses = ["APROVADO_COORDENADOR", "APROVADO_GESTOR"];
+      const isApprovedByThisDirectLeader =
+        directLeaderApprovedStatuses.includes(existing.status) &&
+        existing.user.managerId === actor.id;
+
+      if (!isApprovedByThisDirectLeader) {
+        throw new DomainError("Somente Gerente ou RH podem cancelar pedidos já aprovados por outras lideranças.", 403);
+      }
+    }
+
+    if (isVacationApprovedStatus(existing.status) && !existing.acquisitionPeriodId) {
+      throw new DomainError("Não foi possível cancelar pois o pedido aprovado não está vinculado a um período aquisitivo.", 409);
+    }
+
+    const acquisitionPeriodId = existing.acquisitionPeriodId;
+
+    await prisma.$transaction(async (tx) => {
+      if (isVacationApprovedStatus(existing.status) && acquisitionPeriodId) {
+        const rawDays = daysBetweenInclusive(existing.startDate, existing.endDate);
+        const days = Math.min(Math.max(1, rawDays), 30);
+        await tx.acquisitionPeriod.update({
+          where: { id: acquisitionPeriodId },
+          data: { usedDays: { decrement: days } },
+        });
+      }
+
+      await tx.vacationRequestHistory.deleteMany({
+        where: { vacationRequestId: existing.id },
+      });
+
+      await tx.vacationRequest.delete({
+        where: { id: existing.id },
+      });
+    });
+
+    logger.info("Solicitação de férias cancelada/excluída", {
+      actorId: actor.id,
+      requestId: id,
+      action: "CANCEL",
+      previousStatus: existing.status
+    });
+
+    return { ok: true };
   }
 };

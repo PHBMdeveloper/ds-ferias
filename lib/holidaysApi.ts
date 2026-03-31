@@ -1,68 +1,63 @@
-const HOLIDAY_API_BASE = "https://brasilapi.com.br/api/feriados/v1";
+import { logger } from "./logger";
 
-type HolidayApiItem = {
-  date: string; // YYYY-MM-DD
+type Holiday = {
+  date: string;
   name: string;
-  type?: string;
+  type: string;
 };
 
-type YearCache = {
-  dates: Set<string>;
-  loaded: boolean;
-};
+/**
+ * Busca feriados nacionais da Brasil API.
+ * Cache em memória para evitar hits desnecessários na API externa.
+ */
+const holidayCache = new Map<number, Holiday[]>();
 
-const nationalHolidaysCache = new Map<number, YearCache>();
-
-function getYearCache(year: number): YearCache {
-  let cache = nationalHolidaysCache.get(year);
-  if (!cache) {
-    cache = { dates: new Set<string>(), loaded: false };
-    nationalHolidaysCache.set(year, cache);
-  }
-  return cache;
-}
-
-export async function ensureNationalHolidaysLoaded(year: number): Promise<void> {
-  const cache = getYearCache(year);
-  if (cache.loaded) return;
-
-  // Em ambiente de teste, não bate na API externa para manter os testes determinísticos.
-  if (process.env.NODE_ENV === "test") {
-    cache.loaded = true;
-    return;
+export async function getNationalHolidays(year: number): Promise<Holiday[]> {
+  if (holidayCache.has(year)) {
+    return holidayCache.get(year)!;
   }
 
   try {
-    const res = await fetch(`${HOLIDAY_API_BASE}/${year}`, {
-      method: "GET",
-      headers: { accept: "application/json" },
+    const res = await fetch(`https://brasilapi.com.br/api/feriados/v1/${year}`, {
+      next: { revalidate: 86400 }, // Cache Next.js por 24h
     });
 
     if (!res.ok) {
-      cache.loaded = true;
-      return;
+      logger.error("Failed to fetch holidays from BrasilAPI", { 
+        year, 
+        status: res.status,
+        statusText: res.statusText
+      });
+      return [];
     }
 
-    const data = (await res.json()) as HolidayApiItem[];
-    for (const h of data) {
-      cache.dates.add(h.date); // YYYY-MM-DD
-    }
-    cache.loaded = true;
-  } catch {
-    // Em caso de falha na API, apenas marcamos como loaded vazio.
-    cache.loaded = true;
+    const data = await res.json();
+    holidayCache.set(year, data);
+    return data;
+  } catch (err) {
+    logger.error("Network error fetching holidays", { 
+      year, 
+      error: err 
+    });
+    return [];
   }
 }
 
-export function isNationalHolidayCached(date: Date): boolean {
-  const year = date.getUTCFullYear();
-  const cache = nationalHolidaysCache.get(year);
-  if (!cache || !cache.loaded) return false;
-  const month = date.getUTCMonth() + 1;
-  const day = date.getUTCDate();
-  const key = `${year.toString().padStart(4, "0")}-${month.toString().padStart(2, "0")}-${day
-    .toString()
-    .padStart(2, "0")}`;
-  return cache.dates.has(key);
+/**
+ * Versão simplificada para componentes client-side garantirem que o ano está no cache.
+ */
+export async function ensureNationalHolidaysLoaded(year: number): Promise<void> {
+  await getNationalHolidays(year);
 }
 
+/**
+ * Verifica se uma data específica é feriado nacional (sincrono, assume cache carregado).
+ */
+export function isNationalHolidayCached(date: Date): boolean {
+  const year = date.getFullYear();
+  const holidays = holidayCache.get(year);
+  if (!holidays) return false;
+
+  const dateStr = date.toISOString().split("T")[0];
+  return holidays.some((h) => h.date === dateStr);
+}

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser, shouldForcePasswordChange } from "@/lib/auth";
 import { ROLE_LEVEL } from "@/lib/vacationRules";
+import { logger } from "@/lib/logger";
 
 // GET - lista períodos de bloqueio (qualquer usuário autenticado pode ver)
 export async function GET() {
@@ -43,17 +44,24 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Período inválido." }, { status: 400 });
   }
 
-  const blackout = await prisma.blackoutPeriod.create({
-    data: {
-      startDate: start,
-      endDate: end,
-      reason: body.reason,
-      department: body.department ?? null,
-      createdById: user.id,
-    },
-  });
+  try {
+    const blackout = await prisma.blackoutPeriod.create({
+      data: {
+        startDate: start,
+        endDate: end,
+        reason: body.reason,
+        department: body.department ?? null,
+        createdById: user.id,
+      },
+    });
 
-  return NextResponse.json({ blackout }, { status: 201 });
+    logger.info("Blackout period created", { actorId: user.id, blackoutId: blackout.id, reason: body.reason });
+
+    return NextResponse.json({ blackout }, { status: 201 });
+  } catch (err) {
+    logger.error("Error creating blackout period", { actorId: user.id, error: err });
+    return NextResponse.json({ error: "Erro ao criar período de bloqueio." }, { status: 500 });
+  }
 }
 
 // DELETE - remove período de bloqueio (somente RH e GERENTE)
@@ -72,7 +80,13 @@ export async function DELETE(request: Request) {
 
   if (!id) return NextResponse.json({ error: "ID obrigatório." }, { status: 400 });
 
-  await prisma.blackoutPeriod.delete({ where: { id } });
+  try {
+    await prisma.blackoutPeriod.delete({ where: { id } });
+    logger.info("Blackout period deleted", { actorId: user.id, blackoutId: id });
+  } catch (err) {
+    logger.error("Error deleting blackout period", { actorId: user.id, blackoutId: id, error: err });
+    return NextResponse.json({ error: "Erro ao excluir período de bloqueio." }, { status: 500 });
+  }
 
   return NextResponse.json({ ok: true });
 }

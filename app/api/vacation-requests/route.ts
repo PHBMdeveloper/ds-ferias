@@ -107,12 +107,24 @@ export async function POST(request: Request) {
       user, periods, notes, abono, thirteenth
     });
 
+    logger.info("Solicitação de férias criada", { 
+      userId: user.id, 
+      periods: periods.map(p => ({ start: p.start, end: p.end })),
+      abono,
+      thirteenth
+    });
+
     return NextResponse.json({ requests: created }, { status: 201 });
   } catch (err) {
     if (err instanceof DomainError) {
+      logger.warn("Erro de validação na solicitação de férias", { 
+        userId: user.id, 
+        error: err.message, 
+        ...err.extra 
+      });
       return NextResponse.json({ error: err.message, ...err.extra }, { status: err.status });
     }
-    logger.error("Erro inesperado na criação de férias", { error: String(err) });
+    logger.error("Erro inesperado na criação de férias", { error: err });
     return NextResponse.json({ error: "Erro interno no servidor" }, { status: 500 });
   }
 }

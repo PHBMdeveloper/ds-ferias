@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { logger } from "@/lib/logger";
 
 export async function POST(request: Request) {
   const user = await getSessionUser();
@@ -10,13 +11,14 @@ export async function POST(request: Request) {
     const { type, message, isAnonymous, anonymousName } = await request.json();
 
     if (!type || !message) {
+      logger.warn("Feedback: dados inválidos", { userId: user.id, type, message });
       return NextResponse.json({ error: "Tipo e mensagem são obrigatórios" }, { status: 400 });
     }
 
     const feedbackModel = (prisma as any).feedback;
     
     if (!feedbackModel) {
-      console.error("Modelo 'feedback' não encontrado no Prisma Client.");
+      logger.error("Modelo 'feedback' não encontrado no Prisma Client.");
       return NextResponse.json({ error: "Erro de configuração no servidor" }, { status: 500 });
     }
 
@@ -29,9 +31,16 @@ export async function POST(request: Request) {
       },
     });
 
+    logger.info("Feedback enviado", { 
+      userId: user.id, 
+      feedbackId: feedback.id,
+      type, 
+      isAnonymous 
+    });
+
     return NextResponse.json({ success: true, id: feedback.id });
   } catch (error) {
-    console.error("Erro ao salvar feedback:", error);
+    logger.error("Erro ao salvar feedback", { error });
     return NextResponse.json({ error: "Erro interno ao salvar feedback" }, { status: 500 });
   }
 }

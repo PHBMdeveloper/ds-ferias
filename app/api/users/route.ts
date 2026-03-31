@@ -3,6 +3,7 @@ import { getSessionUser, hashNewUserPassword, shouldForcePasswordChange } from "
 import { prisma } from "@/lib/prisma";
 import { getRoleLevel } from "@/lib/vacationRules";
 import { syncAcquisitionPeriodsForUser } from "@/repositories/acquisitionRepository";
+import { logger } from "@/lib/logger";
 
 const ROLES = ["FUNCIONARIO", "COLABORADOR", "COORDENADOR", "GESTOR", "GERENTE", "DIRETOR", "RH"] as const;
 
@@ -61,12 +62,14 @@ export async function POST(request: Request) {
     // Garante que AcquisitionPeriod existe para permitir "férias no ciclo" no Backoffice.
     await syncAcquisitionPeriodsForUser(created.id, created.hireDate);
 
+    logger.info("User created", { actorId: user.id, targetUserId: created.id });
+
     return NextResponse.json(created, { status: 201 });
   } catch (err: any) {
     if (err?.code === "P2002") {
       return NextResponse.json({ error: "E-mail ou matrícula já cadastrados." }, { status: 400 });
     }
-    console.error(err);
+    logger.error("Error creating user", { actorId: user.id, error: err });
     return NextResponse.json({ error: "Erro ao criar usuário." }, { status: 500 });
   }
 }

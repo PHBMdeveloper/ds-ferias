@@ -59,7 +59,7 @@ export function FeedbackForm() {
       <form onSubmit={handleSubmit} className="space-y-6">
         <div>
           <label className="block text-sm font-semibold text-[#1a1d23] dark:text-white mb-2">
-            Sobre o que você quer falar?
+            Sobre o que você quer falar? <span className="text-red-500">*</span>
           </label>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {FEEDBACK_TYPES.map((t) => (
@@ -112,7 +112,7 @@ export function FeedbackForm() {
 
         <div>
           <label htmlFor="message" className="block text-sm font-semibold text-[#1a1d23] dark:text-white mb-2">
-            Sua mensagem
+            Sua mensagem <span className="text-red-500">*</span>
           </label>
           <textarea
             id="message"

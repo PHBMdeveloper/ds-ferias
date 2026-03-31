@@ -1,41 +1,31 @@
+import { logger } from "./logger";
+
 /**
- * Rate limit em memória (por processo). Uso: login e criação de solicitações.
- * Em ambiente com múltiplas instâncias, considerar Redis ou similar.
+ * Memória volátil para rate limit básico em Route Handlers.
+ * Em produção (serverless), este mapa é resetado a cada cold start,
+ * mas serve como proteção primária contra abusos.
  */
+const rateLimitMap = new Map<string, { count: number; reset: number }>();
 
-const store = new Map<string, number[]>();
-const WINDOW_MS = 60 * 1000; // 1 minuto
-
-function prune(key: string, windowMs: number) {
+export function rateLimit(ip: string, limit = 50, windowMs = 60000) {
   const now = Date.now();
-  const list = store.get(key) ?? [];
-  const kept = list.filter((t) => now - t < windowMs);
-  if (kept.length === 0) store.delete(key);
-  else store.set(key, kept);
-}
+  const entry = rateLimitMap.get(ip);
 
-/**
- * Retorna true se o pedido está dentro do limite; false se excedeu (deve rejeitar).
- * @param key identificador (ex.: IP ou userId)
- * @param maxRequests máximo de requisições na janela
- * @param windowMs janela em ms (default 60s)
- */
-export function checkRateLimit(
-  key: string,
-  maxRequests: number,
-  windowMs: number = WINDOW_MS,
-): boolean {
-  prune(key, windowMs);
-  const list = store.get(key) ?? [];
-  if (list.length >= maxRequests) return false;
-  list.push(Date.now());
-  store.set(key, list);
-  return true;
-}
+  if (!entry || now > entry.reset) {
+    rateLimitMap.set(ip, { count: 1, reset: now + windowMs });
+    return { success: true, remaining: limit - 1 };
+  }
 
-export function getClientId(request: Request): string {
-  const forwarded = request.headers.get("x-forwarded-for");
-  const real = request.headers.get("x-real-ip");
-  const ip = (forwarded ?? real ?? "127.0.0.1").split(",")[0].trim();
-  return ip || "127.0.0.1";
+  if (entry.count >= limit) {
+    // LOGAR QUANDO O LIMITE É ATINGIDO
+    logger.warn("Rate limit triggered", { 
+      ip, 
+      limit, 
+      count: entry.count + 1 
+    });
+    return { success: false, remaining: 0 };
+  }
+
+  entry.count++;
+  return { success: true, remaining: limit - entry.count };
 }
