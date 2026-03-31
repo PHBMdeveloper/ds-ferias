@@ -5,6 +5,7 @@ Este projeto e um sistema interno de gestao de ferias CLT para um laboratorio/em
 - Colaborador: criar solicitacoes de ferias respeitando regras CLT e bloqueios internos.
 - Gestores (Coordenador, Gerente, Diretor): aprovar/reprovar solicitações de seus subordinados diretos ou indiretos.
 - RH: visualizacao global, relatorios, gestao de blackouts e auditoria (não participa do fluxo de aprovação).
+- **Indicadores Estratégicos:** Painel de "Saúde da Operação" que consolida a disponibilidade em tempo real de toda a força de trabalho (Diretoria, Gerência e Times).
 
 ---
 
@@ -14,7 +15,7 @@ Este projeto e um sistema interno de gestao de ferias CLT para um laboratorio/em
 - `components/`: UI por dominio (dashboard, requests, times, calendario, admin).
 - `services/`: orquestracao e composicao de dados (ex: `vacationActionService`).
 - `repositories/`: acesso a dados via Prisma (User, Vacation, Blackout, Acquisition).
-- `lib/`: regras de negocio (dominio), auth, visibilidade, conflitos, utilitarios de datas.
+- `lib/`: regras de negocio (dominio), auth, visibilidade, conflitos, utilitarios de datas e **segurança (csv, crypto)**.
 
 ---
 
@@ -59,6 +60,15 @@ Regra de permissao e definida em `lib/vacationRules.ts`:
      - Vincula o pedido ao período via `VacationRequest.acquisitionPeriodId`.
      - Garante idempotência usando `updateMany` condicionado ao status anterior.
 
+     ---
+
+     ## Segurança e Governança (Padrão Sentinel)
+
+     O sistema implementa camadas rigorosas de proteção:
+     - **Sanitização de Relatórios:** Proteção contra *CSV Formula Injection* em todas as exportações (`lib/csv.ts`).
+     - **Integridade de Acesso:** Troca de senha obrigatória no primeiro login para novos usuários (`lib/auth.ts`).
+     - **Auditoria Total:** Registro histórico em `VacationRequestHistory` de todas as transições de status.
+     - **Responsividade Executiva:** Interface adaptada para dispositivos móveis com componentes interativos (Popovers).
 ---
 
 ## Modelos principais (Prisma)

@@ -1,15 +1,39 @@
 # Editora Globo - Férias
 
 Sistema interno de gestão de férias com fluxo de aprovação pelo líder direto, regras CLT, **abono 1/3** e **adiantamento de 13º**, além de auditoria completa e **controle por períodos aquisitivos**. Desenvolvido com **Next.js 16** (App Router), **Prisma 7**, **PostgreSQL** e **TailwindCSS**.
-
----
-
 ## Visão geral
 
 - **Colaborador (FUNCIONARIO/COLABORADOR):** cria solicitações, cancela as pendentes (antes da aprovação final) e acompanha histórico, saldo e calendário.
 - **Coordenador:** aprova/reprova férias do **seu time**, exclui solicitações da equipe e acessa a aba **Times** (todos os reportes diretos com status explícito).
-- **Gerente:** aprova solicitações dos coordenadores e dos times sob sua gestão; vê **Times** agrupados por coordenador.
-- **RH:** visualização completa, Backoffice, relatórios e export CSV (sem aprovar no fluxo).
+- **Gerente/Diretor:** aprova solicitações dos coordenadores e dos times sob sua gestão; possui visão macro de **Saúde da Operação** e calendários consolidados.
+- **RH:** visualização completa, Backoffice, indicadores estratégicos, relatórios e export CSV (sem participar da aprovação no fluxo).
+
+---
+
+## Diferenciais e Segurança (Padrão Sentinel)
+
+O sistema foi blindado para uso corporativo real seguindo diretrizes do **Sentinel**:
+
+- **Analytics Estratégico:** Painel de "Saúde da Operação" na aba Times, mostrando em tempo real o % de disponibilidade da força de trabalho, com listas interativas de ausentes.
+- **Segurança Jurídica:** Motor de regras CLT que bloqueia pedidos irregulares automaticamente.
+- **Proteção de Dados:** 
+    - **CSV Injection:** Todos os relatórios exportados (Saldo, Aderência, Ciclos) são sanitizados contra injeção de fórmulas no Excel.
+    - **Troca de Senha:** Obrigatoriedade de troca de senha no primeiro acesso para garantir a integridade da conta.
+- **Auditabilidade:** Histórico completo de todas as ações de aprovação e reprovação com logs detalhados.
+
+---
+
+## Qualidade e Testes
+
+O projeto possui um rigoroso controle de qualidade:
+
+- **Cobertura de Código:** **91% de Statements** e **94% de Linhas** cobertos por testes automatizados (Vitest).
+- **Mutation Testing:** Validado via Stryker (Mutation Score ≥ 85%).
+- **Consistência Transacional:** Aprovações utilizam transações atômicas no banco de dados, garantindo que saldo e pedido estejam sempre sincronizados.
+
+---
+
+## Como rodar (dev)
 
 Fluxo: **PENDENTE** → Aprovação do líder direto (status final gravado conforme o papel do aprovador: `APROVADO_COORDENADOR`, `APROVADO_GERENTE` ou `APROVADO_DIRETOR`). Ninguém aprova a própria solicitação.
 

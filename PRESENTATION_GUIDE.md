@@ -51,9 +51,16 @@ Visão em tempo real da força de trabalho para tomada de decisão ágil.
 
 ### Passo 3: O Painel de Controle da Diretoria
 1.  Vá na aba **Times**.
-2.  Navegue entre as visões **Anual** e **Mensal**.
-3.  Use os filtros para isolar um departamento e mostre como os conflitos são destacados.
-4.  *Mensagem:* "Visibilidade total para garantir que a empresa nunca pare."
+2.  **Destaque o Analytics:** Aponte para o card de "Saúde da Operação" e mostre a barra de disponibilidade em tempo real.
+3.  **Interatividade:** Clique no número de **Ausentes Hoje** e mostre a lista imediata de quem está fora. Faça o mesmo na legenda.
+4.  **Filtros de Impacto:** Filtre por uma Gerência e mostre os indicadores recalculando instantaneamente.
+5.  *Mensagem:* "Não é apenas uma lista; é um painel de BI para tomada de decisão em tempo real."
+
+### Passo 4: Mobile & Acessibilidade
+1.  Reduza a tela para o modo **Mobile**.
+2.  Mostre o menu compacto em grade (2 colunas) e como o calendário se adapta (coluna de nomes inteligente).
+3.  **Toque para Info:** Toque em um nome no calendário e mostre o balão (Popover) revelando o nome completo.
+4.  *Mensagem:* "O Diretor aprova e acompanha o time do aeroporto, do táxi ou de casa com 100% de precisão."
 
 ---
 

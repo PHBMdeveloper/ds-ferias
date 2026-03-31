@@ -14,7 +14,7 @@ flowchart LR
         Admin["app/admin/page.tsx"]
         Mine["MyRequestsList + NewRequestCardClient"]
         Manage["ManagerView"]
-        Times["TimesView"]
+        Times["TimesView + Saúde da Operação"]
         Backoffice["BackofficeClient"]
     end
 
@@ -35,8 +35,9 @@ flowchart LR
     end
 
     subgraph DOMAIN["lib/"]
-        Auth["auth.ts<br/>cookies + HMAC/sha256"]
+        Auth["auth.ts<br/>cookies + HMAC/sha256 + Troca de Senha"]
         Rules["vacationRules.ts<br/>hierarquia + CLT + saldo + conflitos + blackout"]
+        Csv["csv.ts<br/>Padrão Sentinel / Sanitização"]
         Visibility["requestVisibility.ts<br/>dashboardFilters.ts"]
         Indirect["indirectLeaderRule.ts"]
         Infra["rateLimit.ts<br/>logger.ts"]
@@ -120,6 +121,7 @@ flowchart LR
     BlackoutApi --> Prisma
     ReportApi --> Auth
     ReportApi --> Rules
+    ReportApi --> Csv
     ReportApi --> UserRepo
     ReportApi --> AcqRepo
     ReportApi --> Prisma

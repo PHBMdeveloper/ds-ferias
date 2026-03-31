@@ -2,19 +2,20 @@
 
 ### Alta prioridade
 
-1. **Teste E2E de rotas (contratos HTTP)**
+1. **Teste E2E de rotas (EM ANDAMENTO)**
    - Garantir status codes e validações reais no Prisma em fluxo completo.
-   - Focar endpoints de aprovacao/cancelamento/consumo de `AcquisitionPeriod` e export CSV.
 
 2. **Consistencia transacional no consumo do periodo aquisitivo (CONCLUÍDO)**
-   - Implementado via `prisma.$transaction` e `updateMany` no `vacationActionService.ts`.
-   - Garante idempotência e sincronia entre status do pedido e saldo do período.
+   - Implementado via `prisma.$transaction` e `updateMany`.
 
-3. **Validação de payloads com schema**
-   - Introduzir Zod (ou equivalente) para:
-     - criação e update de ferias,
-     - payloads de approve/reject,
-     - payload de login.
+3. **Validação de payloads com schema (PENDENTE)**
+   - Introduzir Zod para criação e update de férias.
+
+4. **Sanitização de Exportações CSV (CONCLUÍDO)**
+   - Implementado Padrão Sentinel contra Formula Injection.
+
+5. **Indicadores Estratégicos de Gestão (CONCLUÍDO)**
+   - Painel de Analytics em tempo real na aba Times.
 
 4. **Camada de use cases (minima) / maquina de estados**
    - Centralizar regras de transicao de status em um unico modulo.

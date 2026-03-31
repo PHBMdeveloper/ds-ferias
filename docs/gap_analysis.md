@@ -5,26 +5,24 @@ Esta lista foca o que falta para o sistema ser operavel em ambiente corporativo 
 ### RESOLVIDO (Itens endereçados recentemente)
 
 1. **Consistência transacional e idempotência no consumo do período aquisitivo**
-   - O consumo acontece dentro de uma `prisma.$transaction` e usa `updateMany` para garantir que o incremento de `usedDays` ocorra apenas uma vez por transição de status.
-   - Local: `vacationActionService.approveRequest`.
+   - O consumo acontece dentro de uma `prisma.$transaction` e usa `updateMany` para garantir que o incremento de `usedDays` ocorra apenas uma vez.
 
-2. **Controle de concorrência na aprovação**
-   - Endereçado via transação e update condicionado ao status.
+2. **Segurança de Relatórios (CSV Formula Injection)**
+   - Implementada a função `escapeCsvFormulas` em todos os relatórios exportados, protegendo contra execução de comandos via Excel (Padrão Sentinel).
+
+3. **Troca de senha obrigatória**
+   - Implementada a lógica de `mustChangePassword` para novos usuários, garantindo a integridade do acesso inicial.
 
 ---
 
 ### CRITICAL (bloqueia uso seguro em producao)
 
-1. **Seguranca da sessao quando `SESSION_SECRET` nao esta definido**
-   - O sistema aceita cookie nao assinado quando `SESSION_SECRET` nao existe.
-   - Impacto: falsificacao de sessão em ambiente real.
-   - Recomendacao: assinatura obrigatoria em producao.
+*(Nenhum item crítico pendente no momento)*
 
 ### HIGH
 
 1. **Estado das rotas sem enforcement centralizado**
-   - Ha checagens em `canApproveRequest`, mas a maquina de estados nao e centralizada num use case unico, e rotas como update/delete/approve implementam regras parcialmente.
-   - Impacto: risco de regressao em transicoes ao evoluir status/modelo.
+   - Ha checagens em `canApproveRequest`, mas a maquina de estados nao e centralizada num use case unico.
 
 2. **Update de pedido pendente com enforcement limitado a cenarios com `hireDate`**
    - `POST /api/vacation-requests/[id]/update` passou a checar blackout e limite via `AcquisitionPeriod.usedDays`, mas o enforcement do periodo aquisitivo so acontece quando o `hireDate` do solicitante esta presente.

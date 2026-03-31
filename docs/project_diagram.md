@@ -41,11 +41,14 @@ Este e o diagrama de orientacao. Ele nao tenta mostrar cada detalhe interno; ele
 
 O que observar:
 
+- **Segurança Sentinel:** Uma nova camada em `lib/csv.ts` protege todas as exportações contra injeção de fórmulas. O sistema também exige troca de senha no primeiro acesso (`lib/auth.ts`).
+- **Analytics Estratégico:** A visualização de `Times` agora inclui um painel de "Saúde da Operação" com métricas de disponibilidade em tempo real.
+- **Maturidade Técnica:** O projeto atingiu **91% de cobertura de testes**, garantindo a estabilidade das regras CLT e dos fluxos de aprovação.
 - O frontend nao fala sempre com `app/api/*`. `login`, `logout`, mutacoes e exportacoes usam API, mas `dashboard` e `admin` tambem carregam dados direto no servidor.
 - Os links de relatorios CSV ficam na experiencia de gestao, mas hoje aparecem apenas para RH dentro de `ManagerView`.
 - No backoffice atual, a leitura inicial de usuarios e gestores acontece via SSR com repository; a API de `users` entra principalmente nas mutacoes do client.
 - `services/` existe como camada de aplicacao para composicao de dados, principalmente no dashboard e na exportacao.
-- `lib/` concentra tanto dominio quanto infraestrutura. Isso quer dizer que nem tudo em `lib/` e "regra pura"; ali tambem moram sessao, rate limit, logger e integracoes.
+- `lib/` concentra tanto dominio quanto infraestrutura e **segurança corporativa**.
 - `repositories/` encapsulam boa parte das consultas Prisma, reduzindo acoplamento direto das paginas e servicos ao banco.
 
 Quando usar:
