@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { getRoleLabel } from "@/lib/vacationRules";
 import type { Role } from "@/generated/prisma/enums";
+import { IconMessage } from "@/components/layout/icons";
 import {
   Popover,
   PopoverContent,

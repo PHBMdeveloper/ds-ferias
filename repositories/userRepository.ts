@@ -199,3 +199,15 @@ export async function findUsersWithVacationForBalance() {
     },
   });
 }
+
+export async function findUserWithFeedbackInfo(userId: string) {
+  return prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      name: true,
+      role: true,
+      avatarUrl: true,
+    },
+  });
+}

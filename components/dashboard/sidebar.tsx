@@ -2,7 +2,7 @@ import type { VacationBalance } from "@/lib/vacationRules";
 import { getRoleLevel, getRoleLabel } from "@/lib/vacationRules";
 import { DashboardSidebarItem } from "@/components/dashboard-sidebar-item";
 import { SidebarBalance } from "@/components/dashboard/sidebar-balance";
-import { IconCalendar, IconInbox, IconHistory, IconTeams, IconSettings, IconUser } from "@/components/layout/icons";
+import { IconCalendar, IconInbox, IconHistory, IconTeams, IconSettings, IconUser, IconMessage } from "@/components/layout/icons";
 import { SidebarLogoutButton } from "@/components/dashboard/sidebar-logout-button";
 
 type UserLike = { id: string; name: string; role: string; avatarUrl?: string | null };
@@ -82,11 +82,14 @@ export function AppSidebar({
             <DashboardSidebarItem href="/admin" icon={<IconSettings />} label="Admin" />
           </>
         )}
+        <DashboardSidebarItem href="/feedback" icon={<IconMessage />} label="Feedback" active={activeView === "feedback"} />
+        {isRH && (
+          <DashboardSidebarItem href="/admin/feedbacks" icon={<IconMessage />} label="Gestão Feedbacks" active={activeView === "admin-feedbacks"} />
+        )}
       </nav>
 
       {!isRH && (
         <>
-          {/* Saldo visível no mobile (no desktop fica na nav lateral) */}
           <div className="border-t border-[#e2e8f0] px-3 py-3 lg:hidden dark:border-[#252a35]">
             <p className="mb-1.5 px-1 text-xs font-semibold uppercase tracking-wider text-[#64748b] dark:text-slate-400">Saldo de Férias</p>
             <SidebarBalance
@@ -110,9 +113,16 @@ export function AppSidebar({
             <DashboardSidebarItem href="/dashboard?view=inbox" icon={<IconInbox />} label="Caixa de Aprovação" active={activeView === "inbox"} badge={pendingCount > 0 ? pendingCount : undefined} badgeAlert />
             <DashboardSidebarItem href="/dashboard?view=historico" icon={<IconHistory />} label="Histórico" active={activeView === "historico"} />
             <DashboardSidebarItem href="/dashboard?view=times" icon={<IconTeams />} label="Times" active={activeView === "times"} />
-            {level >= 2 && <DashboardSidebarItem href="/admin" icon={<IconSettings />} label="Backoffice" />}
+            <DashboardSidebarItem href="/admin" icon={<IconSettings />} label="Backoffice" />
           </>
         )}
+        
+        <DashboardSidebarItem href="/feedback" icon={<IconMessage />} label="Feedback / Sugestão" active={activeView === "feedback"} />
+        
+        {isRH && (
+          <DashboardSidebarItem href="/admin/feedbacks" icon={<IconMessage />} label="Gestão de Feedbacks" active={activeView === "admin-feedbacks"} />
+        )}
+
         {!isRH && (
           <>
             <div className="my-2 border-t border-[#e2e8f0] dark:border-[#252a35]" />
@@ -126,8 +136,6 @@ export function AppSidebar({
           </>
         )}
       </nav>
-
-      {/* Botão de sair extra removido no mobile para evitar duplicação no meio da tela */}
     </aside>
   );
 }

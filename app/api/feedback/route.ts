@@ -1,0 +1,37 @@
+import { NextResponse } from "next/server";
+import { getSessionUser } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+
+export async function POST(request: Request) {
+  const user = await getSessionUser();
+  if (!user) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+
+  try {
+    const { type, message, isAnonymous, anonymousName } = await request.json();
+
+    if (!type || !message) {
+      return NextResponse.json({ error: "Tipo e mensagem são obrigatórios" }, { status: 400 });
+    }
+
+    const feedbackModel = (prisma as any).feedback;
+    
+    if (!feedbackModel) {
+      console.error("Modelo 'feedback' não encontrado no Prisma Client.");
+      return NextResponse.json({ error: "Erro de configuração no servidor" }, { status: 500 });
+    }
+
+    const feedback = await feedbackModel.create({
+      data: {
+        user: !isAnonymous ? { connect: { id: user.id } } : undefined,
+        type,
+        message,
+        anonymousName: anonymousName || null,
+      },
+    });
+
+    return NextResponse.json({ success: true, id: feedback.id });
+  } catch (error) {
+    console.error("Erro ao salvar feedback:", error);
+    return NextResponse.json({ error: "Erro interno ao salvar feedback" }, { status: 500 });
+  }
+}

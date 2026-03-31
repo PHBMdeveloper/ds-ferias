@@ -2,7 +2,7 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-  provider = "prisma-client"
+  provider = "prisma-client-js"
   output   = "../generated/prisma"
 }
 
@@ -13,15 +13,9 @@ datasource db {
 // ============================================================
 // HIERARQUIA DE CARGOS
 // ============================================================
-// Funcionário(a) → aprovação única pelo líder direto
-// Coordenador(a) → aprovação única pelo líder direto (gerente)
-// Gerente        → aprovação única pelo líder direto (diretor)
-// Diretor(a)/RH  → sem aprovação no fluxo padrão
-// Aliases legados mantidos para compatibilidade de dados existentes
-// ============================================================
 enum Role {
-  COLABORADOR  // alias legado → FUNCIONARIO
-  GESTOR       // alias legado → COORDENADOR
+  COLABORADOR
+  GESTOR
   FUNCIONARIO
   COORDENADOR
   GERENTE
@@ -32,19 +26,27 @@ enum Role {
 // ============================================================
 // STATUS DO CICLO DE APROVAÇÃO
 // ============================================================
-// PENDENTE → aprovador grava status conforme o papel:
-//   COORDENADOR/GESTOR → APROVADO_COORDENADOR | GERENTE → APROVADO_GERENTE | DIRETOR → APROVADO_DIRETOR
-// Aliases legados mantidos para compatibilidade
-// ============================================================
 enum VacationStatus {
   PENDENTE
-  APROVADO_GESTOR      // legado
-  APROVADO_COORDENADOR // aprovação final pelo(a) coordenador(a)
-  APROVADO_GERENTE     // aprovação final pelo(a) gerente
-  APROVADO_DIRETOR     // aprovação final pelo(a) diretor(a)
+  APROVADO_GESTOR
+  APROVADO_COORDENADOR
+  APROVADO_GERENTE
+  APROVADO_DIRETOR
   APROVADO_RH
   REPROVADO
   CANCELADO
+}
+
+enum FeedbackType {
+  BUG
+  SUGGESTION
+  ELOGIO
+  OUTRO
+}
+
+enum FeedbackStatus {
+  PENDENTE
+  RESOLVIDO
 }
 
 model User {
@@ -54,15 +56,12 @@ model User {
   avatarUrl    String?
   passwordHash String
   role         Role
-
-  /// Matrícula corporativa (obrigatória e única)
   registration String   @unique
-
-  department   String?   // Ex: "Engenharia", "Comercial", "Financeiro"
-  hireDate     DateTime? // Data de admissão para cálculo de saldo
-  /// Coluna "time" (equipe) para agrupar colaboradores em relatórios/backoffice
+  department   String?
+  hireDate     DateTime?
   team         String?   @map("time")
 
+  feedbacks        Feedback[]
   vacationRequests VacationRequest[]
   historyEntries   VacationRequestHistory[] @relation("HistoryChangedByUser")
   blackoutPeriods  BlackoutPeriod[]
@@ -72,9 +71,7 @@ model User {
   manager   User?   @relation("ManagerReports", fields: [managerId], references: [id])
   reports   User[]  @relation("ManagerReports")
 
-  /// Se true, o usuário precisa trocar a senha padrão no primeiro login.
   mustChangePassword Boolean @default(false)
-
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -83,33 +80,42 @@ model User {
   @@index([team])
 }
 
+model Feedback {
+  id        String       @id @default(cuid())
+  userId    String?
+  user      User?        @relation(fields: [userId], references: [id])
+  type      FeedbackType
+  status    FeedbackStatus @default(PENDENTE)
+  message   String       @db.Text
+
+  anonymousName String?
+  
+  createdAt DateTime     @default(now())
+  // Adicionado default(now()) para permitir sincronização com dados existentes
+  updatedAt DateTime     @default(now()) @updatedAt
+
+  @@index([userId])
+  @@index([type])
+  @@index([status])
+}
+
 model VacationRequest {
   id        String         @id @default(cuid())
   userId    String
   user      User           @relation(fields: [userId], references: [id])
-
-  /// Período aquisitivo ao qual estas férias estão vinculadas (opcional por compatibilidade)
   acquisitionPeriodId String?
   acquisitionPeriod   AcquisitionPeriod? @relation(fields: [acquisitionPeriodId], references: [id])
-
   startDate DateTime
   endDate   DateTime
-
-  /// Indica se o colaborador está solicitando conversão de 1/3 em abono (venda de férias)
   abono      Boolean        @default(false)
-  /// Indica se o colaborador está solicitando adiantamento de 13º salário junto com estas férias
   thirteenth Boolean        @default(false)
-
   status      VacationStatus @default(PENDENTE)
-  notes       String?        @db.Text  // nota do solicitante
-  managerNote String?        @db.Text  // nota do coordenador/gestor
-  hrNote      String?        @db.Text  // nota do RH
-
+  notes       String?        @db.Text
+  managerNote String?        @db.Text
+  hrNote      String?        @db.Text
   history VacationRequestHistory[]
-
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
   @@index([userId])
   @@index([status])
   @@index([startDate, endDate])
@@ -120,62 +126,36 @@ model VacationRequestHistory {
   id                String         @id @default(cuid())
   vacationRequestId String
   vacationRequest   VacationRequest @relation(fields: [vacationRequestId], references: [id], onDelete: Cascade)
-
   previousStatus VacationStatus
   newStatus      VacationStatus
-
   changedByUserId String
   changedByUser   User           @relation("HistoryChangedByUser", fields: [changedByUserId], references: [id])
-
   note      String?   @db.Text
   changedAt DateTime  @default(now())
 }
 
-// ============================================================
-// PERÍODOS DE BLOQUEIO (somente RH/Gerente pode criar)
-// Impede solicitação de férias em datas críticas da empresa
-// Ex: fechamento fiscal, auditoria, período de pico
-// ============================================================
 model BlackoutPeriod {
   id          String    @id @default(cuid())
   startDate   DateTime
   endDate     DateTime
   reason      String
-  department  String?   // null = aplica a todos os departamentos
-
+  department  String?
   createdById String
   createdBy   User      @relation(fields: [createdById], references: [id])
-
   createdAt   DateTime  @default(now())
 }
 
-// ============================================================
-// PERÍODOS AQUISITIVOS DE FÉRIAS
-// ============================================================
-// Registro explícito dos ciclos de 12 meses em que o colaborador
-// adquire direito a férias. Útil para relatórios de férias vencidas,
-// múltiplos períodos pendentes e políticas internas.
 model AcquisitionPeriod {
   id        String   @id @default(cuid())
   userId    String
   user      User     @relation(fields: [userId], references: [id])
-
-  /// Início do período aquisitivo (inclusive)
   startDate DateTime
-  /// Fim do período aquisitivo (inclusive)
   endDate   DateTime
-
-  /// Dias de direito adquiridos neste período (em geral 30)
   accruedDays Int
-  /// Dias já gozados/consumidos deste período
   usedDays    Int      @default(0)
-
   vacationRequests VacationRequest[]
-
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
   @@index([userId])
   @@index([startDate, endDate])
 }
-
