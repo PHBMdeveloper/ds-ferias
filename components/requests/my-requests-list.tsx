@@ -112,9 +112,10 @@ export function MyRequestsList({
             return { start: nextStart, end: nextEnd, index: periods.length };
           })()
         : null;
-  // Mostra TODOS os períodos encerrados (consumidos ou não), excluindo apenas o ciclo atual
-  // que já tem bloco próprio acima. Isso permite ver períodos 30/30 (consumidos) e 10/30 (parciais).
-  const periodsToShow = periods.filter((_, i) => currentIndex === -1 || i !== currentIndex);
+  // Exibe os 2 ciclos mais recentes (excluindo o atual que já tem bloco próprio).
+  // Periods está ordenado por startDate ASC; slice(-2) pega os mais novos.
+  const periodsExcludingCurrent = periods.filter((_, i) => currentIndex === -1 || i !== currentIndex);
+  const periodsToShow = periodsExcludingCurrent.slice(-2);
 
   return (
     <div className="space-y-4">
