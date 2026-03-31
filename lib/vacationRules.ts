@@ -87,9 +87,7 @@ export const PENDING_OR_APPROVED_VACATION_STATUSES: VacationStatus[] = ["PENDENT
 const APPROVED_VACATION_STATUS_SET = new Set<string>(APPROVED_VACATION_LIST);
 
 export function isVacationApprovedStatus(status: string): boolean {
-  // Legado: se por algum motivo existir histórico com APROVADO_RH (antes da remoção do enum),
-  // tratamos como aprovado para exibição/UX, mas NÃO incluímos esse valor nas listas usadas
-  // por queries Prisma (evita erro quando o enum já não contém APROVADO_RH).
+  // Inclui APROVADO_RH legado (migração via /api/admin/sync-periods converte para APROVADO_DIRETOR)
   if (status === "APROVADO_RH") return true;
   return APPROVED_VACATION_STATUS_SET.has(status);
 }

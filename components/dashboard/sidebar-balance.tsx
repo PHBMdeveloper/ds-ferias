@@ -25,26 +25,20 @@ export function SidebarBalance({
 }) {
   const isBusinessDaysRole = userRole === "GERENTE" || userRole === "DIRETOR";
   const cycleBusinessLimit = 22;
-  const periodsWithRemaining = acquisitionPeriods.filter((p) => p.usedDays < p.accruedDays);
-  const entitledFromOpenPeriods = periodsWithRemaining.reduce((sum: number, p: any) => sum + p.accruedDays, 0);
-  const usedFromOpenPeriods = periodsWithRemaining.reduce((sum: number, p: any) => sum + p.usedDays, 0);
+  // Soma usedDays de TODOS os períodos (inclusive os completamente consumidos)
+  const usedFromAllPeriods = acquisitionPeriods.reduce((sum: number, p: any) => sum + p.usedDays, 0);
+  const totalEntitledFromPeriods = acquisitionPeriods.reduce((sum: number, p: any) => sum + p.accruedDays, 0);
 
-  const shouldFallbackToBalanceWindow =
-    !isBusinessDaysRole && acquisitionPeriods.length > 0 && periodsWithRemaining.length === 0 && hasUpcomingVacation;
-  const totalFromAcquisitionPeriods = acquisitionPeriods.length > 0 ? entitledFromOpenPeriods : balance.entitledDays;
+  const totalFromAcquisitionPeriods = acquisitionPeriods.length > 0 ? totalEntitledFromPeriods : balance.entitledDays;
   const normalizedTotalFromPeriods = Math.min(balance.entitledDays, totalFromAcquisitionPeriods);
   const totalLimit = isBusinessDaysRole
     ? cycleBusinessLimit
-    : shouldFallbackToBalanceWindow
-      ? balance.entitledDays
-      : normalizedTotalFromPeriods;
+    : normalizedTotalFromPeriods;
   const safeLimit = Math.max(1, totalLimit);
   const rawUsed = isBusinessDaysRole
     ? balance.usedDays
-    : shouldFallbackToBalanceWindow
-      ? balance.usedDays
     : acquisitionPeriods.length > 0
-      ? Math.min(usedFromOpenPeriods, totalLimit)
+      ? Math.min(usedFromAllPeriods, totalLimit)
       : balance.usedDays;
   const normalizedUsed = Math.min(totalLimit, Math.max(0, rawUsed));
   const remainingAfterUsed = isBusinessDaysRole

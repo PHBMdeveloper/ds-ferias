@@ -169,24 +169,23 @@ export async function syncAcquisitionPeriodsForUser(
     abono: boolean;
   }> =
     await (prisma as any).vacationRequest.findMany({
-      where: { userId, status: { in: [...APPROVED_VACATION_STATUSES] } },
+      where: { userId, status: { in: [...APPROVED_VACATION_STATUSES, "APROVADO_RH"] } },
       orderBy: { startDate: "asc" },
       select: { id: true, startDate: true, endDate: true, acquisitionPeriodId: true, abono: true },
     });
 
-  // Mapa de novos usedDays calculados via FIFO (somente períodos ganhos)
-  // IMPORTANTE: Para suportar ajustes manuais via Backoffice (RH), precisamos
-  // identificar qual parte do usedDays atual não vem de solicitações no banco.
+  // FIFO limpo: zeramos tudo e recalculamos do zero.
+  // Ajuste manual (RH via Backoffice) é preservado apenas quando o período não tem
+  // NENHUMA solicitação aprovada vinculada a ele — garante que RH possa ajustar manualmente
+  // períodos sem solicitações, sem interferir no FIFO dos demais.
   const newUsedDays = new Map<string, number>();
 
+  // Identificar períodos com ajuste manual puro (sem nenhuma solicitação vinculada)
   for (const p of periods) {
-    // Calcula quantos dias deste período já estão "explicados" por solicitações vinculadas a ele
-    const linkedRequests = approvedRequests.filter(r => r.acquisitionPeriodId === p.id);
-    const sumLinked = linkedRequests.reduce((acc, r) => acc + getChargeableDays(r.startDate, r.endDate, !!r.abono), 0);
-    
-    // A diferença é tratada como ajuste manual (ex: carga legada ou ajuste direto pelo RH)
-    const manualAdjustment = Math.max(0, (p.usedDays ?? 0) - sumLinked);
-    newUsedDays.set(p.id, manualAdjustment);
+    const hasLinkedRequests = approvedRequests.some(r => r.acquisitionPeriodId === p.id);
+    // Preserva ajuste manual apenas quando o período não tem solicitações NENHUMAS vinculadas
+    // E o usedDays foi definido manualmente (não pelo FIFO anterior)
+    newUsedDays.set(p.id, hasLinkedRequests ? 0 : Math.max(0, p.usedDays ?? 0));
   }
 
   const newPeriodIdForRequest = new Map<string, string>();
@@ -206,7 +205,7 @@ export async function syncAcquisitionPeriodsForUser(
         newUsedDays.set(p.id, currentUsed + toConsume);
         daysRemaining -= toConsume;
         
-        // Vinculamos o pedido ao PRIMEIRO período que ele começar a consumir (padrão do sistema)
+        // Vincula o pedido ao PRIMEIRO período que ele começar a consumir
         if (!newPeriodIdForRequest.has(req.id)) {
           newPeriodIdForRequest.set(req.id, p.id);
         }

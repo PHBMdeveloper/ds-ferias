@@ -265,7 +265,7 @@ export const vacationActionService = {
     const finalUpdated = await prisma.$transaction(async (tx) => {
       const current = await tx.vacationRequest.findUnique({ 
         where: { id }, 
-        include: { user: { select: { id: true, name: true, email: true, role: true, managerId: true, manager: { select: { managerId: true } } } } } 
+        include: { user: { select: { id: true, name: true, email: true, role: true, managerId: true, hireDate: true, manager: { select: { managerId: true } } } } } 
       });
       if (!current) throw new Error("Solicitação não encontrada.");
       
@@ -274,22 +274,20 @@ export const vacationActionService = {
         return current; 
       }
 
-      let periodId: string | undefined;
-      if (isVacationApprovedStatus(nextStatus)) {
-        const allPeriods = await tx.acquisitionPeriod.findMany({ where: { userId: current.userId }, orderBy: { startDate: "asc" } });
-        periodId = allPeriods.find(p => p.usedDays < p.accruedDays)?.id;
-      }
-
-      const transitioned = await tx.vacationRequest.updateMany({ where: { id, status: { not: nextStatus } }, data: { status: nextStatus, acquisitionPeriodId: periodId } });
+      const transitioned = await tx.vacationRequest.updateMany({ where: { id, status: { not: nextStatus } }, data: { status: nextStatus } });
       if (transitioned.count === 1) {
-        if (isVacationApprovedStatus(nextStatus) && periodId) {
-          const days = getChargeableDays(current.startDate, current.endDate, !!current.abono);
-          await tx.acquisitionPeriod.update({ where: { id: periodId }, data: { usedDays: { increment: days } } });
-        }
         await tx.vacationRequestHistory.create({ data: { vacationRequestId: id, previousStatus: current.status, newStatus: nextStatus, changedByUserId: approver.id } });
       }
-      return await tx.vacationRequest.findUnique({ where: { id }, include: { user: { select: { id: true, name: true, email: true, role: true, managerId: true, manager: { select: { managerId: true } } } } } });
+      return await tx.vacationRequest.findUnique({ where: { id }, include: { user: { select: { id: true, name: true, email: true, role: true, managerId: true, hireDate: true, manager: { select: { managerId: true } } } } } });
     });
+
+    // Recalcula os períodos aquisitivos via FIFO completo após a aprovação.
+    // Isso garante que o usedDays seja sempre consistente, independente da ordem de aprovação.
+    if (finalUpdated?.user?.hireDate) {
+      await syncAcquisitionPeriodsForUser(finalUpdated.user.id, finalUpdated.user.hireDate).catch(err =>
+        logger.error("Erro ao sincronizar períodos aquisitivos após aprovação", { error: String(err), requestId: id })
+      );
+    }
 
     logger.info("Solicitação de férias aprovada", {
       actorId: approver.id,
@@ -427,22 +425,9 @@ export const vacationActionService = {
       }
     }
 
-    if (isVacationApprovedStatus(existing.status) && !existing.acquisitionPeriodId) {
-      throw new DomainError("Não foi possível cancelar pois o pedido aprovado não está vinculado a um período aquisitivo.", 409);
-    }
-
-    const acquisitionPeriodId = existing.acquisitionPeriodId;
+    const cancelledUserId = existing.userId;
 
     await prisma.$transaction(async (tx) => {
-      if (isVacationApprovedStatus(existing.status) && acquisitionPeriodId) {
-        const rawDays = daysBetweenInclusive(existing.startDate, existing.endDate);
-        const days = Math.min(Math.max(1, rawDays), 30);
-        await tx.acquisitionPeriod.update({
-          where: { id: acquisitionPeriodId },
-          data: { usedDays: { decrement: days } },
-        });
-      }
-
       await tx.vacationRequestHistory.deleteMany({
         where: { vacationRequestId: existing.id },
       });
@@ -451,6 +436,14 @@ export const vacationActionService = {
         where: { id: existing.id },
       });
     });
+
+    // Recalcula os períodos aquisitivos via FIFO após o cancelamento.
+    const cancelledUser = await prisma.user.findUnique({ where: { id: cancelledUserId }, select: { hireDate: true } });
+    if (cancelledUser?.hireDate) {
+      await syncAcquisitionPeriodsForUser(cancelledUserId, cancelledUser.hireDate).catch(err =>
+        logger.error("Erro ao sincronizar períodos aquisitivos após cancelamento", { error: String(err), requestId: id })
+      );
+    }
 
     logger.info("Solicitação de férias cancelada/excluída", {
       actorId: actor.id,

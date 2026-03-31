@@ -101,6 +101,23 @@ export function BackofficeClient({
   const [roleFilter, setRoleFilter] = useState<Role | "">("");
   const [sortKey, setSortKey] = useState<SortKey>("name");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
+  const [syncing, setSyncing] = useState(false);
+
+  async function handleResyncAllPeriods() {
+    setSyncing(true);
+    try {
+      const res = await fetch("/api/admin/sync-periods", { method: "POST" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error("Erro ao recalcular períodos.");
+        return;
+      }
+      toast.success(`Períodos recalculados: ${data.synced} usuário(s) sincronizados.`);
+      startTransition(() => { router.refresh(); });
+    } finally {
+      setSyncing(false);
+    }
+  }
 
   async function handleSave(id: string) {
     setSaving(true);
@@ -314,6 +331,16 @@ export function BackofficeClient({
             <option value="DIRETOR">Diretor(a)</option>
             <option value="RH">RH</option>
           </select>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleResyncAllPeriods}
+            disabled={syncing || isPending}
+            title="Recalcula os dias usados em todos os períodos aquisitivos via FIFO"
+            className="whitespace-nowrap text-xs"
+          >
+            {syncing ? "Recalculando..." : "⟳ Resync Períodos"}
+          </Button>
         </div>
       </div>
       <div className="border-b border-[#e2e8f0] bg-white px-4 py-3 text-sm text-[#475569] dark:border-[#252a35] dark:bg-[#1a1d23] dark:text-slate-300">

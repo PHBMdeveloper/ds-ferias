@@ -112,22 +112,9 @@ export function MyRequestsList({
             return { start: nextStart, end: nextEnd, index: periods.length };
           })()
         : null;
-  const periodsWithRemaining = periods.filter((p, i) => {
-    const isRemaining = p.usedDays < p.accruedDays;
-    // Não mostramos mais ciclos do que o atual (evita poluição com ciclos futuros automáticos).
-    const isNotTooFar = derivedCurrent ? i <= derivedCurrent.index : true;
-    return isRemaining && isNotTooFar;
-  });
-  const hasUpcomingVacation = requests.some((r) => {
-    const start = new Date(r.startDate);
-    return start >= today && (r.status === "PENDENTE" || isVacationApprovedStatus(r.status));
-  });
-  const periodsToShow =
-    periodsWithRemaining.length > 0
-      ? periodsWithRemaining
-      : hasUpcomingVacation
-        ? periods.slice(-Math.min(2, periods.length))
-        : [];
+  // Mostra TODOS os períodos encerrados (consumidos ou não), excluindo apenas o ciclo atual
+  // que já tem bloco próprio acima. Isso permite ver períodos 30/30 (consumidos) e 10/30 (parciais).
+  const periodsToShow = periods.filter((_, i) => currentIndex === -1 || i !== currentIndex);
 
   return (
     <div className="space-y-4">
@@ -174,6 +161,24 @@ export function MyRequestsList({
           const expiredWithRemaining = expiredPeriods.filter((p) => p.usedDays < p.accruedDays);
           if (!expiredWithRemaining.length) return null;
 
+          // Calcula dias restantes nos períodos vencidos
+          const totalExpiredRemaining = expiredWithRemaining.reduce(
+            (sum, p) => sum + (p.accruedDays - p.usedDays),
+            0,
+          );
+          // Estima dias comprometidos pelas férias aprovadas/pendentes futuras
+          const committedDays = requests
+            .filter((r) => r.status === "PENDENTE" || isVacationApprovedStatus(r.status))
+            .reduce((sum, r) => {
+              const days = Math.round(
+                (new Date(r.endDate).getTime() - new Date(r.startDate).getTime()) / 86_400_000 + 1,
+              );
+              return sum + days;
+            }, 0);
+
+          // Se os dias aprovados/pendentes já cobrem os dias dos períodos vencidos, omite o alerta
+          if (committedDays >= totalExpiredRemaining) return null;
+
           return (
             <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-800/40 dark:bg-amber-950/30 dark:text-amber-200">
               <p className="font-semibold">Atenção</p>
@@ -187,21 +192,37 @@ export function MyRequestsList({
 
         {periods.length > 0 ? (
           <div className="mt-3 space-y-2">
-            {derivedCurrent && (
-              <div className="flex items-start justify-between rounded-md bg-[#f1f5f9] px-3 py-2 text-xs dark:bg-[#020617]">
-                <div className="min-w-0">
-                  <p className="font-medium text-[#0f172a] dark:text-slate-100">Ciclo atual</p>
-                  <p className="mt-0.5 text-[11px] text-[#64748b] dark:text-slate-400">
-                    Início: {derivedCurrent.start.toLocaleDateString("pt-BR")}
-                  </p>
-                  {derivedCurrent.index >= Math.min(Math.floor(balance.monthsWorked / 12), 2) && (
-                    <p className="mt-0.5 text-[10px] text-[#94a3b8] dark:text-slate-500">
-                      Aguardando completar 12 meses
+            {derivedCurrent && (() => {
+              const currentPeriodData = currentIndex !== -1 ? periods[currentIndex] : null;
+              const usedDays = currentPeriodData?.usedDays ?? 0;
+              const accruedDays = currentPeriodData?.accruedDays ?? 30;
+              const isInProgress = derivedCurrent.index >= Math.min(Math.floor(balance.monthsWorked / 12), 2);
+              const statusLabel = usedDays >= accruedDays
+                ? "Completo"
+                : usedDays > 0
+                  ? "Parcial"
+                  : "Ainda não utilizado";
+              return (
+                <div className="flex items-start justify-between rounded-md bg-[#f1f5f9] px-3 py-2 text-xs dark:bg-[#020617]">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-[#0f172a] dark:text-slate-100">Ciclo atual</p>
+                    <p className="mt-0.5 text-[11px] text-[#64748b] dark:text-slate-400">
+                      {derivedCurrent.start.toLocaleDateString("pt-BR")} – {derivedCurrent.end.toLocaleDateString("pt-BR")}
                     </p>
-                  )}
+                    {currentPeriodData && (
+                      <p className="text-[11px] text-[#64748b] dark:text-slate-400">
+                        {usedDays}/{accruedDays} dias usados · {statusLabel}
+                      </p>
+                    )}
+                    {isInProgress && (
+                      <p className="mt-0.5 text-[10px] text-[#94a3b8] dark:text-slate-500">
+                        Aguardando completar 12 meses
+                      </p>
+                    )}
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
             {periodsToShow.length > 0 && (
               <div className="grid gap-2 sm:grid-cols-2">
                 {periodsToShow.map((p) => {
@@ -260,9 +281,9 @@ export function MyRequestsList({
                 })}
               </div>
             )}
-            {periodsToShow.length === 0 && (
+            {periodsToShow.length === 0 && periods.length > 0 && (
               <p className="text-xs text-[#64748b] dark:text-slate-400">
-                Não há ciclos com saldo disponível no momento.
+                Apenas o ciclo atual está em andamento.
               </p>
             )}
           </div>
