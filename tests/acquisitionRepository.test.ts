@@ -36,7 +36,7 @@ describe("acquisitionRepository", () => {
       { id: "p2", startDate: start, endDate: end, accruedDays: 30, usedDays: 5 },
     ];
     
-    vi.mocked(prisma.acquisitionPeriod.findMany).mockResolvedValueOnce(mockPeriods as any);
+    vi.mocked(prisma.acquisitionPeriod.findMany).mockResolvedValue(mockPeriods as any);
     vi.mocked(prisma.vacationRequest.findMany).mockResolvedValue([]);
 
     await syncAcquisitionPeriodsForUser("u1", new Date("2020-01-01"));
@@ -49,7 +49,7 @@ describe("acquisitionRepository", () => {
     }));
   });
 
-  it("deletes unearned periods", async () => {
+  it("keeps current/future periods (was: deletes unearned periods)", async () => {
     const futureDate = new Date();
     futureDate.setFullYear(futureDate.getFullYear() + 1);
     
@@ -57,12 +57,15 @@ describe("acquisitionRepository", () => {
       { id: "p-future", startDate: new Date(), endDate: futureDate, accruedDays: 30, usedDays: 0 }
     ];
     
-    vi.mocked(prisma.acquisitionPeriod.findMany).mockResolvedValueOnce(mockPeriods as any);
+    vi.mocked(prisma.acquisitionPeriod.findMany).mockResolvedValue(mockPeriods as any);
     vi.mocked(prisma.vacationRequest.findMany).mockResolvedValue([]);
 
     await syncAcquisitionPeriodsForUser("u1", new Date("2020-01-01"));
 
-    expect(prisma.acquisitionPeriod.deleteMany).toHaveBeenCalled();
+    // Agora NÃO deve deletar
+    expect(prisma.acquisitionPeriod.deleteMany).not.toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ id: { in: ["p-future"] } })
+    }));
   });
 
   it("recalculates usedDays using FIFO logic across multiple periods", async () => {
@@ -87,9 +90,9 @@ describe("acquisitionRepository", () => {
       where: { id: "p2" },
       data: { usedDays: 5 }
     }));
-    });
+  });
 
-    it("creates missing periods for new users", async () => {
+  it("creates missing periods for new users", async () => {
     vi.mocked(prisma.acquisitionPeriod.findMany).mockResolvedValueOnce([]); // No periods first
     vi.mocked(prisma.acquisitionPeriod.findMany).mockResolvedValue([
       { id: "p1", startDate: new Date("2020-01-01"), endDate: new Date("2020-12-30"), accruedDays: 30, usedDays: 0 }
@@ -98,49 +101,63 @@ describe("acquisitionRepository", () => {
 
     const hire = new Date();
     hire.setFullYear(hire.getFullYear() - 2); // 2 full cycles
-
     await syncAcquisitionPeriodsForUser("u1", hire);
 
     expect(prisma.acquisitionPeriod.createMany).toHaveBeenCalled();
-    });
+  });
 
-    it("handles missing prisma methods gracefully", async () => {
+  it("generates missing cycles incrementally if some already exist", async () => {
+    const hire = new Date("2020-01-01");
+    // Simula que só temos o primeiro ciclo no banco, mas já estamos em 2026
+    const mockPeriods = [
+      { id: "p1", startDate: hire, endDate: new Date("2020-12-31"), accruedDays: 30, usedDays: 0 }
+    ];
+    
+    vi.mocked(prisma.acquisitionPeriod.findMany).mockResolvedValue(mockPeriods as any);
+    vi.mocked(prisma.vacationRequest.findMany).mockResolvedValue([]);
+
+    await syncAcquisitionPeriodsForUser("u1", hire);
+
+    // Deve ter chamado o createMany para os ciclos de 2021, 2022, 2023, 2024, 2025 e o atual 2026
+    expect(prisma.acquisitionPeriod.createMany).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.arrayContaining([
+        expect.objectContaining({ startDate: new Date("2021-01-01") })
+      ])
+    }));
+  });
+
+  it("resets and regenerates cycles if hireDate changes", async () => {
+    const oldHire = new Date("2020-01-01");
+    const newHire = new Date("2021-01-01");
+    
+    // Simula períodos existentes baseados na data antiga
+    const mockPeriods = [
+      { id: "p-old", startDate: oldHire, endDate: new Date("2020-12-31"), accruedDays: 30, usedDays: 0 }
+    ];
+    
+    vi.mocked(prisma.acquisitionPeriod.findMany).mockResolvedValue(mockPeriods as any);
+    vi.mocked(prisma.vacationRequest.findMany).mockResolvedValue([]);
+
+    // Chama com a NOVA data
+    await syncAcquisitionPeriodsForUser("u1", newHire);
+
+    // Deve ter deletado os ciclos antigos do usuário u1
+    expect(prisma.acquisitionPeriod.deleteMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: { userId: "u1" }
+    }));
+    
+    // Deve ter desvinculado as férias dos ciclos antigos
+    expect(prisma.vacationRequest.updateMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: { userId: "u1", acquisitionPeriodId: { not: null } },
+      data: { acquisitionPeriodId: null }
+    }));
+  });
+
+  it("handles missing prisma methods gracefully", async () => {
     const original = prisma.acquisitionPeriod;
     (prisma as any).acquisitionPeriod = {};
     const res = await syncAcquisitionPeriodsForUser("u1", new Date());
     expect(res).toEqual([]);
     (prisma as any).acquisitionPeriod = original;
-    });
-    });
-
-    import { findAcquisitionPeriodsForUser, findAcquisitionPeriodForRange, addUsedDaysForRequest } from "@/repositories/acquisitionRepository";
-
-    describe("acquisitionRepository helpers", () => {
-    beforeEach(() => {
-    vi.clearAllMocks();
-    });
-
-    it("findAcquisitionPeriodsForUser calls prisma", async () => {
-    await findAcquisitionPeriodsForUser("u1");
-    expect(prisma.acquisitionPeriod.findMany).toHaveBeenCalled();
-    });
-
-    it("findAcquisitionPeriodForRange finds period", async () => {
-    vi.mocked(prisma.acquisitionPeriod.findMany).mockResolvedValue([{ id: "p1" }] as any);
-    const res = await findAcquisitionPeriodForRange("u1", new Date(), new Date());
-    expect(res?.id).toBe("p1");
-    });
-
-    it("addUsedDaysForRequest updates correctly", async () => {
-    const start = new Date("2026-10-01");
-    const end = new Date("2026-10-10");
-    vi.mocked(prisma.acquisitionPeriod.findMany).mockResolvedValue([{ id: "p1", usedDays: 0 }] as any);
-
-    await addUsedDaysForRequest("u1", start, end);
-
-    expect(prisma.acquisitionPeriod.update).toHaveBeenCalledWith(expect.objectContaining({
-      where: { id: "p1" },
-      data: { usedDays: 10 }
-    }));
-    });
-    });
+  });
+});

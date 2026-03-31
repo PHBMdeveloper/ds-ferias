@@ -29,7 +29,10 @@ export async function GET(request: Request) {
     const rawHireDate = searchParams.get("hireDate");
 
     if (sync && rawHireDate) {
-      await syncAcquisitionPeriodsForUser(userId, new Date(rawHireDate));
+      const hd = new Date(rawHireDate);
+      if (!isNaN(hd.getTime())) {
+        await syncAcquisitionPeriodsForUser(userId, hd);
+      }
     }
 
     const periods = await prisma.acquisitionPeriod.findMany({

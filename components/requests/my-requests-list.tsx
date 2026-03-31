@@ -4,6 +4,14 @@ import { EmptyState } from "@/components/layout/empty-state";
 import { ExportButton } from "@/components/layout/export-button";
 import { RequestCard } from "@/components/requests/request-card";
 import { MonthlyCalendar } from "@/components/calendar/MonthlyCalendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverDescription,
+  PopoverHeader,
+  PopoverTitle,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 type RequestLike = {
   id: string;
@@ -104,7 +112,12 @@ export function MyRequestsList({
             return { start: nextStart, end: nextEnd, index: periods.length };
           })()
         : null;
-  const periodsWithRemaining = periods.filter((p) => p.usedDays < p.accruedDays);
+  const periodsWithRemaining = periods.filter((p, i) => {
+    const isRemaining = p.usedDays < p.accruedDays;
+    // Não mostramos mais ciclos do que o atual (evita poluição com ciclos futuros automáticos).
+    const isNotTooFar = derivedCurrent ? i <= derivedCurrent.index : true;
+    return isRemaining && isNotTooFar;
+  });
   const hasUpcomingVacation = requests.some((r) => {
     const start = new Date(r.startDate);
     return start >= today && (r.status === "PENDENTE" || isVacationApprovedStatus(r.status));
@@ -126,9 +139,32 @@ export function MyRequestsList({
       </div>
 
       <section className="rounded-lg border border-[#e2e8f0] bg-white p-4 text-sm dark:border-[#252a35] dark:bg-[#1a1d23]">
-        <h4 className="text-base font-semibold text-[#1a1d23] dark:text-white">
-          Períodos aquisitivos
-        </h4>
+        <div className="flex items-center gap-1.5">
+          <h4 className="text-base font-semibold text-[#1a1d23] dark:text-white">
+            Períodos aquisitivos
+          </h4>
+          <Popover>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                aria-label="Entenda os períodos aquisitivos"
+                className="inline-flex h-4 w-4 items-center justify-center rounded-full border border-[#cbd5e1] text-[9px] font-bold text-[#64748b] transition hover:bg-[#e2e8f0] dark:border-[#334155] dark:text-slate-300 dark:hover:bg-[#252a35]"
+              >
+                ?
+              </button>
+            </PopoverTrigger>
+            <PopoverContent align="start" className="w-80">
+              <PopoverHeader>
+                <PopoverTitle>Ciclos de Férias</PopoverTitle>
+                <PopoverDescription>
+                  Cada card representa um <strong>ciclo de 12 meses</strong> de trabalho.
+                  <br /><br />
+                  O sistema prioriza o consumo dos ciclos mais antigos (FIFO) para evitar a perda do direito por prescrição. Quando um ciclo esgota, o próximo passa a ser utilizado.
+                </PopoverDescription>
+              </PopoverHeader>
+            </PopoverContent>
+          </Popover>
+        </div>
         <p className="mt-1 text-xs text-[#64748b] dark:text-slate-400">
           Cada card mostra um ciclo de aquisição (12 meses). Quando os dias do ciclo acabarem (usados + pendentes), novas férias passam a consumir o próximo ciclo.
         </p>
@@ -182,7 +218,7 @@ export function MyRequestsList({
                       key={p.id}
                       className="flex items-center justify-between rounded-md bg-[#f8fafc] px-3 py-2 text-xs dark:bg-[#020617]"
                     >
-                      <div className="min-w-0">
+                      <div className="min-w-0 flex-1">
                         <p className="font-medium text-[#0f172a] dark:text-slate-100">{label}</p>
                         <p className="text-[11px] text-[#64748b] dark:text-slate-400">
                           {p.usedDays}/{p.accruedDays} dias usados · {status}
@@ -193,6 +229,32 @@ export function MyRequestsList({
                           </p>
                         )}
                       </div>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <button
+                            type="button"
+                            className="ml-2 inline-flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full border border-[#cbd5e1] text-[10px] font-bold text-[#64748b] transition hover:bg-[#e2e8f0] dark:border-[#334155] dark:text-slate-300 dark:hover:bg-[#252a35]"
+                          >
+                            ?
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent align="end" className="w-64">
+                          <PopoverHeader>
+                            <PopoverTitle>Detalhes do Ciclo</PopoverTitle>
+                            <PopoverDescription>
+                              <strong>Período:</strong> {label}
+                              <br />
+                              <strong>Saldo do ciclo:</strong> {p.accruedDays} dias
+                              <br />
+                              <strong>Consumido:</strong> {p.usedDays} dias
+                              <br /><br />
+                              {p.usedDays >= p.accruedDays 
+                                ? "Este ciclo foi totalmente utilizado." 
+                                : `Você ainda possui ${p.accruedDays - p.usedDays} dias disponíveis neste ciclo.`}
+                            </PopoverDescription>
+                          </PopoverHeader>
+                        </PopoverContent>
+                      </Popover>
                     </div>
                   );
                 })}

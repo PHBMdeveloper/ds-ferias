@@ -84,4 +84,16 @@ describe("Reports API - GET /api/reports/acquisition-periods", () => {
     expect(text).toContain("Nome;Email;Departamento");
     expect(text).toContain("User 1;u1@test.com;IT");
   });
+
+  it("calls syncAcquisitionPeriodsForUser when sync=true is provided", async () => {
+    vi.mocked(getSessionUser).mockResolvedValueOnce({ id: "u-admin", role: "COORDENADOR" } as any);
+    const { syncAcquisitionPeriodsForUser } = await import("@/repositories/acquisitionRepository");
+    
+    const hireDate = "2020-05-15T00:00:00.000Z";
+    const req = new Request(`http://localhost/api/reports/acquisition-periods?userId=u1&sync=true&hireDate=${hireDate}`);
+    
+    await GET(req);
+
+    expect(syncAcquisitionPeriodsForUser).toHaveBeenCalledWith("u1", new Date(hireDate));
+  });
 });

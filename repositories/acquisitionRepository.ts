@@ -56,6 +56,23 @@ export async function syncAcquisitionPeriodsForUser(
       orderBy: { startDate: "asc" },
     });
 
+  // Se a data de admissão mudou drasticamente (o primeiro ciclo não bate), 
+  // precisamos resetar os períodos para este usuário.
+  if (periods.length > 0 && hireDate) {
+    const firstPeriodStart = new Date(periods[0].startDate).toISOString().slice(0, 10);
+    const expectedStart = new Date(hireDate).toISOString().slice(0, 10);
+    
+    if (firstPeriodStart !== expectedStart) {
+      // Desvincula e remove tudo para recomeçar do zero com a nova data
+      await (prisma as any).vacationRequest.updateMany({
+        where: { userId, acquisitionPeriodId: { not: null } },
+        data: { acquisitionPeriodId: null },
+      });
+      await ap.deleteMany({ where: { userId } });
+      periods = [];
+    }
+  }
+
   // Dedup defensivo: se existirem períodos duplicados para o mesmo intervalo,
   // mantém apenas 1 registro canônico, religa requests e remove o restante.
   if (periods.length > 1) {
@@ -88,48 +105,61 @@ export async function syncAcquisitionPeriodsForUser(
     }
   }
 
-  if (periods.length === 0) {
-    const newPeriods: Array<{ userId: string; startDate: Date; endDate: Date; accruedDays: number; usedDays: number }> = [];
-    const todayUtc = utcMidnight(new Date());
-    let start = new Date(hireDate);
-
-    while (true) {
-      const endExclusive = addMonths(start, 12);
-      // Só cria o ciclo se ele já foi COMPLETO (12 meses cumpridos).
-      // Ciclo ainda em andamento = colaborador ainda não tem direito.
-      if (utcMidnight(endExclusive) > todayUtc) break;
-      const end = new Date(utcMidnight(endExclusive).getTime() - 1);
-      newPeriods.push({ userId, startDate: start, endDate: end, accruedDays: 30, usedDays: 0 });
-      start = endExclusive;
-    }
-
-    if (newPeriods.length > 0) {
-      await ap.createMany({ data: newPeriods });
-    }
-
-    periods = await ap.findMany({
-      where: { userId },
-      orderBy: { startDate: "asc" },
-    });
-  }
-
-  // Remove períodos ainda não ganhos (ciclo em andamento) que possam ter sido
-  // criados por versões anteriores do código.
+    // 1. Geração/Atualização de períodos faltantes
   const todayUtc = utcMidnight(new Date());
-  const unearnedIds = periods
-    // Período com endDate no "dia de hoje" já deve aparecer na UI.
-    .filter((p) => utcMidnight(new Date(p.endDate)) > todayUtc)
-    .map((p) => p.id);
+  
+  if (hireDate) {
+    let currentStart = new Date(hireDate);
+    
+    // Se já existem períodos, verificamos se o último já cobre hoje ou o futuro.
+    if (periods.length > 0) {
+      const lastPeriod = periods[periods.length - 1];
+      const lastEnd = new Date(lastPeriod.endDate);
+      if (utcMidnight(lastEnd) >= todayUtc) {
+        // Já temos o período atual (ou futuro) garantido.
+        currentStart = null as any; 
+      } else {
+        // Próximo início é o dia seguinte ao fim do último período
+        currentStart = new Date(Date.UTC(lastEnd.getUTCFullYear(), lastEnd.getUTCMonth(), lastEnd.getUTCDate() + 1));
+      }
+    }
 
-  if (unearnedIds.length > 0) {
-    // Desvincula férias que apontam para períodos não-earned antes de deletar
-    await (prisma as any).vacationRequest.updateMany({
-      where: { userId, acquisitionPeriodId: { in: unearnedIds } },
-      data: { acquisitionPeriodId: null },
-    });
-    await ap.deleteMany({ where: { id: { in: unearnedIds } } });
-    periods = periods.filter((p) => !unearnedIds.includes(p.id));
+    const newPeriodsToCreate = [];
+    if (currentStart) {
+      // Enquanto o último período criado ainda não cobrir a data de hoje
+      // (ou se não houver nenhum período ainda)
+      while (true) {
+        const endExclusive = addMonths(currentStart, 12);
+        const end = new Date(utcMidnight(endExclusive).getTime() - 1);
+        
+        newPeriodsToCreate.push({ 
+          userId, 
+          startDate: currentStart, 
+          endDate: end, 
+          accruedDays: 30, 
+          usedDays: 0 
+        });
+
+        // Se este ciclo que acabamos de planejar termina no futuro, ele é o ciclo atual.
+        // Paramos por aqui.
+        if (utcMidnight(endExclusive) > todayUtc) break;
+        
+        currentStart = endExclusive;
+      }
+    }
+
+    if (newPeriodsToCreate.length > 0) {
+      await ap.createMany({ data: newPeriodsToCreate });
+      // Recarrega a lista completa após criar os novos
+      periods = await ap.findMany({
+        where: { userId },
+        orderBy: { startDate: "asc" },
+      });
+    }
   }
+
+  // Removemos a trava que deletava ciclos "não ganhos", pois agora permitimos 
+  // a gestão do ciclo atual (em andamento) no Backoffice.
 
   // Resync FIFO completo: recalcula usedDays de cada período a partir das solicitações aprovadas.
   // Isso corrige atribuições erradas geradas pelo código legado (que usava range de datas).

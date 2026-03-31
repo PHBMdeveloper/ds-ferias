@@ -6,6 +6,14 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { getRoleLabel } from "@/lib/vacationRules";
 import type { Role } from "@/generated/prisma/enums";
+import {
+  Popover,
+  PopoverContent,
+  PopoverDescription,
+  PopoverHeader,
+  PopoverTitle,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 type UserRow = {
   id: string;
@@ -34,7 +42,7 @@ type AcquisitionPeriodRow = {
   startDate: string;
   endDate: string;
   accruedDays: number;
-  usedDays: number;
+  usedDays: number | "";
 };
 
 type Manager = { id: string; name: string };
@@ -107,7 +115,10 @@ export function BackofficeClient({
           hireDate: form.hireDate ? new Date(form.hireDate).toISOString().slice(0, 10) : null,
           team: form.team ?? "",
           managerId: form.managerId ?? null,
-          acquisitionPeriods: editingPeriods, // Envia ajustes de ciclos
+          acquisitionPeriods: editingPeriods.map(p => ({
+            ...p,
+            usedDays: p.usedDays === "" ? 0 : p.usedDays
+          })), // Converte vazio para 0 ao salvar
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -223,20 +234,44 @@ export function BackofficeClient({
     setSortDir("asc");
   }
 
-  function SortHeader({ label, col }: { label: string; col: SortKey }) {
+  function SortHeader({ label, col, help }: { label: string; col: SortKey; help?: string }) {
     const active = sortKey === col;
     return (
-      <button
-        type="button"
-        onClick={() => toggleSort(col)}
-        className="inline-flex items-center gap-1 font-semibold text-[#1a1d23] hover:text-blue-700 dark:text-white dark:hover:text-blue-300"
-        aria-label={`Ordenar por ${label}`}
-      >
-        {label}
-        <span className="text-[10px] text-[#64748b] dark:text-slate-400">
-          {active ? (sortDir === "asc" ? "▲" : "▼") : "↕"}
-        </span>
-      </button>
+      <div className="flex items-center gap-1.5">
+        <button
+          type="button"
+          onClick={() => toggleSort(col)}
+          className="inline-flex items-center gap-1 font-semibold text-[#1a1d23] hover:text-blue-700 dark:text-white dark:hover:text-blue-300"
+          aria-label={`Ordenar por ${label}`}
+        >
+          {label}
+          <span className="text-[10px] text-[#64748b] dark:text-slate-400">
+            {active ? (sortDir === "asc" ? "▲" : "▼") : "↕"}
+          </span>
+        </button>
+        {help && (
+          <Popover>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                className="inline-flex h-4 w-4 items-center justify-center rounded-full border border-[#cbd5e1] bg-slate-100 text-[10px] font-bold text-slate-500 transition hover:bg-slate-200 dark:border-[#334155] dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-[#252a35]"
+              >
+                ?
+              </button>
+            </PopoverTrigger>
+            <PopoverContent side="top" align="center" className="w-64 p-3 shadow-xl">
+              <PopoverHeader className="border-0 p-0">
+                <PopoverTitle className="text-xs font-bold text-slate-700 dark:text-slate-200">
+                  O que é esta coluna?
+                </PopoverTitle>
+                <PopoverDescription className="mt-1.5 text-[11px] leading-relaxed text-slate-600 dark:text-slate-400">
+                  {help}
+                </PopoverDescription>
+              </PopoverHeader>
+            </PopoverContent>
+          </Popover>
+        )}
+      </div>
     );
   }
 
@@ -284,7 +319,7 @@ export function BackofficeClient({
         <div className="flex flex-wrap items-end gap-3">
           <div className="flex flex-col gap-1">
             <span className="text-xs font-semibold uppercase tracking-wide text-[#94a3b8] dark:text-slate-500">
-              Novo usuário
+              CADASTRE UM NOVO USUÁRIO
             </span>
             <div className="flex flex-wrap gap-2">
               <input
@@ -410,16 +445,16 @@ export function BackofficeClient({
                 scope="col"
                 className="sticky left-0 top-0 z-50 w-[220px] min-w-[220px] border-r border-[#e2e8f0] bg-[#f8fafc] px-4 py-3 dark:border-[#252a35] dark:bg-[#141720]"
               >
-                <SortHeader label="Nome" col="name" />
+                <SortHeader label="Nome" col="name" help="Nome completo do colaborador" />
               </th>
-              <th scope="col" className="sticky top-0 z-40 bg-[#f8fafc] px-4 py-3 dark:bg-[#141720]"><SortHeader label="E-mail" col="email" /></th>
-              <th scope="col" className="sticky top-0 z-40 bg-[#f8fafc] px-4 py-3 dark:bg-[#141720]"><SortHeader label="Matrícula" col="registration" /></th>
-              <th scope="col" className="sticky top-0 z-40 bg-[#f8fafc] px-4 py-3 dark:bg-[#141720]"><SortHeader label="Papel" col="role" /></th>
-              <th scope="col" className="sticky top-0 z-40 bg-[#f8fafc] px-4 py-3 dark:bg-[#141720]"><SortHeader label="Departamento" col="department" /></th>
-              <th scope="col" className="sticky top-0 z-40 bg-[#f8fafc] px-4 py-3 dark:bg-[#141720]"><SortHeader label="Time" col="team" /></th>
-              <th scope="col" className="sticky top-0 z-40 bg-[#f8fafc] px-4 py-3 dark:bg-[#141720]"><SortHeader label="Admissão" col="hireDate" /></th>
-              <th scope="col" className="sticky top-0 z-40 bg-[#f8fafc] px-4 py-3 dark:bg-[#141720]"><SortHeader label="Férias no ciclo" col="tookVacationInCurrentCycle" /></th>
-              <th scope="col" className="sticky top-0 z-40 bg-[#f8fafc] px-4 py-3 dark:bg-[#141720]"><SortHeader label="Coordenador/Gerente" col="manager" /></th>
+              <th scope="col" className="sticky top-0 z-40 bg-[#f8fafc] px-4 py-3 dark:bg-[#141720]"><SortHeader label="E-mail" col="email" help="E-mail corporativo (login)" /></th>
+              <th scope="col" className="sticky top-0 z-40 bg-[#f8fafc] px-4 py-3 dark:bg-[#141720]"><SortHeader label="Matrícula" col="registration" help="Matrícula única no RH" /></th>
+              <th scope="col" className="sticky top-0 z-40 bg-[#f8fafc] px-4 py-3 dark:bg-[#141720]"><SortHeader label="Papel" col="role" help="Nível de acesso no sistema" /></th>
+              <th scope="col" className="sticky top-0 z-40 bg-[#f8fafc] px-4 py-3 dark:bg-[#141720]"><SortHeader label="Departamento" col="department" help="Área de atuação" /></th>
+              <th scope="col" className="sticky top-0 z-40 bg-[#f8fafc] px-4 py-3 dark:bg-[#141720]"><SortHeader label="Time" col="team" help="Equipe específica de trabalho" /></th>
+              <th scope="col" className="sticky top-0 z-40 bg-[#f8fafc] px-4 py-3 dark:bg-[#141720]"><SortHeader label="Admissão" col="hireDate" help="Data de entrada na empresa (CLT)" /></th>
+              <th scope="col" className="sticky top-0 z-40 bg-[#f8fafc] px-4 py-3 dark:bg-[#141720]"><SortHeader label="Férias no ciclo" col="tookVacationInCurrentCycle" help="Indica se gozou férias no último período aquisitivo concluído" /></th>
+              <th scope="col" className="sticky top-0 z-40 bg-[#f8fafc] px-4 py-3 dark:bg-[#141720]"><SortHeader label="Coordenador/Gerente" col="manager" help="Líder direto responsável pela aprovação" /></th>
               <th scope="col" className="sticky top-0 z-40 bg-[#f8fafc] px-4 py-3 font-semibold text-[#1a1d23] dark:bg-[#141720] dark:text-white">Ações</th>
             </tr>
           </thead>
@@ -513,6 +548,7 @@ export function BackofficeClient({
                         // --- RECARGA DE CICLOS AO MUDAR DATA ---
                         if (newDate) {
                           setLoadingPeriods(u.id);
+                          setEditingPeriods([]); // Limpa para forçar re-render de loading
                           try {
                             // Sincroniza e busca os novos períodos para a UI
                             const res = await fetch(`/api/reports/acquisition-periods?userId=${u.id}&sync=true&hireDate=${newDate.toISOString()}`);
@@ -602,11 +638,19 @@ export function BackofficeClient({
                                     <span className="text-[9px] font-medium text-slate-500">Gozados:</span>
                                     <input
                                       type="number"
-                                      min={0}
-                                      max={ap.accruedDays}
                                       value={ap.usedDays}
                                       onChange={(e) => {
-                                        const val = Math.max(0, Math.min(ap.accruedDays, parseInt(e.target.value) || 0));
+                                        const raw = e.target.value;
+                                        // Se estiver vazio, mantém vazio no estado para o input sumir o número
+                                        if (raw === "") {
+                                          setEditingPeriods(prev => prev.map((p, i) => i === idx ? { ...p, usedDays: "" } : p));
+                                          return;
+                                        }
+                                        const parsed = parseInt(raw);
+                                        if (isNaN(parsed)) return;
+                                        
+                                        // Limita entre 0 e o total do ciclo (geralmente 30)
+                                        const val = Math.max(0, Math.min(ap.accruedDays, parsed));
                                         setEditingPeriods(prev => prev.map((p, i) => i === idx ? { ...p, usedDays: val } : p));
                                       }}
                                       className="h-7 w-12 rounded border border-blue-200 bg-white px-1 text-center text-xs font-bold text-blue-700 outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-blue-800 dark:bg-[#0f1117] dark:text-blue-300"
