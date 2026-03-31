@@ -19,7 +19,9 @@ function daysBetweenInclusiveClamped(start: Date, end: Date): number {
   const s = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate()));
   const e = new Date(Date.UTC(end.getUTCFullYear(), end.getUTCMonth(), end.getUTCDate()));
   const raw = Math.round((e.getTime() - s.getTime()) / ONE_DAY_MS) + 1;
-  return Math.min(Math.max(1, raw), 30);
+  // CLT: um período de gozo não pode exceder 30 dias em 1 único bloco. 
+  // No FIFO, se a soma das solicitações aprovadas passar de 30, o excedente vai para o próximo ciclo.
+  return raw;
 }
 
 function getChargeableDays(start: Date, end: Date, hasAbono: boolean): number {
@@ -184,14 +186,26 @@ export async function syncAcquisitionPeriodsForUser(
   const newPeriodIdForRequest = new Map<string, string>();
 
   for (const req of approvedRequests) {
-    // FIFO: período mais antigo com saldo disponível
-    const target = periods.find((p) => (newUsedDays.get(p.id) ?? 0) < p.accruedDays);
-    if (!target) continue;
-
-    const days = getChargeableDays(req.startDate, req.endDate, !!req.abono);
-    const current = newUsedDays.get(target.id) ?? 0;
-    newUsedDays.set(target.id, Math.min(current + days, target.accruedDays));
-    newPeriodIdForRequest.set(req.id, target.id);
+    let daysRemaining = getChargeableDays(req.startDate, req.endDate, !!req.abono);
+    
+    // Distribui os dias do pedido nos ciclos disponíveis (FIFO)
+    for (const p of periods) {
+      if (daysRemaining <= 0) break;
+      
+      const currentUsed = newUsedDays.get(p.id) ?? 0;
+      const availableInPeriod = p.accruedDays - currentUsed;
+      
+      if (availableInPeriod > 0) {
+        const toConsume = Math.min(daysRemaining, availableInPeriod);
+        newUsedDays.set(p.id, currentUsed + toConsume);
+        daysRemaining -= toConsume;
+        
+        // Vinculamos o pedido ao PRIMEIRO período que ele começar a consumir (padrão do sistema)
+        if (!newPeriodIdForRequest.has(req.id)) {
+          newPeriodIdForRequest.set(req.id, p.id);
+        }
+      }
+    }
   }
 
   // Aplica diferenças no banco (apenas o que mudou)

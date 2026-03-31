@@ -1,47 +1,70 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { logger } from "@/lib/logger";
 
-describe("logger", () => {
-  const originalLog = console.log;
-  const originalWarn = console.warn;
-  const originalError = console.error;
+describe("Logger estruturado", () => {
+  let consoleSpy: any;
 
   beforeEach(() => {
-    console.log = vi.fn();
-    console.warn = vi.fn();
-    console.error = vi.fn();
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-03-31T10:00:00Z"));
+    consoleSpy = {
+      log: vi.spyOn(console, "log").mockImplementation(() => {}),
+      warn: vi.spyOn(console, "warn").mockImplementation(() => {}),
+      error: vi.spyOn(console, "error").mockImplementation(() => {}),
+      debug: vi.spyOn(console, "debug").mockImplementation(() => {}),
+    };
   });
 
   afterEach(() => {
-    console.log = originalLog;
-    console.warn = originalWarn;
-    console.error = originalError;
+    vi.restoreAllMocks();
+    vi.useRealTimers();
   });
 
-  it("logs info with message and level", () => {
-    logger.info("teste-info", { foo: "bar" });
-    expect(console.log).toHaveBeenCalledTimes(1);
-    const arg = (console.log as unknown as vi.Mock).mock.calls[0][0] as string;
-    const parsed = JSON.parse(arg);
-    expect(parsed.message).toBe("teste-info");
-    expect(parsed.level).toBe("info");
-    expect(parsed.foo).toBe("bar");
+  it("emite log de informação no formato JSON correto", () => {
+    logger.info("Test message", { userId: "u1" });
+    
+    expect(consoleSpy.log).toHaveBeenCalled();
+    const output = JSON.parse(consoleSpy.log.mock.calls[0][0]);
+    
+    expect(output).toEqual({
+      level: "info",
+      message: "Test message",
+      timestamp: "2026-03-31T10:00:00.000Z",
+      userId: "u1"
+    });
   });
 
-  it("logs warn with message and level", () => {
-    logger.warn("teste-warn", { a: 1 });
-    const arg = (console.warn as unknown as vi.Mock).mock.calls[0][0] as string;
-    const parsed = JSON.parse(arg);
-    expect(parsed.level).toBe("warn");
-    expect(parsed.message).toBe("teste-warn");
+  it("formata erros automaticamente se passados no contexto", () => {
+    const err = new Error("Real error");
+    (err as any).code = "P2002";
+    
+    logger.error("Failed action", { error: err });
+    
+    const output = JSON.parse(consoleSpy.error.mock.calls[0][0]);
+    expect(output.level).toBe("error");
+    expect(output.error.message).toBe("Real error");
+    expect(output.error.code).toBe("P2002");
+    expect(output.error.stack).toBeDefined();
   });
 
-  it("logs error with message and level", () => {
-    logger.error("teste-error", { x: 42 });
-    const arg = (console.error as unknown as vi.Mock).mock.calls[0][0] as string;
-    const parsed = JSON.parse(arg);
-    expect(parsed.level).toBe("error");
-    expect(parsed.message).toBe("teste-error");
+  it("formata erros passados como string ou objeto genérico", () => {
+    logger.warn("Warning with string error", { err: "Something is wrong" });
+    
+    const output = JSON.parse(consoleSpy.warn.mock.calls[0][0]);
+    expect(output.error.message).toBe("Something is wrong");
+  });
+
+  it("não emite debug log em produção (simulado)", () => {
+    const originalEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = "production";
+    
+    logger.debug("Secret debug");
+    expect(consoleSpy.debug).not.toHaveBeenCalled();
+    
+    process.env.NODE_ENV = "development";
+    logger.debug("Visible debug");
+    expect(consoleSpy.debug).toHaveBeenCalled();
+    
+    process.env.NODE_ENV = originalEnv;
   });
 });
-

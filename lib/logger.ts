@@ -30,21 +30,26 @@ function formatError(error: unknown) {
 }
 
 function log(level: LogLevel, message: string, context: Record<string, unknown> = {}) {
-  // Em desenvolvimento, podemos querer algo mais legível, mas JSON é o padrão de prod
+  // Criamos uma cópia do contexto para não alterar o objeto original
+  const ctx = { ...context };
+  
   const payload: LogPayload = {
     level,
     message,
     timestamp: new Date().toISOString(),
-    ...context,
   };
 
   // Se houver um objeto 'err' ou 'error' no contexto, formatamos ele
-  const errorObj = context.err || context.error;
+  const errorObj = ctx.err || ctx.error;
   if (errorObj) {
     payload.error = formatError(errorObj);
-    delete payload.err;
-    delete payload.error;
+    // Removemos do contexto para não duplicar no JSON final
+    delete ctx.err;
+    delete ctx.error;
   }
+
+  // Mesclamos o restante do contexto
+  Object.assign(payload, ctx);
 
   const line = JSON.stringify(payload);
   

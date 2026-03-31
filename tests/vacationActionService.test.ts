@@ -15,6 +15,7 @@ vi.mock("@/lib/prisma", () => ({
       create: vi.fn(),
       update: vi.fn(),
       updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+      delete: vi.fn(),
     },
     user: {
       findUnique: vi.fn(),
@@ -29,6 +30,7 @@ vi.mock("@/lib/prisma", () => ({
     },
     vacationRequestHistory: {
       create: vi.fn(),
+      deleteMany: vi.fn(),
     },
     $transaction: vi.fn(async (arg) => {
       if (typeof arg === "function") return await arg(prisma);
@@ -178,6 +180,38 @@ describe("vacationActionService", () => {
       vi.mocked(notifications.notifyRejected).mockRejectedValueOnce(new Error("Failure"));
       await vacationActionService.rejectRequest("r1", { ...mockUser, id: "m1", role: "GERENTE", name: "Boss" });
       expect(prisma.vacationRequest.update).toHaveBeenCalled();
+    });
+  });
+
+  describe("cancelRequest", () => {
+    it("permite cancelar uma solicitação pendente se for o dono", async () => {
+      const mockUser = { id: "u1", role: "FUNCIONARIO" } as any;
+      const mockReq = { id: "r1", userId: "u1", status: "PENDENTE" } as any;
+      
+      vi.mocked(prisma.vacationRequest.findUnique).mockResolvedValueOnce(mockReq);
+      vi.mocked(prisma.vacationRequest.delete).mockResolvedValueOnce(mockReq);
+
+      await vacationActionService.cancelRequest("r1", mockUser);
+
+      expect(prisma.vacationRequest.delete).toHaveBeenCalledWith({ where: { id: "r1" } });
+    });
+
+    it("bloqueia cancelamento se já foi aprovada por gestor", async () => {
+      const mockUser = { id: "u1", role: "FUNCIONARIO" } as any;
+      const mockReq = { id: "r1", userId: "u1", status: "APROVADO_GERENTE" } as any;
+      
+      vi.mocked(prisma.vacationRequest.findUnique).mockResolvedValueOnce(mockReq);
+
+      await expect(vacationActionService.cancelRequest("r1", mockUser)).rejects.toThrow("pendentes");
+    });
+
+    it("bloqueia cancelamento se não for o dono", async () => {
+      const mockUser = { id: "other", role: "FUNCIONARIO" } as any;
+      const mockReq = { id: "r1", userId: "u1", status: "PENDENTE" } as any;
+      
+      vi.mocked(prisma.vacationRequest.findUnique).mockResolvedValueOnce(mockReq);
+
+      await expect(vacationActionService.cancelRequest("r1", mockUser)).rejects.toThrow("permissão");
     });
   });
 });
