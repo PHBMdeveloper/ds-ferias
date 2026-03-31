@@ -7,6 +7,7 @@ import {
   validateCltPeriods,
   checkBlackoutPeriods,
   calculateVacationBalance,
+  isSaoPauloHoliday,
 } from "@/lib/vacationRules";
 
 /**
@@ -79,12 +80,24 @@ describe("Workflow: request creation validation (CLT + blackout)", () => {
   // para não ser reprovado pelas regras de DSR.
   const baseStart = new Date();
   baseStart.setDate(baseStart.getDate() + 60);
+
   function pickValidPeriod() {
     let start = new Date(baseStart);
     let end = new Date(start);
     end.setDate(end.getDate() + 13);
+
+    const isInvalidStart = (d: Date) => {
+      const day = d.getDay();
+      if (day === 5 || day === 6) return true;
+      const check1 = new Date(d);
+      check1.setDate(check1.getDate() + 1);
+      const check2 = new Date(d);
+      check2.setDate(check2.getDate() + 2);
+      return isSaoPauloHoliday(check1) || isSaoPauloHoliday(check2);
+    };
+
     // 0=domingo,1=segunda,...,5=sexta,6=sábado
-    while ([5, 6].includes(start.getDay()) || [0, 6].includes(end.getDay())) {
+    while (isInvalidStart(start) || [0, 6].includes(end.getDay())) {
       start.setDate(start.getDate() + 1);
       end = new Date(start);
       end.setDate(end.getDate() + 13);

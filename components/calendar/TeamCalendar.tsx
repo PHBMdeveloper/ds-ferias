@@ -3,6 +3,7 @@
 import { Fragment, useState } from "react";
 import type { TeamMemberInfoSerialized } from "@/components/times-view-client";
 import { isVacationApprovedStatus } from "@/lib/vacationRules";
+import { escapeCsvFormulas } from "@/lib/csv";
 
 const GLOBAL_CAPACITY_KEY = "__global_capacity__";
 
@@ -111,13 +112,13 @@ function exportVacationsForVisiblePeriod(opts: {
           : rawEnd;
       if (end.getTime() < rangeStart.getTime() || start.getTime() > rangeEnd.getTime()) continue;
       rows.push([
-        displayName,
-        member.user.role,
-        section,
-        sub,
+        escapeCsvFormulas(displayName),
+        escapeCsvFormulas(member.user.role),
+        escapeCsvFormulas(section),
+        escapeCsvFormulas(sub),
         start.toLocaleDateString("pt-BR"),
         end.toLocaleDateString("pt-BR"),
-        r.status,
+        escapeCsvFormulas(r.status),
       ]);
     }
   }

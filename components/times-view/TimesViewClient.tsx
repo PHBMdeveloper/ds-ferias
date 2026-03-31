@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { TeamDataSerialized, TeamMemberInfoSerialized } from "./types";
+import { escapeCsvFormulas } from "@/lib/csv";
 import { matchesFilter } from "./filters";
 import { TimesViewFilterBar } from "./TimesViewFilterBar";
 import { TimesViewCoordTeamsList } from "./TimesViewCoordTeamsList";
@@ -56,13 +57,13 @@ export function TimesViewClient({ teamData }: Props) {
       ].join(";"),
       ...rows.map((r) =>
         [
-          r.gerente,
-          r.coordenador,
-          r.time,
-          r.colaborador,
-          r.papel,
-          r.departamento,
-          r.status,
+          escapeCsvFormulas(r.gerente),
+          escapeCsvFormulas(r.coordenador),
+          escapeCsvFormulas(r.time),
+          escapeCsvFormulas(r.colaborador),
+          escapeCsvFormulas(r.papel),
+          escapeCsvFormulas(r.departamento),
+          escapeCsvFormulas(r.status),
           String(r.saldoDisponivel),
           String(r.pendente),
         ].join(";"),
