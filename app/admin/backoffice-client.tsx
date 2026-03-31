@@ -5,12 +5,13 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { getRoleLabel } from "@/lib/vacationRules";
+import type { Role } from "@/generated/prisma/enums";
 
 type UserRow = {
   id: string;
   name: string;
   email: string;
-  role: string;
+  role: Role;
   registration: string;
   department: string | null;
   hireDate: Date | null;
@@ -19,7 +20,13 @@ type UserRow = {
   manager: { id: string; name: string } | null;
   _count: { reports: number };
   tookVacationInCurrentCycle: boolean | null;
-  acquisitionPeriods?: AcquisitionPeriodRow[];
+  acquisitionPeriods?: Array<{
+    id?: string;
+    startDate?: string;
+    endDate?: string;
+    accruedDays?: number;
+    usedDays: number;
+  }>;
 };
 
 type AcquisitionPeriodRow = {
