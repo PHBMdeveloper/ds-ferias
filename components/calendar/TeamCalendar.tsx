@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import type { TeamMemberInfoSerialized } from "@/components/times-view/types";
-import { isVacationApprovedStatus } from "@/lib/vacationRules";
+import { isVacationApprovedStatus, getRoleLabel } from "@/lib/vacationRules";
 
 const GLOBAL_CAPACITY_KEY = "__global_capacity__";
 
@@ -127,15 +127,41 @@ function getVacationSegments(member: TeamMemberInfoSerialized, monthStart: Date,
     .sort((a, b) => a.start.getTime() - b.start.getTime());
 }
 
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+
 function CalendarMemberNameLabel({ member }: { member: TeamMemberInfoSerialized }) {
-  const text = member.calendarDisplayName ?? member.user.name;
-  if (member.calendarIsBranch) {
-    return (
-      <span className="truncate font-black uppercase tracking-tight text-[#1e3a8a] dark:text-blue-300">{text}</span>
-    );
+  const fullText = member.calendarDisplayName ?? member.user.name;
+  let displayText = fullText;
+  
+  // No mobile, removemos espaços iniciais e a seta ↳ para ganhar espaço na exibição curta
+  if (typeof window !== "undefined" && window.innerWidth < 1024) {
+    displayText = displayText.replace(/^[\s↳]+/, "").trim();
   }
+
+  const content = member.calendarIsBranch ? (
+    <span className="truncate font-black uppercase tracking-tight text-[#1e3a8a] dark:text-blue-300">{displayText}</span>
+  ) : (
+    <span className="min-w-0 truncate text-[10px] sm:text-[11px] font-semibold text-[#475569] dark:text-slate-300">{displayText}</span>
+  );
+
   return (
-    <span className="min-w-0 truncate text-[11px] font-semibold text-[#475569] dark:text-slate-300">{text}</span>
+    <Popover>
+      <PopoverTrigger asChild>
+        <button type="button" className="flex min-w-0 flex-1 text-left outline-none">
+          {content}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent side="right" align="center" className="w-auto max-w-[280px] p-2 shadow-md">
+        <p className="text-xs font-bold text-[#1a1d23] dark:text-white">{fullText.replace(/^[\s↳]+/, "").trim()}</p>
+        {!member.calendarIsBranch && (
+            <p className="mt-0.5 text-[10px] text-[#64748b] dark:text-slate-400">{getRoleLabel(member.user.role)}</p>
+        )}
+      </PopoverContent>
+    </Popover>
   );
 }
 
@@ -181,17 +207,17 @@ export function TeamCalendar({
   const daysInMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0).getDate();
   const monthStart = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
   const monthEnd = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), daysInMonth);
-  const dayWidth = 28;
   
-  // No mobile (ajustado por hook ou apenas CSS, aqui usamos uma lógica simples de estimativa
-  // ou deixamos o CSS lidar via variáveis). Vamos usar 140 no mobile e 240 no desktop.
+  // No mobile, diminuímos a largura dos dias e da coluna de nomes
+  const [dayWidth, setDayWidth] = useState(28);
   const [nameColWidth, setNameColWidth] = useState(240);
 
-  // Hook para detectar largura e ajustar a coluna sticky
   useState(() => {
     if (typeof window !== "undefined") {
       const handleResize = () => {
-        setNameColWidth(window.innerWidth < 1024 ? 140 : 240);
+        const isMobile = window.innerWidth < 1024;
+        setNameColWidth(isMobile ? 100 : 240);
+        setDayWidth(isMobile ? 22 : 28);
       };
       handleResize();
       window.addEventListener("resize", handleResize);
