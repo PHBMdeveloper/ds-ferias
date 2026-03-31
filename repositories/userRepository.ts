@@ -157,11 +157,7 @@ export async function findAllUsersForAdmin() {
       manager: { select: { id: true, name: true } },
       _count: { select: { reports: true } },
       acquisitionPeriods: {
-        where: {
-          startDate: { lte: todayUtc },
-          endDate: { gte: todayUtc },
-        },
-        orderBy: { startDate: "desc" },
+        orderBy: { endDate: "desc" },
         take: 1,
         select: { usedDays: true },
       },

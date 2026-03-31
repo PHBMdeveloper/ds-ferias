@@ -73,7 +73,7 @@ export function BackofficeClient({
     name: string;
     email: string;
     registration: string;
-    role: "" | "FUNCIONARIO" | "COORDENADOR" | "GERENTE" | "DIRETOR" | "RH";
+    role: Role | "";
     department: string;
     hireDate: string; // yyyy-mm-dd
     team: string;
@@ -89,7 +89,7 @@ export function BackofficeClient({
     managerId: "",
   });
   const [search, setSearch] = useState("");
-  const [roleFilter, setRoleFilter] = useState<"" | "FUNCIONARIO" | "COORDENADOR" | "GERENTE" | "DIRETOR" | "RH">("");
+  const [roleFilter, setRoleFilter] = useState<Role | "">("");
   const [sortKey, setSortKey] = useState<SortKey>("name");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
 
@@ -266,7 +266,7 @@ export function BackofficeClient({
           <select
             value={roleFilter}
             onChange={(e) =>
-              setRoleFilter((e.target.value || "") as "" | "FUNCIONARIO" | "COORDENADOR" | "GERENTE" | "DIRETOR" | "RH")
+              setRoleFilter((e.target.value || "") as Role | "")
             }
             aria-label="Filtrar por papel"
             className="w-40 rounded-md border border-[#e2e8f0] bg-white px-2 py-1.5 text-sm text-[#1a1d23] outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-[#252a35] dark:bg-[#0f1117] dark:text-white"
@@ -458,7 +458,7 @@ export function BackofficeClient({
                   {editingId === u.id ? (
                     <select
                       value={form.role ?? u.role}
-                      onChange={(e) => setForm((f) => ({ ...f, role: e.target.value }))}
+                      onChange={(e) => setForm((f) => ({ ...f, role: e.target.value as Role }))}
                       aria-label="Papel do usuário"
                       className="rounded border border-[#e2e8f0] bg-white px-2 py-1.5 dark:border-[#252a35] dark:bg-[#0f1117] dark:text-white"
                     >
@@ -506,7 +506,29 @@ export function BackofficeClient({
                     <input
                       type="date"
                       value={form.hireDate ? new Date(form.hireDate).toISOString().slice(0, 10) : ""}
-                      onChange={(e) => setForm((f) => ({ ...f, hireDate: e.target.value ? new Date(e.target.value) : null }))}
+                      onChange={async (e) => {
+                        const newDate = e.target.value ? new Date(e.target.value) : null;
+                        setForm((f) => ({ ...f, hireDate: newDate }));
+                        
+                        // --- RECARGA DE CICLOS AO MUDAR DATA ---
+                        if (newDate) {
+                          setLoadingPeriods(u.id);
+                          try {
+                            // Sincroniza e busca os novos períodos para a UI
+                            const res = await fetch(`/api/reports/acquisition-periods?userId=${u.id}&sync=true&hireDate=${newDate.toISOString()}`);
+                            const data = await res.json().catch(() => ({}));
+                            if (res.ok && Array.isArray(data.periods)) {
+                              setEditingPeriods(data.periods);
+                            }
+                          } catch (err) {
+                            console.error("Erro ao sincronizar ciclos:", err);
+                          } finally {
+                            setLoadingPeriods(null);
+                          }
+                        } else {
+                          setEditingPeriods([]);
+                        }
+                      }}
                       aria-label="Data de admissão"
                       className="rounded border border-[#e2e8f0] bg-white px-2 py-1.5 dark:border-[#252a35] dark:bg-[#0f1117] dark:text-white"
                     />

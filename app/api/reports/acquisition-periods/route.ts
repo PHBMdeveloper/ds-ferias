@@ -25,6 +25,13 @@ export async function GET(request: Request) {
 
   // Se pediu um usuário específico, retorna JSON para o Backoffice
   if (userId) {
+    const sync = searchParams.get("sync") === "true";
+    const rawHireDate = searchParams.get("hireDate");
+
+    if (sync && rawHireDate) {
+      await syncAcquisitionPeriodsForUser(userId, new Date(rawHireDate));
+    }
+
     const periods = await prisma.acquisitionPeriod.findMany({
       where: { userId },
       orderBy: { startDate: "asc" },

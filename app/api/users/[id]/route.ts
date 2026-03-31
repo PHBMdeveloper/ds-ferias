@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSessionUser, shouldForcePasswordChange } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getRoleLevel } from "@/lib/vacationRules";
+import { syncAcquisitionPeriodsForUser } from "@/repositories/acquisitionRepository";
 import type { UserUncheckedUpdateInput } from "@/generated/prisma/models/User";
 
 const ROLES = ["FUNCIONARIO", "COLABORADOR", "COORDENADOR", "GESTOR", "GERENTE", "DIRETOR", "RH"] as const;
@@ -48,11 +49,18 @@ export async function PATCH(
     }
 
     // 2. Atualiza dados do usuário
-    return await tx.user.update({
+    const updatedUser = await tx.user.update({
       where: { id },
       data,
       select: { id: true, name: true, email: true, role: true, department: true, hireDate: true, team: true, managerId: true },
     });
+
+    // 3. Se a data de admissão mudou, sincroniza os ciclos (recalcula do zero)
+    if (data.hireDate) {
+      await syncAcquisitionPeriodsForUser(id, data.hireDate as Date);
+    }
+
+    return updatedUser;
   });
 
   return NextResponse.json(updated);
