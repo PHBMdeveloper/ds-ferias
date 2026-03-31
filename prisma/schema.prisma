@@ -76,7 +76,7 @@ model User {
   updatedAt DateTime @updatedAt
 
   @@index([managerId])
-  @@index([role])
+  @@index([role, name])
   @@index([team])
 }
 
