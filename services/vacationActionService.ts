@@ -10,6 +10,7 @@ import {
   detectTeamConflicts,
   hasTeamVisibility,
   getChargeableDays,
+  computeReturnDate,
 } from "@/lib/vacationRules";
 import { validateVacationConcessiveFifo } from "@/lib/concessivePeriod";
 import { syncAcquisitionPeriodsForUser, findAcquisitionPeriodsForUser } from "@/repositories/acquisitionRepository";
@@ -300,7 +301,7 @@ export const vacationActionService = {
       notifyApproved({
         requestId: id, userName: finalUpdated.user.name, userEmail: finalUpdated.user.email, approverName: approver.name,
         status: nextStatus, toEmails: [finalUpdated.user.email, approver.email], startDate: finalUpdated.startDate, endDate: finalUpdated.endDate,
-        returnDate: new Date(new Date(finalUpdated.endDate).getTime() + ONE_DAY_MS), abono: finalUpdated.abono, thirteenth: finalUpdated.thirteenth
+        returnDate: computeReturnDate(new Date(finalUpdated.startDate), new Date(finalUpdated.endDate), finalUpdated.abono), abono: finalUpdated.abono, thirteenth: finalUpdated.thirteenth
       }).catch(err => logger.error("Erro ao notificar aprovação", { error: String(err) }));
     }
 

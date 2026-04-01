@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { notifyUpcomingVacationReminder, notifyReturnToWorkReminder } from "@/lib/notifications";
-import { APPROVED_VACATION_STATUSES } from "@/lib/vacationRules";
+import { APPROVED_VACATION_STATUSES, computeReturnDate } from "@/lib/vacationRules";
 import { logger } from "@/lib/logger";
 
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
@@ -71,16 +71,20 @@ export async function GET(request: Request) {
     },
   });
 
-  const returnReminders = await prisma.vacationRequest.findMany({
+  // Para férias com abono de 30 dias, o retorno ocorre 10 dias antes do endDate.
+  // Buscamos numa janela ampliada (+10 dias) e filtramos em código pelo returnDate real.
+  const returnWindowEnd = new Date(returnTargetEnd.getTime() + 10 * ONE_DAY_MS);
+  const returnCandidates = await prisma.vacationRequest.findMany({
     where: {
       status: { in: [...APPROVED_VACATION_STATUSES] },
-      endDate: { gte: returnTargetStart, lt: returnTargetEnd },
+      endDate: { gte: returnTargetStart, lt: returnWindowEnd },
       user: { managerId: { not: null } },
     },
     select: {
       id: true,
       startDate: true,
       endDate: true,
+      abono: true,
       user: {
         select: {
           name: true,
@@ -89,6 +93,12 @@ export async function GET(request: Request) {
         },
       },
     },
+  });
+
+  // Filtra apenas os que de fato retornam amanhã (considerando abono)
+  const returnReminders = returnCandidates.filter((r) => {
+    const ret = computeReturnDate(new Date(r.startDate), new Date(r.endDate), r.abono);
+    return ret.getTime() >= returnTargetStart.getTime() && ret.getTime() < returnTargetEnd.getTime();
   });
 
   let sentStart = 0;
@@ -129,7 +139,7 @@ export async function GET(request: Request) {
       skippedReturn += 1;
       continue;
     }
-    const returnDate = new Date(r.endDate.getTime() + ONE_DAY_MS);
+    const returnDate = computeReturnDate(new Date(r.startDate), new Date(r.endDate), r.abono);
     await notifyReturnToWorkReminder({
       requestId: r.id,
       userName: r.user.name,

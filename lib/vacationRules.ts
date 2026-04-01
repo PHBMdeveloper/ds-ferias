@@ -339,6 +339,27 @@ export function getChargeableDays(start: Date, end: Date, hasAbono?: boolean): n
   return hasAbono ? Math.min(30, raw + 10) : raw;
 }
 
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Calcula a data real de retorno ao trabalho, levando em conta o abono pecuniário.
+ *
+ * Com abono, o colaborador pode ter selecionado até 30 dias no calendário, sendo que
+ * os últimos 10 são dias "vendidos" (abono) — o gozo efetivo é de apenas 20 dias.
+ * Nesses casos, o retorno ocorre 10 dias antes do que `endDate + 1` indicaria.
+ *
+ * - abono=true  + span >= 30 dias → returnDate = endDate - 9  (20 dias de gozo + dia seguinte)
+ * - abono=true  + span <  30 dias → returnDate = endDate + 1  (seleção já indica o gozo real)
+ * - abono=false                   → returnDate = endDate + 1
+ */
+export function computeReturnDate(startDate: Date, endDate: Date, abono: boolean): Date {
+  const rawSpanDays = Math.round((endDate.getTime() - startDate.getTime()) / ONE_DAY_MS) + 1;
+  if (abono && rawSpanDays >= 30) {
+    return new Date(endDate.getTime() - 9 * ONE_DAY_MS);
+  }
+  return new Date(endDate.getTime() + ONE_DAY_MS);
+}
+
 /**
  * Calcula o saldo de férias de um colaborador.
  * CLT: a cada 12 meses trabalhados, o funcionário adquire 30 dias.
