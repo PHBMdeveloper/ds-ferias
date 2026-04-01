@@ -43,7 +43,8 @@ type AcquisitionPeriodRow = {
   startDate: string;
   endDate: string;
   accruedDays: number;
-  usedDays: number | "";
+  usedDays: number | "";     // valor editável = manualUsedDays (ajuste do RH)
+  fifoUsedDays?: number;     // valor calculado pela FIFO (somente leitura)
 };
 
 type Manager = { id: string; name: string };
@@ -198,7 +199,8 @@ export function BackofficeClient({
             startDate: p.startDate,
             endDate: p.endDate,
             accruedDays: p.accruedDays,
-            usedDays: p.usedDays
+            usedDays: p.manualUsedDays ?? 0,  // editável: ajuste manual do RH
+            fifoUsedDays: p.usedDays ?? 0,    // leitura: calculado pela FIFO
           })));
         }
       } catch (err) {
@@ -655,34 +657,40 @@ export function BackofficeClient({
                           ) : editingPeriods.length > 0 ? (
                             <div className="space-y-2">
                               {editingPeriods.map((ap, idx) => (
-                                <div key={ap.id} className="flex items-center justify-between gap-2 border-b border-blue-100/50 pb-1 last:border-0 dark:border-blue-900/30">
-                                  <div className="flex flex-col">
+                                <div key={ap.id} className="flex flex-col gap-1 border-b border-blue-100/50 pb-2 last:border-0 dark:border-blue-900/30">
+                                  <div className="flex items-center justify-between">
                                     <span className="text-[10px] font-bold text-slate-600 dark:text-slate-300">
                                       {new Date(ap.startDate).toLocaleDateString("pt-BR")} – {new Date(ap.endDate).toLocaleDateString("pt-BR")}
                                     </span>
                                     <span className="text-[9px] text-slate-400">Total: {ap.accruedDays} dias</span>
                                   </div>
-                                  <div className="flex items-center gap-1">
-                                    <span className="text-[9px] font-medium text-slate-500">Gozados:</span>
-                                    <input
-                                      type="number"
-                                      value={ap.usedDays}
-                                      onChange={(e) => {
-                                        const raw = e.target.value;
-                                        // Se estiver vazio, mantém vazio no estado para o input sumir o número
-                                        if (raw === "") {
-                                          setEditingPeriods(prev => prev.map((p, i) => i === idx ? { ...p, usedDays: "" } : p));
-                                          return;
-                                        }
-                                        const parsed = parseInt(raw);
-                                        if (isNaN(parsed)) return;
-                                        
-                                        // Limita entre 0 e o total do ciclo (geralmente 30)
-                                        const val = Math.max(0, Math.min(ap.accruedDays, parsed));
-                                        setEditingPeriods(prev => prev.map((p, i) => i === idx ? { ...p, usedDays: val } : p));
-                                      }}
-                                      className="h-7 w-12 rounded border border-blue-200 bg-white px-1 text-center text-xs font-bold text-blue-700 outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-blue-800 dark:bg-[#0f1117] dark:text-blue-300"
-                                    />
+                                  <div className="flex items-center justify-between gap-2">
+                                    <span className="text-[9px] text-slate-400">
+                                      Auto (FIFO):{" "}
+                                      <span className="font-semibold text-slate-600 dark:text-slate-300">
+                                        {ap.fifoUsedDays ?? 0}
+                                      </span>{" "}
+                                      dias
+                                    </span>
+                                    <div className="flex items-center gap-1">
+                                      <span className="text-[9px] font-medium text-slate-500">Ajuste manual:</span>
+                                      <input
+                                        type="number"
+                                        value={ap.usedDays}
+                                        onChange={(e) => {
+                                          const raw = e.target.value;
+                                          if (raw === "") {
+                                            setEditingPeriods(prev => prev.map((p, i) => i === idx ? { ...p, usedDays: "" } : p));
+                                            return;
+                                          }
+                                          const parsed = parseInt(raw);
+                                          if (isNaN(parsed)) return;
+                                          const val = Math.max(0, Math.min(ap.accruedDays, parsed));
+                                          setEditingPeriods(prev => prev.map((p, i) => i === idx ? { ...p, usedDays: val } : p));
+                                        }}
+                                        className="h-7 w-12 rounded border border-blue-200 bg-white px-1 text-center text-xs font-bold text-blue-700 outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-blue-800 dark:bg-[#0f1117] dark:text-blue-300"
+                                      />
+                                    </div>
                                   </div>
                                 </div>
                               ))}

@@ -25,21 +25,19 @@ export function SidebarBalance({
 }) {
   const isBusinessDaysRole = userRole === "GERENTE" || userRole === "DIRETOR";
   const cycleBusinessLimit = 22;
-  // Soma usedDays de TODOS os períodos (inclusive os completamente consumidos)
-  const usedFromAllPeriods = acquisitionPeriods.reduce((sum: number, p: any) => sum + p.usedDays, 0);
-  const totalEntitledFromPeriods = acquisitionPeriods.reduce((sum: number, p: any) => sum + p.accruedDays, 0);
 
+  // calculateVacationBalance já aplica o cutoff CLT (últimos 2 ciclos) ao somar usedDays
+  // dos acquisitionPeriods. Usar balance.usedDays evita somar períodos antigos/prescritos.
+  const totalEntitledFromPeriods = acquisitionPeriods.reduce((sum: number, p: any) => sum + p.accruedDays, 0);
   const totalFromAcquisitionPeriods = acquisitionPeriods.length > 0 ? totalEntitledFromPeriods : balance.entitledDays;
   const normalizedTotalFromPeriods = Math.min(balance.entitledDays, totalFromAcquisitionPeriods);
   const totalLimit = isBusinessDaysRole
     ? cycleBusinessLimit
     : normalizedTotalFromPeriods;
   const safeLimit = Math.max(1, totalLimit);
-  const rawUsed = isBusinessDaysRole
-    ? balance.usedDays
-    : acquisitionPeriods.length > 0
-      ? Math.min(usedFromAllPeriods, totalLimit)
-      : balance.usedDays;
+  // Usa balance.usedDays (já filtrado pelo cutoff CLT) para evitar somar
+  // períodos antigos/prescritos que não aparecem nos cards
+  const rawUsed = balance.usedDays;
   const normalizedUsed = Math.min(totalLimit, Math.max(0, rawUsed));
   const remainingAfterUsed = isBusinessDaysRole
     ? Math.max(0, cycleBusinessLimit - normalizedUsed)

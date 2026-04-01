@@ -17,6 +17,9 @@ export async function POST() {
     return NextResponse.json({ error: "Acesso restrito ao RH." }, { status: 403 });
   }
 
+  // Limpa manualUsedDays que possam ter sido gravados acidentalmente (garante estado limpo)
+  await prisma.$executeRaw`UPDATE "AcquisitionPeriod" SET "manualUsedDays" = 0 WHERE "manualUsedDays" != 0`;
+
   // Migra registros legados com status APROVADO_RH → APROVADO_DIRETOR
   const [migratedRequests, migratedHistoryPrev, migratedHistoryNew] = await Promise.all([
     prisma.$executeRaw`UPDATE "VacationRequest" SET status = 'APROVADO_DIRETOR'::"VacationStatus" WHERE status = 'APROVADO_RH'::"VacationStatus"`,

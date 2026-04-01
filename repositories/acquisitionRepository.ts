@@ -174,12 +174,13 @@ export async function syncAcquisitionPeriodsForUser(
       select: { id: true, startDate: true, endDate: true, acquisitionPeriodId: true, abono: true },
     });
 
-  // FIFO limpo: sempre recomeça a partir do manualUsedDays (ajuste explícito do RH).
-  // Isso garante que deleções/cancelamentos de férias reflitam imediatamente nos saldos,
-  // sem confundir "ajuste manual" com "sobra de féria excluída".
+  // FIFO limpo: sempre recomeça do zero.
+  // O manualUsedDays NÃO é usado como base aqui porque causava overflow para o ciclo atual
+  // quando gravado acidentalmente com valor > 0. O campo fica no schema para exibição no
+  // backoffice mas não influencia o cálculo automático.
   const newUsedDays = new Map<string, number>();
   for (const p of periods) {
-    newUsedDays.set(p.id, Math.max(0, (p as any).manualUsedDays ?? 0));
+    newUsedDays.set(p.id, 0);
   }
 
   const newPeriodIdForRequest = new Map<string, string>();
