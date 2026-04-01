@@ -31,8 +31,8 @@ export const prisma =
 // Redireciona logs do Prisma para o nosso logger estruturado
 if (!(prisma as any)._loggingInitialized) {
   (prisma as any).$on("query", (e: any) => {
-    // Logamos queries apenas se durarem mais de 500ms (slow queries)
-    if (e.duration >= 500) {
+    // Logamos queries apenas se durarem mais de 1500ms (slow queries)
+    if (e.duration >= 1500) {
       logger.warn("Slow query detected", { 
         query: e.query, 
         params: e.params, 
