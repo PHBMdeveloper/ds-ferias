@@ -233,7 +233,7 @@ describe("entitlement and sidebar context", () => {
       department: "Produto",
       vacationRequests: [],
     });
-    mockFindAcquisitionPeriodsForUser.mockResolvedValueOnce([
+    const periods = [
       {
         id: "p1",
         startDate: new Date("2024-01-01T00:00:00Z"),
@@ -241,7 +241,9 @@ describe("entitlement and sidebar context", () => {
         accruedDays: 30,
         usedDays: 10,
       },
-    ]);
+    ];
+    mockSyncAcquisitionPeriodsForUser.mockResolvedValueOnce(periods);
+    mockFindAcquisitionPeriodsForUser.mockResolvedValueOnce(periods);
     mockPrismaVacationFindMany.mockResolvedValueOnce([
       { startDate: new Date("2026-01-05T00:00:00Z"), endDate: new Date("2026-01-19T00:00:00Z") },
     ]);

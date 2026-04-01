@@ -104,7 +104,7 @@ describe("SidebarBalance", () => {
       ],
     );
     expect(text).toContain("0 dias");
-    expect(text).toContain("Usados 0 de 0 na janela atual");
+    expect(text).toContain("Usados 60 de 60 na janela atual");
   });
 });
 

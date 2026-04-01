@@ -82,7 +82,7 @@ describe("Backoffice API - /api/users/[id]", () => {
       // Verifica se o ciclo foi atualizado com a trava de segurança (userId)
       expect(prisma.acquisitionPeriod.update).toHaveBeenCalledWith({
         where: { id: "ap1", userId: "u1" },
-        data: { usedDays: 15 }
+        data: { manualUsedDays: 15 },
       });
 
       // Verifica se o usuário foi atualizado
@@ -108,7 +108,7 @@ describe("Backoffice API - /api/users/[id]", () => {
       // Deve ter limitado a 30
       expect(prisma.acquisitionPeriod.update).toHaveBeenCalledWith({
         where: { id: "ap1", userId: "u1" },
-        data: { usedDays: 30 }
+        data: { manualUsedDays: 30 },
       });
     });
   });
