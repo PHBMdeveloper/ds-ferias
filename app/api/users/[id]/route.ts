@@ -60,14 +60,15 @@ export async function PATCH(
         data: updateData,
       });
 
-      // 2. Se houver ciclos enviados para ajuste manual
+      // 2. Se houver ciclos enviados para ajuste manual — salva em manualUsedDays
+      // (usedDays é sempre recalculado pela FIFO; manualUsedDays é a base de ajuste do RH)
       if (Array.isArray(acquisitionPeriods)) {
         for (const ap of acquisitionPeriods) {
           if (ap.id && ap.usedDays !== undefined) {
-            const used = Math.min(Number(ap.usedDays), ap.accruedDays ?? 30);
-            await tx.acquisitionPeriod.update({
-              where: { id: ap.id, userId: id }, // Trava de segurança userId conforme teste
-              data: { usedDays: used },
+            const manual = Math.min(Math.max(0, Number(ap.usedDays)), ap.accruedDays ?? 30);
+            await (tx as any).acquisitionPeriod.update({
+              where: { id: ap.id, userId: id },
+              data: { manualUsedDays: manual },
             });
           }
         }
@@ -82,8 +83,12 @@ export async function PATCH(
       fields: Object.keys(updateData)
     });
 
-    if (hireDate !== undefined) {
-      await syncAcquisitionPeriodsForUser(id, hireDate ? new Date(hireDate) : null);
+    // Recalcula usedDays via FIFO sempre que hireDate mudou OU ciclos foram ajustados manualmente
+    if (hireDate !== undefined || Array.isArray(body.acquisitionPeriods)) {
+      const userForSync = await prisma.user.findUnique({ where: { id }, select: { hireDate: true } });
+      if (userForSync?.hireDate) {
+        await syncAcquisitionPeriodsForUser(id, userForSync.hireDate);
+      }
     }
 
     // Retorna o usuário direto conforme esperado pelo teste (data.name)

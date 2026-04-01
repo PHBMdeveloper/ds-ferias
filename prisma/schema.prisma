@@ -151,8 +151,9 @@ model AcquisitionPeriod {
   user      User     @relation(fields: [userId], references: [id])
   startDate DateTime
   endDate   DateTime
-  accruedDays Int
-  usedDays    Int      @default(0)
+  accruedDays     Int
+  usedDays        Int @default(0)
+  manualUsedDays  Int @default(0)
   vacationRequests VacationRequest[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
