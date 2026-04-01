@@ -161,3 +161,40 @@ describe("acquisitionRepository", () => {
     (prisma as any).acquisitionPeriod = original;
   });
 });
+
+import { findAcquisitionPeriodsForUser, findAcquisitionPeriodForRange, addUsedDaysForRequest } from "@/repositories/acquisitionRepository";
+
+describe("acquisitionRepository - additional functions", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("findAcquisitionPeriodsForUser returns data from findMany", async () => {
+    vi.mocked(prisma.acquisitionPeriod.findMany).mockResolvedValue([{ id: "p1" }] as any);
+    const res = await findAcquisitionPeriodsForUser("u1");
+    expect(res).toEqual([{ id: "p1" }]);
+    expect(prisma.acquisitionPeriod.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: { userId: "u1" }
+    }));
+  });
+
+  it("findAcquisitionPeriodForRange finds period containing the range", async () => {
+    const p1 = { id: "p1", startDate: new Date("2026-01-01"), endDate: new Date("2026-12-31") };
+    vi.mocked(prisma.acquisitionPeriod.findMany).mockResolvedValue([p1] as any);
+    
+    const res = await findAcquisitionPeriodForRange("u1", new Date("2026-06-01"), new Date("2026-06-15"));
+    expect(res).toEqual(p1);
+  });
+
+  it("addUsedDaysForRequest updates usedDays correctly", async () => {
+    const p1 = { id: "p1", usedDays: 10, startDate: new Date("2026-01-01"), endDate: new Date("2026-12-31") };
+    vi.mocked(prisma.acquisitionPeriod.findMany).mockResolvedValue([p1] as any);
+    vi.mocked(prisma.acquisitionPeriod.update).mockResolvedValue({ ...p1, usedDays: 15 } as any);
+
+    const res = await addUsedDaysForRequest("u1", new Date("2026-06-01"), new Date("2026-06-05")); // 5 days
+    expect(res?.id).toBe("p1");
+    expect(prisma.acquisitionPeriod.update).toHaveBeenCalledWith(expect.objectContaining({
+      data: { usedDays: 15 }
+    }));
+  });
+});

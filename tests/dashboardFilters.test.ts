@@ -386,6 +386,13 @@ describe("sliceHistoricoPage", () => {
     expect(a.totalItems).toBe(25);
   });
 
+  it("handles non-finite or less than 1 page", () => {
+    const items = [1, 2, 3];
+    expect(sliceHistoricoPage(items, 0).page).toBe(1);
+    expect(sliceHistoricoPage(items, -5).page).toBe(1);
+    expect(sliceHistoricoPage(items, NaN).page).toBe(1);
+  });
+
   it("clamps page to totalPages when too high", () => {
     const items = [1, 2, 3];
     const a = sliceHistoricoPage(items, 99);
@@ -398,6 +405,95 @@ describe("sliceHistoricoPage", () => {
     const a = sliceHistoricoPage(items, 2);
     expect(a.items[0]).toBe(10);
     expect(a.items).toHaveLength(10);
+  });
+});
+
+describe("filterRequests extra branches", () => {
+  const baseReq = {
+    userId: "f1",
+    status: "PENDENTE",
+    startDate: new Date("2026-06-01"),
+    endDate: new Date("2026-06-14"),
+    user: { 
+      managerId: "coord-1", 
+      manager: { id: "coord-1", managerId: "ger-1" }, // added managerId: "ger-1" for visibility
+      department: "TI", 
+      name: "João" 
+    },
+  };
+
+  it("filters inbox for manager level 3 (GERENTE)", () => {
+    const approved = { ...baseReq, status: "APROVADO_COORDENADOR" };
+    const out = filterRequests("GERENTE", "ger-1", [baseReq, approved], {
+      view: "inbox",
+      query: "",
+      status: "TODOS",
+      managerId: "",
+      from: "",
+      to: "",
+      department: "",
+    });
+    expect(out).toHaveLength(1);
+    expect(out[0].status).toBe("PENDENTE");
+  });
+
+  it("filters inbox for manager level 4 (DIRETOR)", () => {
+    // For DIRETOR (level 4) to see it, the manager of the manager must be the director
+    const reqForDirector = {
+      ...baseReq,
+      user: {
+        ...baseReq.user,
+        manager: { id: "coord-1", manager: { id: "ger-1", managerId: "dir-1" } }
+      }
+    };
+    const out = filterRequests("DIRETOR", "dir-1", [{ ...reqForDirector, status: "APROVADO_GERENTE" }], {
+      view: "inbox",
+      query: "",
+      status: "TODOS",
+      managerId: "",
+      from: "",
+      to: "",
+      department: "",
+    });
+    expect(out).toHaveLength(0);
+  });
+
+  it("excludes pending requests from historico view", () => {
+    const out = filterRequests("RH", "rh-1", [baseReq], {
+      view: "historico",
+      query: "",
+      status: "TODOS",
+      managerId: "",
+      from: "",
+      to: "",
+      department: "",
+    });
+    expect(out).toHaveLength(0);
+  });
+
+  it("handles history entries without changedAt or newStatus in sorting", () => {
+    const reqA = {
+      ...baseReq,
+      userId: "a",
+      status: "REPROVADO",
+      history: [{ newStatus: "REPROVADO", changedAt: undefined }, { changedAt: "2026-01-01" }],
+    };
+    const reqB = {
+      ...baseReq,
+      userId: "b",
+      status: "REPROVADO",
+      history: [{ newStatus: null, changedAt: "2026-01-05" }],
+    };
+    const out = filterRequests("RH", "rh-1", [reqA, reqB], {
+      view: "historico",
+      query: "",
+      status: "TODOS",
+      managerId: "",
+      from: "",
+      to: "",
+      department: "",
+    });
+    expect(out).toBeDefined();
   });
 });
 

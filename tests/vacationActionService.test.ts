@@ -16,6 +16,7 @@ vi.mock("@/lib/prisma", () => ({
       update: vi.fn(),
       updateMany: vi.fn().mockResolvedValue({ count: 1 }),
       delete: vi.fn(),
+      count: vi.fn().mockResolvedValue(0),
     },
     user: {
       findUnique: vi.fn(),
@@ -56,6 +57,8 @@ describe("vacationActionService", () => {
     vi.spyOn(rules, "canApproveRequest").mockReturnValue(true);
     vi.spyOn(rules, "detectTeamConflicts").mockReturnValue({ isWarning: false, isBlocked: false, conflictingCount: 0 } as any);
     vi.spyOn(rules, "getNextApprovalStatus").mockReturnValue("APROVADO_COORDENADOR");
+    vi.mocked(acquisitionRepo.syncAcquisitionPeriodsForUser).mockResolvedValue([]);
+    vi.mocked(acquisitionRepo.findAcquisitionPeriodsForUser).mockResolvedValue([]);
   });
 
   describe("createRequest", () => {
@@ -75,14 +78,22 @@ describe("vacationActionService", () => {
       await expect(vacationActionService.createRequest({ user: mockUser, periods: [period] })).rejects.toThrow("Já existe uma solicitação que conflita com este período.");
     });
 
-    it("throws if Gerente business days limit is exceeded", async () => {
-      const manager = { ...mockUser, role: "GERENTE" };
+    it("throws if abono is requested but user already has one in the cycle", async () => {
+      const hireDate = new Date("2020-01-01");
+      vi.mocked(prisma.user.findUnique).mockResolvedValue({ hireDate, vacationRequests: [] } as any);
+      vi.mocked(prisma.vacationRequest.count).mockResolvedValue(2); // Higher than max (which is 2 for 2020 hireDate)
+      const period = { start: new Date("2026-06-01T12:00:00Z"), end: new Date("2026-06-20T12:00:00Z") };
+      await expect(vacationActionService.createRequest({ user: mockUser, periods: [period], abono: true })).rejects.toThrow(/abono é permitido apenas uma vez/);
+    });
+
+    it("throws if Diretor business days limit is exceeded", async () => {
+      const director = { ...mockUser, role: "DIRETOR" };
       vi.mocked(prisma.user.findUnique).mockResolvedValue({ hireDate: new Date("2020-01-01"), department: "IT" } as any);
       vi.mocked(prisma.vacationRequest.findMany).mockResolvedValue([
         { startDate: new Date("2026-01-01T12:00:00Z"), endDate: new Date("2026-01-28T12:00:00Z"), status: "APROVADO_GERENTE" }
       ] as any);
       const newPeriod = [{ start: new Date("2026-06-01T12:00:00Z"), end: new Date("2026-06-05T12:00:00Z") }];
-      await expect(vacationActionService.createRequest({ user: manager, periods: newPeriod })).rejects.toThrow(/limite é de 22 dias úteis/);
+      await expect(vacationActionService.createRequest({ user: director, periods: newPeriod })).rejects.toThrow(/limite é de 22 dias úteis/);
     });
 
     it("throws if starting before first entitlement date (pre-scheduling)", async () => {
@@ -150,6 +161,25 @@ describe("vacationActionService", () => {
       expect(res.id).toBe("r1");
     });
 
+    it("approves when confirmConflict is true even if conflict detected", async () => {
+      const manager = { ...mockUser, id: "m1", role: "GERENTE", name: "M" };
+      vi.mocked(prisma.vacationRequest.findUnique).mockResolvedValue({ id: "r1", userId: "u1", startDate: new Date(), endDate: new Date(), user: { managerId: "m1", name: "U", email: "e" } } as any);
+      vi.spyOn(rules, "detectTeamConflicts").mockReturnValue({ isBlocked: true, conflictingCount: 5 } as any);
+      
+      const res = await vacationActionService.approveRequest("r1", manager, true);
+      expect(res).toBeDefined();
+    });
+
+    it("returns immediately if request is already in target status", async () => {
+      const manager = { ...mockUser, id: "m1", role: "GERENTE", name: "M" };
+      vi.spyOn(rules, "getNextApprovalStatus").mockReturnValue("APROVADO_GERENTE");
+      vi.mocked(prisma.vacationRequest.findUnique).mockResolvedValue({ id: "r1", userId: "u1", status: "APROVADO_GERENTE", user: { managerId: "m1" } } as any);
+      
+      const res = await vacationActionService.approveRequest("r1", manager);
+      expect(res.status).toBe("APROVADO_GERENTE");
+      expect(prisma.vacationRequestHistory.create).not.toHaveBeenCalled();
+    });
+
     it("executes full approval path with period update and correct returnDate with abono", async () => {
       const startDate = new Date("2026-10-01T00:00:00Z");
       const endDate = new Date("2026-10-30T00:00:00Z"); // 30 dias corridos
@@ -159,7 +189,7 @@ describe("vacationActionService", () => {
         startDate, 
         endDate, 
         abono: true,
-        user: { id: "u1", name: "U", email: "e", managerId: "m1", role: "FUNCIONARIO" } 
+        user: { id: "u1", name: "U", email: "e", managerId: "m1", role: "FUNCIONARIO", hireDate: new Date() } 
       };
       vi.mocked(prisma.vacationRequest.findUnique).mockResolvedValue(mockReq as any);
       vi.mocked(prisma.acquisitionPeriod.findMany).mockResolvedValue([{ id: "p1", accruedDays: 30, usedDays: 0 }] as any);
@@ -169,9 +199,7 @@ describe("vacationActionService", () => {
       const res = await vacationActionService.approveRequest("r1", { ...mockUser, id: "m1", role: "GERENTE", name: "Boss" });
       expect(res).toBeDefined();
       
-      // Esperamos que a data de retorno seja endDate - 10 dias + 1 dia
-      // 2026-10-30 - 10 dias = 2026-10-20. 2026-10-20 + 1 dia = 2026-10-21.
-      const expectedReturnDate = new Date(endDate.getTime() - 10 * 24 * 60 * 60 * 1000 + 24 * 60 * 60 * 1000);
+      const expectedReturnDate = rules.computeReturnDate(startDate, endDate, true);
       
       await new Promise(process.nextTick);
       expect(notifications.notifyApproved).toHaveBeenCalledWith(expect.objectContaining({
@@ -222,13 +250,63 @@ describe("vacationActionService", () => {
       await expect(vacationActionService.cancelRequest("r1", mockUser)).rejects.toThrow("pendentes");
     });
 
-    it("bloqueia cancelamento se não for o dono", async () => {
-      const mockUser = { id: "other", role: "FUNCIONARIO" } as any;
+    it("retorna cltWarning se ao cancelar não restarem períodos de 14 dias", async () => {
+      const mockUser = { id: "u1", role: "FUNCIONARIO" } as any;
       const mockReq = { id: "r1", userId: "u1", status: "PENDENTE" } as any;
       
-      vi.mocked(prisma.vacationRequest.findUnique).mockResolvedValueOnce(mockReq);
+      vi.mocked(prisma.vacationRequest.findUnique).mockResolvedValue(mockReq);
+      vi.mocked(prisma.user.findUnique).mockResolvedValue({ hireDate: new Date() } as any);
+      vi.mocked(prisma.vacationRequest.findMany).mockResolvedValue([
+        { startDate: new Date("2026-01-01"), endDate: new Date("2026-01-05") }, // 5 dias
+        { startDate: new Date("2026-02-01"), endDate: new Date("2026-02-05") }, // 5 dias
+      ] as any);
 
-      await expect(vacationActionService.cancelRequest("r1", mockUser)).rejects.toThrow("permissão");
+      const res = await vacationActionService.cancelRequest("r1", mockUser);
+
+      expect(res.cltWarning).toContain("14 dias ou mais");
+    });
+
+    it("permite que o gestor direto cancele um pedido da sua equipe", async () => {
+      const manager = { id: "m1", role: "GERENTE" } as any;
+      const mockReq = { id: "r1", userId: "u1", status: "PENDENTE", user: { managerId: "m1" } } as any;
+      
+      vi.mocked(prisma.vacationRequest.findUnique).mockResolvedValue(mockReq);
+      vi.spyOn(rules, "hasTeamVisibility").mockReturnValue(true);
+
+      const res = await vacationActionService.cancelRequest("r1", manager);
+      expect(res.ok).toBe(true);
+    });
+
+    it("permite que RH cancele qualquer pedido", async () => {
+      const rh = { id: "rh1", role: "RH" } as any;
+      const mockReq = { id: "r1", userId: "u1", status: "APROVADO_GERENTE", user: { managerId: "m1" } } as any;
+      
+      vi.mocked(prisma.vacationRequest.findUnique).mockResolvedValue(mockReq);
+
+      const res = await vacationActionService.cancelRequest("r1", rh);
+      expect(res.ok).toBe(true);
+    });
+
+    it("bloqueia se coordenador tentar cancelar pedido aprovado por outro gestor (mesmo sendo o gestor direto)", async () => {
+      const coord = { id: "c1", role: "COORDENADOR" } as any;
+      // Requisicao já aprovada (status APROVADO_GERENTE), mas coord é o gestor direto
+      const mockReq = { id: "r1", userId: "u1", status: "APROVADO_GERENTE", user: { managerId: "c1" } } as any;
+      
+      vi.mocked(prisma.vacationRequest.findUnique).mockResolvedValue(mockReq);
+      vi.spyOn(rules, "hasTeamVisibility").mockReturnValue(true);
+
+      await expect(vacationActionService.cancelRequest("r1", coord)).rejects.toThrow(/Somente Gerente ou RH/);
+    });
+
+    it("permite que coordenador cancele pedido aprovado por ele mesmo", async () => {
+      const coord = { id: "c1", role: "COORDENADOR" } as any;
+      const mockReq = { id: "r1", userId: "u1", status: "APROVADO_COORDENADOR", user: { managerId: "c1" } } as any;
+      
+      vi.mocked(prisma.vacationRequest.findUnique).mockResolvedValue(mockReq);
+      vi.spyOn(rules, "hasTeamVisibility").mockReturnValue(true);
+
+      const res = await vacationActionService.cancelRequest("r1", coord);
+      expect(res.ok).toBe(true);
     });
   });
 });

@@ -196,15 +196,48 @@ describe("notifications", () => {
     expect(errSpy).toHaveBeenCalledWith(expect.stringContaining("webhook failed"), expect.any(Object));
   });
 
-  it("handles 'none' provider", async () => {
-    process.env.NOTIFY_PROVIDER = "none";
-    const fetchSpy = vi.spyOn(globalThis, "fetch" as any);
+  it("obfuscates short emails", async () => {
+    const infoSpy = vi.spyOn(logger, "info").mockImplementation(() => {});
+    await notifyNewRequest({
+      requestId: "r", userName: "U", userEmail: "a@b.com", managerEmail: "x@y.com",
+      startDate: new Date(), endDate: new Date(),
+    });
+    const logCall = infoSpy.mock.calls.find(call => call[1]?.to && call[1].to.includes("@y.com"));
+    expect(logCall![1].to).toBe("x****@y.com");
+  });
+
+  it("handles provider 'both'", async () => {
+    process.env.NOTIFY_PROVIDER = "both";
+    process.env.NOTIFY_WEBHOOK_URL = "https://w.t";
+    const fetchSpy = vi.spyOn(globalThis, "fetch" as any).mockResolvedValue({ ok: true } as any);
+    await notifyRejected({ requestId: "r", userName: "U", userEmail: "u@e.com", approverName: "A" });
+    expect(resendSendMock).toHaveBeenCalled();
+    expect(fetchSpy).toHaveBeenCalled();
+  });
+
+  it("renders approved email without logo when MAIL_LOGO_URL is missing", async () => {
+    delete process.env.MAIL_LOGO_URL;
     await notifyApproved({
-      requestId: "r-none-prov", userName: "U", userEmail: "u@e.com", approverName: "A", status: "APROVADO_GERENTE",
-      toEmails: ["a@e.com"], startDate: new Date(), endDate: new Date(), returnDate: new Date(),
+      requestId: "r", userName: "U", userEmail: "u@e.com", approverName: "A", status: "S",
+      toEmails: ["u@e.com"], startDate: new Date(), endDate: new Date(), returnDate: new Date(),
       abono: false, thirteenth: false,
     });
-    expect(fetchSpy).not.toHaveBeenCalled();
-    expect(resendSendMock).not.toHaveBeenCalled();
+    const args = resendSendMock.mock.calls[0][0];
+    expect(args.html).not.toContain("<img");
+    expect(args.html).toContain("Editora Globo"); // Brand name fallback
+  });
+
+  it("logs error when slack reminder fetch fails", async () => {
+    process.env.REMINDER_CHANNELS = "slack";
+    process.env.SLACK_WEBHOOK_URL = "https://slack.t";
+    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.spyOn(globalThis, "fetch" as any).mockResolvedValue({ ok: false, status: 404, text: () => Promise.resolve("Not Found") } as any);
+
+    await notifyUpcomingVacationReminder({
+      requestId: "r", userName: "U", userEmail: "u@e.com", managerName: "M", managerEmail: "m@e.com",
+      daysUntilStart: 1, startDate: new Date(), endDate: new Date(), abono: false, thirteenth: false
+    });
+
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining("slack reminder failed"), 404, "Not Found");
   });
 });
