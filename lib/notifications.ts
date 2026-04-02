@@ -95,21 +95,27 @@ async function sendNewRequestEmail(event: Extract<NotifyEvent, { type: "NEW_REQU
   const apiKey = process.env.RESEND_API_KEY?.trim();
   const from = process.env.MAIL_FROM?.trim();
   
+  logger.info("[sendNewRequestEmail] cleaning recipients", { original: event.managerEmail ? obfuscateEmail(event.managerEmail) : "null" });
   const recipients = [event.managerEmail].filter((e): e is string => Boolean(e && typeof e === "string" && e.includes("@")));
 
   if (!apiKey || !from || recipients.length === 0) {
-    logger.warn("[sendNewRequestEmail] skipped - config missing or no valid manager email", {
+    logger.warn("[sendNewRequestEmail] skipped - validation failed", {
       hasApiKey: Boolean(apiKey),
       hasFrom: Boolean(from),
       managerEmail: event.managerEmail ? obfuscateEmail(event.managerEmail) : null,
+      validRecipientsCount: recipients.length
     });
     return;
   }
 
+  logger.info("[sendNewRequestEmail] generating html", { requestId: event.requestId });
+  const html = renderNewRequestEmailHtml(event);
+  logger.info("[sendNewRequestEmail] html generated", { size: html.length });
+
   const resend = new Resend(apiKey);
   const subject = `Nova solicitação de férias - ${event.userName}`;
 
-  logger.info("[sendNewRequestEmail] attempting to send", {
+  logger.info("[sendNewRequestEmail] calling resend api", {
     from: obfuscateEmail(from),
     to: recipients.map(obfuscateEmail),
     subject,
@@ -120,26 +126,20 @@ async function sendNewRequestEmail(event: Extract<NotifyEvent, { type: "NEW_REQU
       from,
       to: recipients,
       subject,
-      html: renderNewRequestEmailHtml(event),
+      html,
     });
 
     if (error) {
-      logger.error("[sendNewRequestEmail] resend error", {
+      logger.error("[sendNewRequestEmail] resend api error", {
         error,
         from: obfuscateEmail(from),
         to: recipients.map(obfuscateEmail),
       });
       return;
     }
-    logger.info("[sendNewRequestEmail] sent successfully", {
-      id: data?.id,
-      to: recipients.map(obfuscateEmail),
-    });
+    logger.info("[sendNewRequestEmail] success", { id: data?.id, to: recipients.map(obfuscateEmail) });
   } catch (err) {
-    logger.error("[sendNewRequestEmail] exception thrown", {
-      error: err,
-      to: recipients.map(obfuscateEmail),
-    });
+    logger.error("[sendNewRequestEmail] critical failure", { error: err, to: recipients.map(obfuscateEmail) });
   }
 }
 
@@ -166,21 +166,27 @@ async function sendRejectedEmail(event: Extract<NotifyEvent, { type: "REJECTED" 
   const apiKey = process.env.RESEND_API_KEY?.trim();
   const from = process.env.MAIL_FROM?.trim();
 
+  logger.info("[sendRejectedEmail] cleaning recipients", { original: event.userEmail ? obfuscateEmail(event.userEmail) : "null" });
   const recipients = [event.userEmail].filter((e): e is string => Boolean(e && typeof e === "string" && e.includes("@")));
 
   if (!apiKey || !from || recipients.length === 0) {
-    logger.warn("[sendRejectedEmail] skipped - config missing or no valid user email", {
+    logger.warn("[sendRejectedEmail] skipped - validation failed", {
       hasApiKey: Boolean(apiKey),
       hasFrom: Boolean(from),
       userEmail: event.userEmail ? obfuscateEmail(event.userEmail) : null,
+      validRecipientsCount: recipients.length
     });
     return;
   }
 
+  logger.info("[sendRejectedEmail] generating html", { requestId: event.requestId });
+  const html = renderRejectedEmailHtml(event);
+  logger.info("[sendRejectedEmail] html generated", { size: html.length });
+
   const resend = new Resend(apiKey);
   const subject = `Solicitação de férias reprovada - ${event.userName}`;
 
-  logger.info("[sendRejectedEmail] attempting to send", {
+  logger.info("[sendRejectedEmail] calling resend api", {
     from: obfuscateEmail(from),
     to: recipients.map(obfuscateEmail),
     subject,
@@ -191,26 +197,20 @@ async function sendRejectedEmail(event: Extract<NotifyEvent, { type: "REJECTED" 
       from,
       to: recipients,
       subject,
-      html: renderRejectedEmailHtml(event),
+      html,
     });
 
     if (error) {
-      logger.error("[sendRejectedEmail] resend error", {
+      logger.error("[sendRejectedEmail] resend api error", {
         error,
         from: obfuscateEmail(from),
         to: recipients.map(obfuscateEmail),
       });
       return;
     }
-    logger.info("[sendRejectedEmail] sent successfully", {
-      id: data?.id,
-      to: recipients.map(obfuscateEmail),
-    });
+    logger.info("[sendRejectedEmail] success", { id: data?.id, to: recipients.map(obfuscateEmail) });
   } catch (err) {
-    logger.error("[sendRejectedEmail] exception thrown", {
-      error: err,
-      to: recipients.map(obfuscateEmail),
-    });
+    logger.error("[sendRejectedEmail] critical failure", { error: err, to: recipients.map(obfuscateEmail) });
   }
 }
 
@@ -295,12 +295,13 @@ async function sendApprovedEmail(event: Extract<NotifyEvent, { type: "APPROVED" 
   const apiKey = process.env.RESEND_API_KEY?.trim();
   const from = process.env.MAIL_FROM?.trim();
 
+  logger.info("[sendApprovedEmail] cleaning recipients", { originalCount: event.toEmails?.length || 0 });
   const recipients = Array.from(
     new Set(event.toEmails.filter((e): e is string => Boolean(e && typeof e === "string" && e.includes("@")))),
   );
 
   if (!apiKey || !from || recipients.length === 0) {
-    logger.warn("[sendApprovedEmail] skipped - config missing or no valid recipients", {
+    logger.warn("[sendApprovedEmail] skipped - validation failed", {
       hasApiKey: Boolean(apiKey),
       hasFrom: Boolean(from),
       toEmailsCount: event.toEmails?.length ?? 0,
@@ -309,10 +310,14 @@ async function sendApprovedEmail(event: Extract<NotifyEvent, { type: "APPROVED" 
     return;
   }
 
+  logger.info("[sendApprovedEmail] generating html", { requestId: event.requestId });
+  const html = renderApprovedEmailHtml(event);
+  logger.info("[sendApprovedEmail] html generated", { size: html.length });
+
   const resend = new Resend(apiKey);
   const subject = `Férias aprovadas - ${event.userName} (${event.startDate} a ${event.endDate})`;
 
-  logger.info("[sendApprovedEmail] attempting to send", {
+  logger.info("[sendApprovedEmail] calling resend api", {
     from: obfuscateEmail(from),
     recipients: recipients.map(obfuscateEmail),
     subject,
@@ -323,11 +328,11 @@ async function sendApprovedEmail(event: Extract<NotifyEvent, { type: "APPROVED" 
       from,
       to: recipients,
       subject,
-      html: renderApprovedEmailHtml(event),
+      html,
     });
 
     if (error) {
-      logger.error("[sendApprovedEmail] resend error", {
+      logger.error("[sendApprovedEmail] resend api error", {
         error,
         recipients: recipients.map(obfuscateEmail),
         from: obfuscateEmail(from),
@@ -335,12 +340,12 @@ async function sendApprovedEmail(event: Extract<NotifyEvent, { type: "APPROVED" 
       return;
     }
 
-    logger.info("[sendApprovedEmail] sent successfully", {
+    logger.info("[sendApprovedEmail] success", {
       id: data?.id,
       recipients: recipients.map(obfuscateEmail),
     });
   } catch (err) {
-    logger.error("[sendApprovedEmail] exception thrown", {
+    logger.error("[sendApprovedEmail] critical failure", {
       error: err,
       recipients: recipients.map(obfuscateEmail),
       from: obfuscateEmail(from),
@@ -513,26 +518,35 @@ function getNotifyProvider(): NotifyProvider {
  * Para ativar: NOTIFY_WEBHOOK_URL (POST JSON) ou implementar envio por e-mail (ex.: Resend).
  */
 export async function notify(event: NotifyEvent): Promise<void> {
+  logger.info("[notify] received event", { type: event.type, requestId: event.requestId });
   logEvent(event);
 
   const provider = getNotifyProvider();
   const shouldSendEmail = provider === "resend" || provider === "both";
   const shouldSendWebhook = provider === "webhook" || provider === "both";
 
-  logger.info("[notify] status", { type: event.type, provider, shouldSendEmail, shouldSendWebhook });
+  logger.info("[notify] routing decision", { 
+    type: event.type, 
+    provider, 
+    shouldSendEmail, 
+    shouldSendWebhook,
+    hasResendKey: Boolean(process.env.RESEND_API_KEY),
+    hasWebhookUrl: Boolean(process.env.NOTIFY_WEBHOOK_URL)
+  });
 
   if (shouldSendEmail) {
+    logger.info("[notify] attempting email delivery", { type: event.type });
     if (event.type === "APPROVED") {
       await sendApprovedEmail(event).catch((err) =>
-        logger.error("[notify] approved email error", { error: String(err) }),
+        logger.error("[notify] approved email branch error", { error: err }),
       );
     } else if (event.type === "NEW_REQUEST") {
       await sendNewRequestEmail(event).catch((err) =>
-        logger.error("[notify] new request email error", { error: String(err) }),
+        logger.error("[notify] new request email branch error", { error: err }),
       );
     } else if (event.type === "REJECTED") {
       await sendRejectedEmail(event).catch((err) =>
-        logger.error("[notify] rejected email error", { error: String(err) }),
+        logger.error("[notify] rejected email branch error", { error: err }),
       );
     }
   }
