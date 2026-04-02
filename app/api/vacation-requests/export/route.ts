@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSessionUser, shouldForcePasswordChange } from "@/lib/auth";
+import { escapeCsvFormulas } from "@/lib/csv";
 import { logger } from "@/lib/logger";
 import { getVacationRequestsForExport } from "@/services/vacationRequestListService";
 
@@ -42,10 +43,10 @@ export async function GET(request: Request) {
   ].join(";"));
 
   for (const r of filtered) {
-    const colaborador = r.user?.name ?? "";
-    const emailColab = r.user?.email ?? "";
-    const gestor = r.user?.manager?.name ?? "";
-    const statusAtual = r.status;
+    const colaborador = escapeCsvFormulas(r.user?.name);
+    const emailColab = escapeCsvFormulas(r.user?.email);
+    const gestor = escapeCsvFormulas(r.user?.manager?.name);
+    const statusAtual = escapeCsvFormulas(r.status);
     const dataInicio = r.startDate.toLocaleDateString("pt-BR");
     const dataFim = r.endDate.toLocaleDateString("pt-BR");
 
@@ -95,9 +96,9 @@ export async function GET(request: Request) {
         statusAtual,
         dataInicio,
         dataFim,
-        h.previousStatus ?? "",
-        h.newStatus ?? "",
-        changedByName,
+        escapeCsvFormulas(h.previousStatus),
+        escapeCsvFormulas(h.newStatus),
+        escapeCsvFormulas(changedByName),
         changedAt,
       ].join(";"));
     }
