@@ -171,8 +171,8 @@ export const vacationActionService = {
       } else {
         const allAcquisitionPeriods = await findAcquisitionPeriodsForUser(user.id);
         // Consideramos todos os períodos até a data de término da última solicitação enviada
-        const lastRequestedEnd = periods.reduce((max, p) => p.end > max ? p.end : max, periods[0].end);
-        const relevantPeriods = allAcquisitionPeriods.filter(ap => new Date(ap.startDate) <= lastRequestedEnd);
+        const lastRequestedEnd = periods.reduce((max: Date, p: { start: Date; end: Date }) => p.end > max ? p.end : max, periods[0].end);
+        const relevantPeriods = allAcquisitionPeriods.filter((ap: any) => new Date(ap.startDate) <= lastRequestedEnd);
         
         if (relevantPeriods.length === 0) throw new DomainError("Sem períodos aquisitivos disponíveis para as datas selecionadas.");
 

@@ -317,40 +317,46 @@ async function sendApprovedEmail(event: Extract<NotifyEvent, { type: "APPROVED" 
   const resend = new Resend(apiKey);
   const subject = `Férias aprovadas - ${event.userName} (${event.startDate} a ${event.endDate})`;
 
-  logger.info("[sendApprovedEmail] calling resend api", {
+  logger.info("[sendApprovedEmail] calling resend api for each recipient", {
     from: obfuscateEmail(from),
     recipients: recipients.map(obfuscateEmail),
     subject,
   });
 
-  try {
-    const { data, error } = await resend.emails.send({
-      from,
-      to: recipients,
-      subject,
-      html,
-    });
+  const sendPromises = recipients.map(async (to) => {
+    try {
+      const { data, error } = await resend.emails.send({
+        from,
+        to: [to],
+        subject,
+        html,
+      });
 
-    if (error) {
-      logger.error("[sendApprovedEmail] resend api error", {
-        error,
-        recipients: recipients.map(obfuscateEmail),
+      if (error) {
+        logger.error("[sendApprovedEmail] resend api error for recipient", {
+          error,
+          to: obfuscateEmail(to),
+          from: obfuscateEmail(from),
+        });
+        return { to, success: false };
+      }
+
+      logger.info("[sendApprovedEmail] success for recipient", {
+        id: data?.id,
+        to: obfuscateEmail(to),
+      });
+      return { to, success: true };
+    } catch (err) {
+      logger.error("[sendApprovedEmail] critical failure for recipient", {
+        error: err,
+        to: obfuscateEmail(to),
         from: obfuscateEmail(from),
       });
-      return;
+      return { to, success: false };
     }
+  });
 
-    logger.info("[sendApprovedEmail] success", {
-      id: data?.id,
-      recipients: recipients.map(obfuscateEmail),
-    });
-  } catch (err) {
-    logger.error("[sendApprovedEmail] critical failure", {
-      error: err,
-      recipients: recipients.map(obfuscateEmail),
-      from: obfuscateEmail(from),
-    });
-  }
+  await Promise.all(sendPromises);
 }
 
 function renderReminderEmailHtml(event: Extract<NotifyEvent, { type: "UPCOMING_VACATION_REMINDER" }>): string {
