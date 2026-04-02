@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSessionUser, shouldForcePasswordChange } from "@/lib/auth";
+import { escapeCsvFormulas } from "@/lib/csv";
 import { getRoleLevel, isVacationApprovedStatus } from "@/lib/vacationRules";
 import { findUsersWithVacationForBalance } from "@/repositories/userRepository";
 
@@ -56,9 +57,9 @@ export async function GET(request: Request) {
     if (hasTakenVacationInYear) continue;
 
     lines.push([
-      u.name.replace(/;/g, ","),
-      u.email.replace(/;/g, ","),
-      (u.department ?? "").replace(/;/g, ","),
+      escapeCsvFormulas(u.name),
+      escapeCsvFormulas(u.email),
+      escapeCsvFormulas(u.department),
       String(year),
       hasEntitlement ? "SIM" : "NAO",
       String(monthsWorked),
