@@ -3,6 +3,7 @@ import { getSessionUser, hashNewUserPassword, shouldForcePasswordChange } from "
 import { prisma } from "@/lib/prisma";
 import { getRoleLevel } from "@/lib/vacationRules";
 import { syncAcquisitionPeriodsForUser } from "@/repositories/acquisitionRepository";
+import { logger } from "@/lib/logger";
 
 const ROLES = ["FUNCIONARIO", "COLABORADOR", "COORDENADOR", "GESTOR", "GERENTE", "DIRETOR", "RH"] as const;
 
@@ -66,7 +67,7 @@ export async function POST(request: Request) {
     if (err?.code === "P2002") {
       return NextResponse.json({ error: "E-mail ou matrícula já cadastrados." }, { status: 400 });
     }
-    console.error(err);
+    logger.error("Erro ao criar usuário", { error: err instanceof Error ? err.message : "Unknown error" });
     return NextResponse.json({ error: "Erro ao criar usuário." }, { status: 500 });
   }
 }

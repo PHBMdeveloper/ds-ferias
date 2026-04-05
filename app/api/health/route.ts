@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { logger } from "@/lib/logger";
 
 /**
  * Health check para deploy e monitoramento.
@@ -15,7 +16,7 @@ export async function GET() {
       { status: 200 }
     );
   } catch (err) {
-    console.error("[health] Database check failed:", err);
+    logger.error("[health] Database check failed", { error: err instanceof Error ? err.message : "Unknown error" });
     return NextResponse.json(
       { status: "error", message: "Database unavailable", timestamp: new Date().toISOString() },
       { status: 503 }
