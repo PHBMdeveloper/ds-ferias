@@ -302,10 +302,9 @@ export function NewRequestCardClient({
               isBusinessDaysRole ? "Cada período: 5–22 dias úteis" : "Cada período: 5–30 dias corridos",
               isBusinessDaysRole
                 ? "Limite para gerente/diretor: 22 dias úteis por ciclo (segunda a sexta)"
-                : "Um período de 14+ dias (ou já ter no ciclo)",
+                : "Um período de 14+ dias",
               "O início não pode ocorrer na sexta, sábado ou domingo",
               "O início não pode ocorrer nos 2 dias que antecedem feriados",
-              "O término não pode ocorrer no sábado ou domingo",
               "Aviso prévio mínimo de 30 dias",
               isBusinessDaysRole
                 ? "Dias úteis consideram apenas segunda a sexta (sem sábado/domingo)"
