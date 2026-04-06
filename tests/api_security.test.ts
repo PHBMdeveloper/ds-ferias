@@ -197,7 +197,7 @@ describe("API Security and Privacy", () => {
       expect(prisma.$transaction).toHaveBeenCalledWith(
         expect.arrayContaining([
           expect.objectContaining({
-            notes: "alert('xss')Hello" // Tags removidas
+            notes: "&lt;script&gt;alert(&#x27;xss&#x27;)&lt;/script&gt;Hello"
           })
         ])
       );
