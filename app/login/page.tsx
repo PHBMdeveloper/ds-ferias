@@ -241,7 +241,7 @@ export default function LoginPage() {
               </button>
             </form>
 
-            {/* <TestUsersPanel users={testUsers} loading={loadingUsers} /> */}
+            <TestUsersPanel users={testUsers} loading={loadingUsers} />
           </div>
         </div>
       </div>
@@ -249,7 +249,6 @@ export default function LoginPage() {
   );
 }
 
-/*
 function TestUsersPanel({ users, loading }: { users: LoginUserPreview[]; loading: boolean }) {
   return (
     <div className="mt-8 rounded-lg border border-[#e2e8f0] bg-white p-4 text-sm text-[#1a1d23] shadow-sm dark:border-[#252a35] dark:bg-[#1a1d23] dark:text-slate-100">
@@ -280,4 +279,3 @@ function TestUsersPanel({ users, loading }: { users: LoginUserPreview[]; loading
     </div>
   );
 }
-*/
