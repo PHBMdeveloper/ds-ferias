@@ -37,10 +37,15 @@ export function hasInternalOverlapInDateRanges(ranges: DateRange[]): boolean {
 }
 
 /**
- * Sanitiza texto removendo tags HTML básicas para prevenir XSS persistente.
+ * Sanitiza texto para prevenir XSS persistente.
  */
 export function sanitizeText(text: unknown): string | null {
   if (typeof text !== "string") return null;
-  // Remove tags HTML
-  return text.replace(/<[^>]*>?/gm, "").trim() || null;
+  const escaped = text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+  return escaped.trim() || null;
 }
