@@ -12,3 +12,8 @@
 **Vulnerabilidade:** Múltiplos endpoints de exportação CSV (`vacation-requests/export`, `reports/balance`, `reports/adherence`, `reports/acquisition-periods`) não sanitizavam os dados controlados pelo usuário (nome, email, departamento, etc.). Isso permitia que um atacante injetasse fórmulas nocivas como `=cmd|' /C calc'!A0`, resultando em execução de código (RCE) caso o arquivo CSV fosse aberto no Microsoft Excel ou outro software de planilha por um administrador (RH ou gestor).
 **Learning:** O uso de separadores de campo corretos (`;`) resolve a integridade estrutural do CSV, mas não protege o aplicativo leitor final (Excel, Calc) das planilhas geradas de conteúdos dinâmicos que começam com `=`, `+`, `-`, `@`, `\t`, e `\r`. Adicionar um helper sanitizador em um projeto que já exporta CSV massivamente é uma correção obrigatória.
 **Prevention:** Qualquer dado renderizado em arquivos formatados para software de planilha (CSV/TSV) deve ser envolvido pelo utilitário `escapeCsvFormulas()` adicionado em `lib/csv.ts`, o qual prefixa os caracteres iniciais perigosos com `'` e, no contexto atual do projeto que usa `;` como separador, substitui internamente `;` por `,`.
+
+## 2024-05-18 - [Fix Persistent XSS Vulnerability]
+**Vulnerability:** Weak XSS sanitization in `sanitizeText` (`lib/validation.ts`) using RegEx to strip tags.
+**Learning:** Stripping HTML tags with Regex (`/<[^>]*>?/gm`) is insecure as it can be bypassed with nested tags (e.g., `<<script>script>`).
+**Prevention:** Use standard HTML entity escaping replacing `<` with `&lt;`, `>` with `&gt;`, `&` with `&amp;`, `'` with `&#x27;`, and `"` with `&quot;`.
