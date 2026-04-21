@@ -12,3 +12,13 @@
 **Vulnerabilidade:** Múltiplos endpoints de exportação CSV (`vacation-requests/export`, `reports/balance`, `reports/adherence`, `reports/acquisition-periods`) não sanitizavam os dados controlados pelo usuário (nome, email, departamento, etc.). Isso permitia que um atacante injetasse fórmulas nocivas como `=cmd|' /C calc'!A0`, resultando em execução de código (RCE) caso o arquivo CSV fosse aberto no Microsoft Excel ou outro software de planilha por um administrador (RH ou gestor).
 **Learning:** O uso de separadores de campo corretos (`;`) resolve a integridade estrutural do CSV, mas não protege o aplicativo leitor final (Excel, Calc) das planilhas geradas de conteúdos dinâmicos que começam com `=`, `+`, `-`, `@`, `\t`, e `\r`. Adicionar um helper sanitizador em um projeto que já exporta CSV massivamente é uma correção obrigatória.
 **Prevention:** Qualquer dado renderizado em arquivos formatados para software de planilha (CSV/TSV) deve ser envolvido pelo utilitário `escapeCsvFormulas()` adicionado em `lib/csv.ts`, o qual prefixa os caracteres iniciais perigosos com `'` e, no contexto atual do projeto que usa `;` como separador, substitui internamente `;` por `,`.
+
+## 2026-04-21 - [Sanitization for React Apps]
+**Vulnerability:** Double Escaping in React
+**Learning:** Escaping HTML entities for sanitization in an API causes double-escaping in a React application.
+**Prevention:** Rather than converting strings to HTML entities to sanitize for XSS, you should use regex to strictly strip tags to avoid rendering literal entities in the UI. Or properly allow React to escape strings automatically.
+
+## 2026-04-21 - [Sanitization in Feedback Endpoint]
+**Vulnerability:** Missing Input Sanitization
+**Learning:** The POST `/api/feedback/route.ts` directly logged and inserted user input `message` and `anonymousName` into the database without sanitization, allowing Log Injection and Stored XSS.
+**Prevention:** Apply `sanitizeText` to user input fields prior to logging or DB insertion. Ensure that the sanitization logic handles falsy or undefined values securely without causing unexpected database behaviors.
