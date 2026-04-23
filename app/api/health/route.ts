@@ -15,7 +15,7 @@ export async function GET() {
       { status: 200 }
     );
   } catch (err) {
-    console.error("[health] Database check failed:", err);
+    logger.error("[health] Database check failed", { error: err });
     return NextResponse.json(
       { status: "error", message: "Database unavailable", timestamp: new Date().toISOString() },
       { status: 503 }

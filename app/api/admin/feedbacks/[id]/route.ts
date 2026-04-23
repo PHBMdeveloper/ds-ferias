@@ -25,7 +25,7 @@ export async function PATCH(
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Erro ao atualizar feedback:", error);
+    logger.error("Erro ao atualizar feedback", { error });
     return NextResponse.json({ error: "Erro interno" }, { status: 500 });
   }
 }
@@ -49,7 +49,7 @@ export async function DELETE(
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Erro ao excluir feedback:", error);
+    logger.error("Erro ao excluir feedback", { error });
     return NextResponse.json({ error: "Erro interno" }, { status: 500 });
   }
 }
