@@ -29,7 +29,7 @@ export async function GET() {
 
     return NextResponse.json({ feedbacks });
   } catch (error) {
-    console.error("Erro ao carregar feedbacks:", error);
+    logger.error("Erro ao carregar feedbacks", { error });
     return NextResponse.json({ error: "Erro interno ao carregar feedbacks" }, { status: 500 });
   }
 }
