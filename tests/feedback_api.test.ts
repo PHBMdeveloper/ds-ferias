@@ -77,6 +77,29 @@ describe("Feedback API", () => {
       const res = await POST(req);
       expect(res.status).toBe(400);
     });
+
+    it("sanitiza message e anonymousName removendo tags HTML para prevenir XSS", async () => {
+      vi.mocked(getSessionUser).mockResolvedValueOnce({ id: "u1", role: "FUNCIONARIO" } as any);
+      vi.mocked((prisma as any).feedback.create).mockResolvedValueOnce({ id: "fb3" } as any);
+
+      const body = {
+        type: "SUGGESTION",
+        message: "<script>alert('XSS')</script>Boa sugestão!",
+        isAnonymous: true,
+        anonymousName: "<b>Hacker</b>"
+      };
+      const req = new Request("http://localhost/api/feedback", { method: "POST", body: JSON.stringify(body) });
+
+      const res = await POST(req);
+      expect(res.status).toBe(200);
+
+      expect((prisma as any).feedback.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          message: "alert('XSS')Boa sugestão!",
+          anonymousName: "Hacker"
+        })
+      });
+    });
   });
 
   describe("Admin Routes /api/admin/feedbacks/[id]", () => {
