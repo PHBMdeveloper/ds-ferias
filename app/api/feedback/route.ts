@@ -2,13 +2,18 @@ import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
+import { sanitizeText } from "@/lib/validation";
 
 export async function POST(request: Request) {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
 
   try {
-    const { type, message, isAnonymous, anonymousName } = await request.json();
+    const rawBody = await request.json();
+    const type = rawBody.type;
+    const isAnonymous = rawBody.isAnonymous;
+    const message = rawBody.message ? sanitizeText(rawBody.message) : null;
+    const anonymousName = rawBody.anonymousName ? sanitizeText(rawBody.anonymousName) : null;
 
     if (!type || !message) {
       logger.warn("Feedback: dados inválidos", { userId: user.id, type, message });
