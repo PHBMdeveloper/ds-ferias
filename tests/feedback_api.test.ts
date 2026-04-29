@@ -36,7 +36,7 @@ describe("Feedback API", () => {
       vi.mocked(getSessionUser).mockResolvedValueOnce({ id: "u1", role: "FUNCIONARIO" } as any);
       vi.mocked((prisma as any).feedback.create).mockResolvedValueOnce({ id: "fb1" } as any);
 
-      const body = { type: "BUG", message: "Erro na tela", isAnonymous: false };
+      const body = { type: "BUG", message: "Erro na tela <script>alert(1)</script>", isAnonymous: false };
       const req = new Request("http://localhost/api/feedback", { method: "POST", body: JSON.stringify(body) });
       
       const res = await POST(req);
@@ -46,7 +46,7 @@ describe("Feedback API", () => {
         data: expect.objectContaining({
           user: { connect: { id: "u1" } },
           type: "BUG",
-          message: "Erro na tela"
+          message: "Erro na tela alert(1)"
         })
       });
     });
@@ -55,7 +55,7 @@ describe("Feedback API", () => {
       vi.mocked(getSessionUser).mockResolvedValueOnce({ id: "u1", role: "FUNCIONARIO" } as any);
       vi.mocked((prisma as any).feedback.create).mockResolvedValueOnce({ id: "fb2" } as any);
 
-      const body = { type: "SUGGESTION", message: "Sugestão", isAnonymous: true, anonymousName: "Alguém" };
+      const body = { type: "SUGGESTION", message: "Sugestão", isAnonymous: true, anonymousName: "Alguém <b>Bold</b>" };
       const req = new Request("http://localhost/api/feedback", { method: "POST", body: JSON.stringify(body) });
       
       const res = await POST(req);
@@ -64,7 +64,7 @@ describe("Feedback API", () => {
       expect((prisma as any).feedback.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
           user: undefined,
-          anonymousName: "Alguém"
+          anonymousName: "Alguém Bold"
         })
       });
     });
