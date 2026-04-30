@@ -55,7 +55,7 @@ function getCurrentCycleRange(today: Date, hireDate: Date | null | undefined) {
   }
 
   const hire = toUtcMidnight(hireDate);
-  let start = new Date(Date.UTC(now.getUTCFullYear(), hire.getUTCMonth(), hire.getUTCDate()));
+  const start = new Date(Date.UTC(now.getUTCFullYear(), hire.getUTCMonth(), hire.getUTCDate()));
   if (start > now) start.setUTCFullYear(start.getUTCFullYear() - 1);
   const end = new Date(start);
   end.setUTCFullYear(end.getUTCFullYear() + 1);
