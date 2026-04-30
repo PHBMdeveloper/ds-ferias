@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { sanitizeText } from "@/lib/validation";
 import { logger } from "@/lib/logger";
 
 export async function POST(request: Request) {
@@ -8,7 +9,13 @@ export async function POST(request: Request) {
   if (!user) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
 
   try {
-    const { type, message, isAnonymous, anonymousName } = await request.json();
+    const json = await request.json();
+    const type = typeof json.type === "string" ? json.type.trim() : "";
+    const isAnonymous = Boolean(json.isAnonymous);
+
+    // Sanitização de campos de texto livre controlados pelo usuário
+    const message = sanitizeText(json.message);
+    const anonymousName = sanitizeText(json.anonymousName);
 
     if (!type || !message) {
       logger.warn("Feedback: dados inválidos", { userId: user.id, type, message });

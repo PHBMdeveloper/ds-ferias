@@ -80,7 +80,7 @@ describe("Workflow: request creation validation (CLT + blackout)", () => {
   const baseStart = new Date();
   baseStart.setDate(baseStart.getDate() + 90);
   function pickValidPeriod() {
-    let start = new Date(baseStart);
+    const start = new Date(baseStart);
     let end = new Date(start);
     end.setDate(end.getDate() + 13);
     // 0=domingo,1=segunda,...,5=sexta,6=sábado

@@ -112,7 +112,7 @@ export function ActionButtonForm({
 
       try {
         // Primeira tentativa
-        let { res, data } = await doRequest();
+        const { res, data } = await doRequest();
 
         if (!res.ok && data?.requiresConfirmation && typeof data.error === "string") {
           // Guarda mensagem e espera o usuário decidir no modal
