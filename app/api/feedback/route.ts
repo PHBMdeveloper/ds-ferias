@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
+import { sanitizeText } from "@/lib/validation";
 
 export async function POST(request: Request) {
   const user = await getSessionUser();
@@ -10,8 +11,12 @@ export async function POST(request: Request) {
   try {
     const { type, message, isAnonymous, anonymousName } = await request.json();
 
-    if (!type || !message) {
-      logger.warn("Feedback: dados inválidos", { userId: user.id, type, message });
+    const safeType = sanitizeText(type);
+    const safeMessage = sanitizeText(message);
+    const safeAnonymousName = sanitizeText(anonymousName);
+
+    if (!safeType || !safeMessage) {
+      logger.warn("Feedback: dados inválidos", { userId: user.id, type: safeType, message: safeMessage });
       return NextResponse.json({ error: "Tipo e mensagem são obrigatórios" }, { status: 400 });
     }
 
@@ -25,16 +30,16 @@ export async function POST(request: Request) {
     const feedback = await feedbackModel.create({
       data: {
         user: !isAnonymous ? { connect: { id: user.id } } : undefined,
-        type,
-        message,
-        anonymousName: anonymousName || null,
+        type: safeType,
+        message: safeMessage,
+        anonymousName: safeAnonymousName || null,
       },
     });
 
     logger.info("Feedback enviado", { 
       userId: user.id, 
       feedbackId: feedback.id,
-      type, 
+      type: safeType,
       isAnonymous 
     });
 
