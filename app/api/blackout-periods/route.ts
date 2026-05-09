@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getSessionUser, shouldForcePasswordChange } from "@/lib/auth";
 import { ROLE_LEVEL } from "@/lib/vacationRules";
 import { logger } from "@/lib/logger";
+import { sanitizeText } from "@/lib/validation";
 
 // GET - lista períodos de bloqueio (qualquer usuário autenticado pode ver)
 export async function GET() {
@@ -32,8 +33,10 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json().catch(() => null);
+  const reason = sanitizeText(body?.reason);
+  const department = sanitizeText(body?.department);
 
-  if (!body?.startDate || !body?.endDate || !body?.reason) {
+  if (!body?.startDate || !body?.endDate || !reason) {
     return NextResponse.json({ error: "Campos obrigatórios: startDate, endDate, reason." }, { status: 400 });
   }
 
@@ -49,13 +52,14 @@ export async function POST(request: Request) {
       data: {
         startDate: start,
         endDate: end,
-        reason: body.reason,
-        department: body.department ?? null,
+        reason: reason,
+        department: department,
         createdById: user.id,
       },
     });
 
-    logger.info("Blackout period created", { actorId: user.id, blackoutId: blackout.id, reason: body.reason });
+    // Use sanitized values to prevent Log Injection
+    logger.info("Blackout period created", { actorId: user.id, blackoutId: blackout.id, reason: reason });
 
     return NextResponse.json({ blackout }, { status: 201 });
   } catch (err) {
