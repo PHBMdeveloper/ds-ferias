@@ -88,7 +88,8 @@ describe("Backoffice API - /api/users/[id]", () => {
       // Verifica se o usuário foi atualizado
       expect(prisma.user.update).toHaveBeenCalledWith(expect.objectContaining({
         where: { id: "u1" },
-        data: expect.objectContaining({ name: "New Name" })
+        data: expect.objectContaining({ name: "New Name" }),
+        select: expect.any(Object)
       }));
     });
 
