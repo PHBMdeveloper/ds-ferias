@@ -58,6 +58,17 @@ export async function PATCH(
       const user = await tx.user.update({
         where: { id },
         data: updateData,
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          role: true,
+          department: true,
+          registration: true,
+          managerId: true,
+          hireDate: true,
+          team: true
+        }
       });
 
       // 2. Se houver ciclos enviados para ajuste manual — salva em manualUsedDays
