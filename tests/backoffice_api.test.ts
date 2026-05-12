@@ -85,10 +85,21 @@ describe("Backoffice API - /api/users/[id]", () => {
         data: { manualUsedDays: 15 },
       });
 
-      // Verifica se o usuário foi atualizado
+      // Verifica se o usuário foi atualizado e se a exposição de dados é prevenida por select
       expect(prisma.user.update).toHaveBeenCalledWith(expect.objectContaining({
         where: { id: "u1" },
-        data: expect.objectContaining({ name: "New Name" })
+        data: expect.objectContaining({ name: "New Name" }),
+        select: expect.objectContaining({
+          id: true,
+          name: true,
+          email: true,
+          role: true,
+          department: true,
+          registration: true,
+          managerId: true,
+          hireDate: true,
+          team: true,
+        }),
       }));
     });
 
