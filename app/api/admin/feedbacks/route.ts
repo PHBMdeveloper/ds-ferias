@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
 import { getRoleLevel } from "@/lib/vacationRules";
 import { prisma } from "@/lib/prisma";
+import { logger } from "@/lib/logger";
 
 export async function GET() {
   const user = await getSessionUser();
@@ -29,7 +30,7 @@ export async function GET() {
 
     return NextResponse.json({ feedbacks });
   } catch (error) {
-    console.error("Erro ao carregar feedbacks:", error);
+    logger.error("Erro ao carregar feedbacks", { error });
     return NextResponse.json({ error: "Erro interno ao carregar feedbacks" }, { status: 500 });
   }
 }

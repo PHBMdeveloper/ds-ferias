@@ -2,18 +2,24 @@ import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
+import { sanitizeText } from "@/lib/validation";
 
 export async function POST(request: Request) {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
 
   try {
-    const { type, message, isAnonymous, anonymousName } = await request.json();
+    const body = await request.json();
+    const rawType = body.type;
+    const rawMessage = body.message;
+    const isAnonymous = body.isAnonymous;
 
-    if (!type || !message) {
-      logger.warn("Feedback: dados inválidos", { userId: user.id, type, message });
+    if (!rawType || !rawMessage) {
+      logger.warn("Feedback: dados inválidos", { userId: user.id, type: rawType, inputMessage: rawMessage });
       return NextResponse.json({ error: "Tipo e mensagem são obrigatórios" }, { status: 400 });
     }
+    const message = sanitizeText(rawMessage);
+    const anonymousName = sanitizeText(body.anonymousName);
 
     const feedbackModel = (prisma as any).feedback;
     
@@ -25,7 +31,7 @@ export async function POST(request: Request) {
     const feedback = await feedbackModel.create({
       data: {
         user: !isAnonymous ? { connect: { id: user.id } } : undefined,
-        type,
+        type: rawType,
         message,
         anonymousName: anonymousName || null,
       },
@@ -34,7 +40,7 @@ export async function POST(request: Request) {
     logger.info("Feedback enviado", { 
       userId: user.id, 
       feedbackId: feedback.id,
-      type, 
+      type: rawType,
       isAnonymous 
     });
 
