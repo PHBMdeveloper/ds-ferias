@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
 import { getRoleLevel } from "@/lib/vacationRules";
 import { prisma } from "@/lib/prisma";
+import { logger } from "@/lib/logger";
 
 export async function PATCH(
   request: Request,
@@ -25,7 +26,7 @@ export async function PATCH(
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Erro ao atualizar feedback:", error);
+    logger.error("Erro ao atualizar feedback", { error });
     return NextResponse.json({ error: "Erro interno" }, { status: 500 });
   }
 }
@@ -49,7 +50,7 @@ export async function DELETE(
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Erro ao excluir feedback:", error);
+    logger.error("Erro ao excluir feedback", { error });
     return NextResponse.json({ error: "Erro interno" }, { status: 500 });
   }
 }
